@@ -25,6 +25,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!-- Sorties GPS : localisation uniquement pendant une sortie lancée par l'utilisateur (pas en arrière-plan) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
@@ -78,6 +83,11 @@
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/tapsync_apdu" />
         </service>
+
+        <service
+            android:name=".track.TrackingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <service
             android:name=".social.StreetPassService"

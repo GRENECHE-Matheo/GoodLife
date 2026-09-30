@@ -80,6 +80,9 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
   liste du Nutridex) partent **directement vers le téléphone d'un autre utilisateur**, sans serveur. Par prudence, déclarer
   comme données **partagées, facultatives, à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) »
   et « Activité dans l'appli › Autres actions (niveau, série, aliments découverts) ».
+- **Localisation / tracés GPS** : restent sur le téléphone → pas « collectés ». La carte (OpenFreeMap) et la recherche de
+  clubs (Overpass) reçoivent la **zone affichée** : déclarer « Localisation approximative », facultative, fonctionnalité
+  de l'appli, non partagée à des fins publicitaires.
 - **Pas** : lus sur le téléphone (capteur ou Health Connect), jamais transmis → pas « collectés » ; seule la moyenne peut partir
   vers Gemini si l'utilisateur demande un objectif à l'IA (déjà couvert par « Santé et remise en forme »).
 - Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.
@@ -96,12 +99,18 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 | `NFC` | Tap to Sync : échange de cartes entre amis en collant les téléphones |
 | `BLUETOOTH_SCAN` (neverForLocation), `BLUETOOTH_ADVERTISE`, `BLUETOOTH_CONNECT` | StreetPass (Android 12+, 18+, désactivé par défaut) |
 | `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `POST_NOTIFICATIONS` | Service StreetPass avec sa notification |
+| `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | Activités GPS (course, marche, vélo), seulement pendant une activité lancée par l'utilisateur |
+| `FOREGROUND_SERVICE_LOCATION` | Suivi GPS écran éteint pendant l'activité, avec notification |
 
-Aucune permission de localisation, de contacts, de SMS ni de stockage.
+Pas de localisation en arrière-plan (`ACCESS_BACKGROUND_LOCATION`), ni de contacts, de SMS ou de stockage.
 
 **Déclarations supplémentaires dans la Play Console :**
 - **Health Connect** : formulaire d'accès aux données Health Connect pour `READ_STEPS` — usage : afficher les pas du jour,
   l'objectif de pas et le score quotidien ; lecture seule ; données jamais transmises.
+- **Localisation** : déclaration « pendant l'utilisation » seulement ; usage = suivi des activités sportives (tracé, distance,
+  vitesse, dénivelé) stocké sur le téléphone.
+- **Service de premier plan** (`location`) : suivi GPS d'une activité démarrée par l'utilisateur, notification permanente
+  pendant l'activité ; **vidéo** demandée (démarrer une course, écran éteint, notification visible, arrêt).
 - **Service de premier plan** (`connectedDevice`) : StreetPass, échange Bluetooth entre appareils GoodLife proches, démarré
   par l'utilisateur, notification permanente. Google demande une courte **vidéo** montrant l'activation.
 

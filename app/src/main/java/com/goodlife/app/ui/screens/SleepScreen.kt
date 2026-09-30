@@ -54,7 +54,7 @@ import com.goodlife.app.ui.formatTime
 import kotlinx.coroutines.delay
 
 @Composable
-fun SleepScreen() {
+fun SleepScreen(showTitle: Boolean = true) {
     val context = LocalContext.current
     val sessions by Repo.sleep.collectAsState()
     val settings by Repo.settings.collectAsState()
@@ -79,7 +79,8 @@ fun SleepScreen() {
     val lastNight = perDay.last()
 
     ScreenColumn {
-        ScreenTitle("Sommeil", "Objectif : 7 à 9 h par nuit")
+        if (showTitle) ScreenTitle("Sommeil", "Objectif : 7 à 9 h par nuit")
+        else Text("Objectif : 7 à 9 h par nuit", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         SectionCard(title = "Cette nuit", icon = Icons.Filled.NightsStay) {
             Text(

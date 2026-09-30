@@ -92,9 +92,11 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
     val context = LocalContext.current
     val uri = LocalUriHandler.current
 
-    var keyDraft by remember(settings.apiKey) { mutableStateOf(settings.apiKey) }
+    // La clé enregistrée n'est jamais réaffichée : le champ sert seulement à en saisir une nouvelle
+    var keyDraft by remember { mutableStateOf("") }
     var showKey by remember { mutableStateOf(false) }
     var keySaved by remember { mutableStateOf(false) }
+    var replacingKey by remember { mutableStateOf(false) }
     var lockMessage by remember { mutableStateOf<String?>(null) }
     var confirmWipe by remember { mutableStateOf(false) }
     var askAiConsent by remember { mutableStateOf(false) }
@@ -219,34 +221,48 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
                     Text("Créer ma clé chez Google")
                 }
-                OutlinedTextField(
-                    value = keyDraft,
-                    onValueChange = { keyDraft = it.trim(); keySaved = false },
-                    label = { Text("Clé API Gemini") },
-                    singleLine = true,
-                    visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { showKey = !showKey }) {
-                            Icon(if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, "Afficher")
+                if (settings.apiKey.isNotBlank() && !replacingKey) {
+                    // Clé déjà enregistrée : on ne montre que sa fin, pour la reconnaître
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(if (keySaved) "Clé enregistrée" else "Clé enregistrée et chiffrée", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Se termine par …${settings.apiKey.takeLast(4)} · elle n'est plus affichée par sécurité",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FilledTonalButton(onClick = {
-                        Repo.updateSettings { it.copy(apiKey = keyDraft) }
-                        keySaved = true
-                    }) { Text("Enregistrer la clé") }
-                    if (keySaved) {
-                        Spacer(Modifier.width(12.dp))
-                        Text("Enregistrée", color = MaterialTheme.colorScheme.primary)
                     }
-                }
-                if (settings.apiKey.isNotBlank()) {
-                    TextButton(onClick = {
-                        keyDraft = ""
-                        Repo.updateSettings { it.copy(apiKey = "") }
-                    }) { Text("Retirer ma clé") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { replacingKey = true; keyDraft = ""; showKey = false; keySaved = false }) {
+                            Text("Remplacer la clé")
+                        }
+                        TextButton(onClick = { Repo.updateSettings { it.copy(apiKey = "") }; keySaved = false }) {
+                            Text("Retirer ma clé", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = keyDraft,
+                        onValueChange = { keyDraft = it.trim(); keySaved = false },
+                        label = { Text(if (replacingKey) "Nouvelle clé API Gemini" else "Clé API Gemini") },
+                        singleLine = true,
+                        visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            // L'œil ne montre que ce qui est en train d'être tapé, jamais la clé enregistrée
+                            IconButton(onClick = { showKey = !showKey }) {
+                                Icon(if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (showKey) "Masquer" else "Afficher")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        FilledTonalButton(enabled = keyDraft.length >= 20, onClick = {
+                            Repo.updateSettings { it.copy(apiKey = keyDraft) }
+                            keyDraft = ""; showKey = false; keySaved = true; replacingKey = false
+                        }) { Text("Enregistrer la clé") }
+                        if (replacingKey) TextButton(onClick = { replacingKey = false; keyDraft = "" }) { Text("Annuler") }
+                    }
                 }
                 // Choix du modèle : uniquement quand une clé personnelle est enregistrée.
                 if (settings.apiKey.isNotBlank()) {

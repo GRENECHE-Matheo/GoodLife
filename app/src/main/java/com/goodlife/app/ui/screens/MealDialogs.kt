@@ -144,6 +144,7 @@ fun RecipeDialog(
     var recipe by remember { mutableStateOf(cached) }
     var error by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableStateOf(0) }
+    var chat by remember { mutableStateOf(false) }
 
     LaunchedEffect(attempt) {
         if (recipe == null) {
@@ -200,6 +201,17 @@ fun RecipeDialog(
         confirmButton = { TextButton(onClick = onDismiss) { Text("Fermer") } },
         dismissButton = {
             if (error != null) TextButton(onClick = { attempt++ }) { Text("Réessayer") }
+            else if (recipe != null) TextButton(onClick = { chat = true }) { Text("Poser une question") }
         }
     )
+    val r = recipe
+    if (chat && r != null) {
+        AiChatDialog(
+            title = name,
+            context = "Recette de « $name » (${r.servings} portion(s), ${r.minutes} min, ~${r.kcalPerServing} kcal/portion). " +
+                "Ingrédients : ${r.ingredients.joinToString("; ")}. Étapes : ${r.steps.joinToString(" / ")}. Astuce : ${r.tip}",
+            suggestions = listOf("Par quoi remplacer un ingrédient ?", "Version végétarienne ?", "Pour 4 personnes ?", "Plus rapide ?"),
+            onDismiss = { chat = false }
+        )
+    }
 }

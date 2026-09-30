@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -60,6 +61,10 @@ fun DataFlowSummary(showAi: Boolean = true) {
         if (BuildConfig.SELF_UPDATE) FlowLine(
             Icons.Filled.SystemUpdate, "Mises à jour → GitHub",
             "Ton adresse IP, comme pour n'importe quel site, pour savoir s'il existe une nouvelle version."
+        )
+        FlowLine(
+            Icons.Filled.Map, "Carte → OpenFreeMap et OpenStreetMap",
+            "La zone affichée sur la carte, et celle où tu cherches des clubs. Ta position et tes tracés GPS restent sur le téléphone."
         )
         FlowLine(
             Icons.Filled.Group, "Amis (si ton profil est public) → le téléphone de tes amis",

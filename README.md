@@ -39,6 +39,12 @@ Material You inspirée des applications Google.
   téléphones), **QR code** ou **StreetPass** (Bluetooth basse consommation, Android 12+, 18+) ; classement entre amis,
   Nutridex des amis, encouragements tout prêts, blocage.
 - **Actus du jour** : une anecdote insolite et deux découvertes par jour (banque intégrée, sans réseau ni IA).
+- **Espace Forme** (onglet du bas) : **Programme** sportif sur mesure par l'IA (but, niveau, matériel ou sans, envies,
+  douleurs), séances cochées = +15 XP ; **Carte** : activités GPS course / marche / vélo (temps, distance, allure ou vitesse,
+  dénivelé, en direct), carte qui suit la position comme un GPS, historique, « refaire ce parcours » pour battre son record,
+  clubs et lieux de sport autour (OpenStreetMap : site, horaires, tarif s'il est connu) ; **Sommeil**.
+  Carte MapLibre + OpenFreeMap (données © OpenStreetMap), sans clé API.
+- **Demander à l'IA** : conversation sur une photo analysée, une recette ou son programme sportif (effacée à la fermeture).
 - **Planning** : semaine lisible sur une ligne, génération de la semaine par l'IA avec budget et coût estimé par repas.
 - **Saisie « aliment + grammes »** hors ligne avec la table **Ciqual 2025 de l'Anses** (3 341 aliments, Licence Ouverte
   Etalab 2.0, source : doi:10.57745/RDMHWY), en plus de la saisie directe en calories.

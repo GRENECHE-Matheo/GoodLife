@@ -7,6 +7,9 @@ import com.goodlife.app.data.Meal
 import com.goodlife.app.data.MealSuggestion
 import com.goodlife.app.data.MealSlot
 import com.goodlife.app.data.PlannedMeal
+import com.goodlife.app.data.SportProgram
+import com.goodlife.app.data.SportSession
+import com.goodlife.app.data.Exercise
 import com.goodlife.app.data.Profile
 import com.goodlife.app.data.Recipe
 import com.goodlife.app.data.mapObjects
@@ -21,6 +24,9 @@ import kotlin.math.roundToInt
 
 class AiException(message: String) : Exception(message)
 
+/** Un message de conversation avec l'IA. */
+data class ChatMessage(val fromUser: Boolean, val text: String)
+
 /**
  * Client minimal de l'API Gemini (Google AI Studio), avec la clé personnelle de chaque utilisateur.
  * La clé est fournie par l'utilisateur et stockée chiffrée sur le téléphone.
@@ -28,8 +34,8 @@ class AiException(message: String) : Exception(message)
  */
 class Gemini(private val apiKey: String, private val model: String) {
 
-    /** Appel direct à Google avec la clé personnelle de l'utilisateur (stockée chiffrée sur le téléphone). */
-    private suspend fun call(prompt: String, jpeg: ByteArray?): JSONObject = withContext(Dispatchers.IO) {
+    /** Garde-fous communs : consentement, âge, clé. */
+    private fun guard() {
         // Garde-fou RGPD : aucune donnée n'est envoyée sans consentement explicite.
         if (!Repo.settings.value.aiEnabled) {
             throw AiException("Les fonctions IA sont désactivées. Tu peux les activer dans Paramètres › Intelligence artificielle.")
@@ -40,28 +46,41 @@ class Gemini(private val apiKey: String, private val model: String) {
         if (apiKey.isBlank()) {
             throw AiException("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle.")
         }
-        callDirect(prompt, jpeg)
     }
 
-    private fun callDirect(prompt: String, jpeg: ByteArray?): JSONObject {
-        val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
-        var lastError = "Erreur inconnue"
-        for (m in models) {
-            val (code, body) = post(m, prompt, jpeg)
-            when {
-                code in 200..299 -> return parse(body)
-                code == 404 -> { lastError = "Modèle $m indisponible"; continue }
-                code == 429 -> throw AiException("Quota de ta clé atteint pour le moment. Réessaie dans une minute.")
-                code == 400 || code == 401 || code == 403 ->
-                    throw AiException("Clé API refusée (${errorMessage(body)}). Vérifie-la dans Paramètres.")
-                else -> { lastError = "Erreur serveur $code : ${errorMessage(body)}"; continue }
-            }
+    /** Demande qui attend une réponse JSON (analyse, objectif, recettes…). */
+    private suspend fun call(prompt: String, jpeg: ByteArray?): JSONObject = withContext(Dispatchers.IO) {
+        guard()
+        val body = JSONObject()
+            .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", parts(prompt, jpeg))))
+            .put("generationConfig", JSONObject()
+                .put("responseMimeType", "application/json")
+                .put("temperature", 0.2))
+        extractJson(text(send(body)))
+    }
+
+    /**
+     * Conversation (texte libre) : [system] donne le contexte et les règles, [image] est jointe au premier
+     * message, [history] alterne utilisateur / IA en commençant par l'utilisateur.
+     */
+    suspend fun chat(system: String, image: ByteArray?, history: List<ChatMessage>): String = withContext(Dispatchers.IO) {
+        guard()
+        val contents = JSONArray()
+        history.forEachIndexed { i, m ->
+            contents.put(
+                JSONObject().put("role", if (m.fromUser) "user" else "model")
+                    .put("parts", parts(m.text, if (i == 0) image else null))
+            )
         }
-        throw AiException(lastError)
+        val body = JSONObject()
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
+            .put("contents", contents)
+            .put("generationConfig", JSONObject().put("temperature", 0.5).put("maxOutputTokens", 900))
+        text(send(body)).trim().ifBlank { throw AiException("L'IA n'a pas répondu. Reformule ta question.") }
     }
 
-    private fun post(model: String, prompt: String, jpeg: ByteArray?): Pair<Int, String> {
-        val parts = JSONArray().put(JSONObject().put("text", prompt))
+    private fun parts(text: String, jpeg: ByteArray?): JSONArray {
+        val parts = JSONArray().put(JSONObject().put("text", text))
         if (jpeg != null) {
             parts.put(
                 JSONObject().put(
@@ -71,12 +90,28 @@ class Gemini(private val apiKey: String, private val model: String) {
                 )
             )
         }
-        val body = JSONObject()
-            .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", parts)))
-            .put("generationConfig", JSONObject()
-                .put("responseMimeType", "application/json")
-                .put("temperature", 0.2))
+        return parts
+    }
 
+    /** Envoie la requête ; si un modèle n'existe plus, essaie les suivants. Renvoie la réponse brute. */
+    private fun send(body: JSONObject): String {
+        val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
+        var lastError = "Erreur inconnue"
+        for (m in models) {
+            val (code, response) = post(m, body)
+            when {
+                code in 200..299 -> return response
+                code == 404 -> { lastError = "Modèle $m indisponible"; continue }
+                code == 429 -> throw AiException("Quota de ta clé atteint pour le moment. Réessaie dans une minute.")
+                code == 400 || code == 401 || code == 403 ->
+                    throw AiException("Clé API refusée (${errorMessage(response)}). Vérifie-la dans Paramètres.")
+                else -> { lastError = "Erreur serveur $code : ${errorMessage(response)}"; continue }
+            }
+        }
+        throw AiException(lastError)
+    }
+
+    private fun post(model: String, body: JSONObject): Pair<Int, String> {
         val conn = (URL("$BASE/$model:generateContent").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 20_000
@@ -101,20 +136,20 @@ class Gemini(private val apiKey: String, private val model: String) {
         JSONObject(body).getJSONObject("error").optString("message")
     }.getOrNull()?.take(160) ?: "réponse invalide"
 
-    private fun parse(body: String): JSONObject {
+    /** Texte de la réponse (sans les « pensées » du modèle). */
+    private fun text(body: String): String {
         val root = JSONObject(body)
         val candidates = root.optJSONArray("candidates")
             ?: throw AiException("L'IA n'a pas répondu (contenu bloqué ?).")
         val parts = candidates.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
             ?: throw AiException("Réponse IA vide.")
-        val text = buildString {
+        return buildString {
             for (i in 0 until parts.length()) {
                 val p = parts.optJSONObject(i) ?: continue
                 if (p.optBoolean("thought", false)) continue
                 append(p.optString("text"))
             }
         }
-        return extractJson(text)
     }
 
     private fun extractJson(text: String): JSONObject {
@@ -248,6 +283,61 @@ class Gemini(private val apiKey: String, private val model: String) {
         }?.filterNotNull() ?: emptyList()
         if (meals.isEmpty()) throw AiException("L'IA n'a pas proposé de planning. Réessaie.")
         return meals to o.optString("conseil")
+    }
+
+    /** Programme sportif de la semaine, adapté au gabarit, au but, au matériel et aux envies. */
+    suspend fun sportProgram(
+        p: Profile,
+        goal: String,
+        level: String,
+        equipment: List<String>,
+        daysPerWeek: Int,
+        minutes: Int,
+        likes: String,
+        limits: String
+    ): SportProgram {
+        val prompt = """
+            Tu es un coach sportif bienveillant (pas un professionnel de santé, pas d'avis médical). Crée un programme
+            d'une semaine, motivant et ludique, réaliste pour cette personne.
+            Âge : ${p.age} ans · Sexe : ${p.sex.label} · Poids : ${p.weightKg} kg · Taille : ${p.heightCm} cm
+            IMC : ${"%.1f".format(Nutrition.bmi(p))} · Activité habituelle : ${p.activity.label}
+            But visé : $goal · Niveau : $level
+            Séances par semaine : $daysPerWeek, d'environ $minutes minutes
+            Matériel disponible : ${if (equipment.isEmpty()) "aucun (poids du corps uniquement)" else equipment.joinToString(", ")}
+            Envies / ce que la personne aime : ${likes.ifBlank { "non précisé" }}
+            Douleurs ou limites à respecter : ${limits.ifBlank { "aucune signalée" }}
+            Règles : progressif et sans danger, échauffement et retour au calme à chaque séance, exercices expliqués
+            simplement, alternatives faciles pour un débutant, rien de risqué pour les articulations, respecte
+            strictement les douleurs/limites (évite les mouvements concernés). Varie pour que ce soit amusant
+            (défis, circuits, jeux). Répartis les séances dans la semaine avec des jours de repos.
+            Utilise uniquement le matériel listé.
+            Réponds UNIQUEMENT en JSON :
+            {"seances": [{"jour": 1, "titre": "titre court et motivant", "minutes": 30,
+                          "echauffement": "1 phrase",
+                          "exercices": [{"nom": "...", "detail": "3 × 12 répétitions ou 30 s", "repos": "45 s",
+                                         "conseil": "1 phrase simple (posture, variante plus facile)"}],
+                          "retour_au_calme": "1 phrase"}],
+             "conseil": "1 à 2 phrases d'encouragement et de sécurité"}
+            "jour" : 1 = lundi … 7 = dimanche. Exactement $daysPerWeek séances, 4 à 8 exercices chacune.
+        """.trimIndent()
+        val o = call(prompt, null)
+        val sessions = o.optJSONArray("seances")?.mapObjects { se ->
+            SportSession(
+                day = se.optInt("jour", 1).coerceIn(1, 7),
+                title = se.optString("titre").take(60).ifBlank { "Séance" },
+                minutes = se.optInt("minutes", minutes).coerceIn(5, 180),
+                warmup = se.optString("echauffement").take(300),
+                exercises = se.optJSONArray("exercices")?.mapObjects { ex ->
+                    Exercise(ex.optString("nom").take(60), ex.optString("detail").take(60), ex.optString("repos").take(30), ex.optString("conseil").take(200))
+                }?.filter { it.name.isNotBlank() }?.take(12) ?: emptyList(),
+                cooldown = se.optString("retour_au_calme").take(300)
+            )
+        }?.filter { it.exercises.isNotEmpty() }?.sortedBy { it.day }?.take(7) ?: emptyList()
+        if (sessions.isEmpty()) throw AiException("L'IA n'a pas proposé de programme. Réessaie.")
+        return SportProgram(
+            System.currentTimeMillis(), goal, level, equipment, daysPerWeek, minutes, likes, limits,
+            sessions, o.optString("conseil").take(400)
+        )
     }
 
     /** Objectif de pas quotidien progressif et atteignable (bien-être, pas d'avis médical). */

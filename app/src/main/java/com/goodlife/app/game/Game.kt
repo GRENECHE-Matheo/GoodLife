@@ -55,6 +55,13 @@ object Game {
     /** Score du jour à partir duquel la série continue. */
     const val STREAK_SCORE = 80
 
+    /** XP sport : 15 par séance du programme, selon la durée pour une sortie ; au plus 40 par jour. */
+    const val SPORT_XP_PER_DAY = 40
+    const val SESSION_XP = 15
+
+    /** Une sortie GPS : 1 XP par tranche de 2 minutes en mouvement, au plus 30. */
+    fun outingXp(movingMinutes: Long): Int = (movingMinutes / 2).toInt().coerceIn(0, 30)
+
     private data class Ideal(val min: Double, val max: Double)
 
     private fun ideal(goal: Goal) = when (goal) {
@@ -201,7 +208,8 @@ object Game {
             (yesterday.status == DayStatus.RATE || yesterday.status == DayStatus.VIDE) && !quizDone
         ) history.getOrNull(history.size - 2)?.streakAfter ?: 0 else 0
 
-        val totalXp = history.sumOf { it.xp } + game.quizResults.values.sumOf { quizXp(it) }
+        val totalXp = history.sumOf { it.xp } + game.quizResults.values.sumOf { quizXp(it) } +
+            game.sportXp.values.sumOf { it.coerceIn(0, SPORT_XP_PER_DAY) }
         return GameSummary(history, today, streak, best, levelFor(totalXp), recoverable, quizDone)
     }
 

@@ -43,7 +43,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
     "Ce qui reste sur ton téléphone" to
         "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, " +
         "ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton " +
-        "Nutridex et ses photos, la liste de tes amis et rencontres, et tes réglages. " +
+        "Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés) " +
+        "et tes réglages. " +
         "Certaines de ces informations sont des données de santé. " +
         "Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. " +
         "Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement " +
@@ -58,6 +59,10 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "• Recette : le nom du plat, tes habitudes et allergies.\n" +
         "• Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.\n" +
         "• Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.\n" +
+        "• Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites " +
+        "que tu écris (données de santé).\n" +
+        "• Questions à l'IA (sur une photo, une recette ou ton programme) : tes questions, le contexte concerné (photo et " +
+        "analyse, recette ou programme), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.\n" +
         "Ne sont jamais envoyés : ton prénom, ton sommeil, ton historique complet. " +
         "Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.",
     "À qui ces données sont envoyées" to
@@ -82,6 +87,17 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "15 minutes, lecture d'un simple compteur) ou, si tu le choisis, en lecture seule dans Health Connect (pas enregistrés " +
         "par Samsung Health, Google Fit, une montre…). GoodLife ne lit que le nombre de pas, rien d'autre, et ne les envoie " +
         "nulle part, sauf ta moyenne de pas si tu demandes un objectif à l'IA. Tu peux couper le suivi dans Paramètres › Pas.",
+    "Activités GPS (course, marche, vélo)" to
+        "Ta position n'est utilisée que pendant une activité que tu lances toi-même (autorisation « pendant l'utilisation »). " +
+        "Tant qu'elle est en cours, une notification l'indique et le suivi continue écran éteint. Le tracé, le temps, la " +
+        "distance, la vitesse et le dénivelé sont enregistrés chiffrés sur ton téléphone, jamais envoyés, et inclus dans ta " +
+        "sauvegarde chiffrée si tu l'as activée. Tu peux supprimer une activité à tout moment. Pas de localisation en arrière-plan.",
+    "Carte et clubs" to
+        "Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, © OpenMapTiles) : comme pour toute " +
+        "appli de carte, le serveur voit ton adresse IP et la zone affichée. Quand tu cherches des clubs, les coordonnées " +
+        "de la zone cherchée sont envoyées à l'API Overpass d'OpenStreetMap (serveur public géré par une association " +
+        "allemande) ; rien d'autre. Les informations des clubs (tarifs, horaires, site) viennent d'OpenStreetMap et " +
+        "peuvent être incomplètes : vérifie-les auprès du club.",
     "Le Nutridex" to
         "Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. " +
         "Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, " +
@@ -149,7 +165,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.7 · mise à jour le 30 septembre 2026",
+                "Version 0.8 · mise à jour le 30 septembre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

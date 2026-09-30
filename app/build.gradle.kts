@@ -14,8 +14,8 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.7.1"
+        versionCode = 11
+        versionName = "0.8"
 
         // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
         buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")
@@ -56,6 +56,8 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
+            // Carte (code natif) : téléphones ARM 64/32 bits et Chromebooks x86_64 ; le x86 32 bits n'existe plus
+            ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a", "x86_64") }
             isMinifyEnabled = false
             signingConfig = if (keystorePath != null) signingConfigs.getByName("release")
                             else signingConfigs.getByName("debug")
@@ -125,4 +127,7 @@ dependencies {
     // Amis : QR code (génération hors ligne, et scanner de Google sans permission caméra)
     implementation("com.google.zxing:core:3.5.4")
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
+    // Carte : MapLibre (libre, sans clé) avec les fonds OpenFreeMap (données OpenStreetMap)
+    implementation("org.maplibre.gl:android-sdk:13.6.1")
 }

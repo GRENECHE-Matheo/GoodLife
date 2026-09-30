@@ -192,6 +192,12 @@ object Repo {
     private val _social = MutableStateFlow(SocialState())
     val social: StateFlow<SocialState> = _social
 
+    private val _sport = MutableStateFlow(SportState())
+    val sport: StateFlow<SportState> = _sport
+
+    private val _outings = MutableStateFlow<List<Outing>>(emptyList())
+    val outings: StateFlow<List<Outing>> = _outings
+
     /** Compteur de modifications des données (hors réglages), pour ne sauvegarder que si besoin. */
     @Volatile var revision = 0L
         private set
@@ -227,6 +233,10 @@ object Repo {
             ?: DexState()
         _social.value = store.get(K_SOCIAL)?.let { runCatching { SocialState.fromJson(JSONObject(it)) }.getOrNull() }
             ?: SocialState()
+        _sport.value = store.get(K_SPORT)?.let { runCatching { SportState.fromJson(JSONObject(it)) }.getOrNull() }
+            ?: SportState()
+        _outings.value = store.get(K_OUTINGS)?.let { s -> runCatching { JSONArray(s).mapObjects { Outing.fromJson(it) } }.getOrNull() }
+            ?: emptyList()
         if (_settings.value.scoreRulesFrom.isBlank()) updateSettings { it.copy(scoreRulesFrom = localDay(0)) }
         // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
         _profile.value?.let { p ->
@@ -451,6 +461,71 @@ object Repo {
 
     fun markCheersSeen() = saveSocial { st -> st.copy(cheersIn = st.cheersIn.map { it.copy(seen = true) }) }
 
+    // ---------- Sport ----------
+    @Synchronized
+    private fun saveSport(s: SportState) {
+        _sport.value = s
+        put(K_SPORT, s.toJson().toString())
+    }
+
+    fun setProgram(p: SportProgram?) = saveSport(SportState(program = p, done = if (p == null) emptySet() else _sport.value.done))
+
+    /** Ajoute de l'XP sport au jour donné, sans dépasser le plafond quotidien. Renvoie l'XP réellement gagnée. */
+    @Synchronized
+    fun addSportXp(xp: Int, day: String = localDay(0)): Int {
+        val cur = _game.value.sportXp[day] ?: 0
+        val gained = xp.coerceAtMost(com.goodlife.app.game.Game.SPORT_XP_PER_DAY - cur).coerceAtLeast(0)
+        if (gained > 0) updateGame { g -> g.copy(sportXp = g.sportXp + (day to cur + gained)) }
+        return gained
+    }
+
+    /** Séance du programme faite aujourd'hui (une seule fois par séance et par jour). Renvoie l'XP gagnée, ou null si déjà faite. */
+    @Synchronized
+    fun markSessionDone(index: Int): Int? {
+        val key = "${localDay(0)}#$index"
+        if (key in _sport.value.done) return null
+        val limit = localDay(-120)
+        saveSport(_sport.value.copy(done = _sport.value.done.filter { it.substringBefore('#') >= limit }.toSet() + key))
+        return addSportXp(com.goodlife.app.game.Game.SESSION_XP)
+    }
+
+    // ---------- Sorties GPS ----------
+    private fun persistOutings() = put(K_OUTINGS, JSONArray().apply { _outings.value.forEach { put(it.toJson()) } }.toString())
+
+    /** Enregistre une sortie et son tracé (chiffré). Au plus 500 sorties gardées. */
+    @Synchronized
+    fun addOuting(o: Outing, track: List<TrackPoint>) {
+        store.putBytes("trk_${o.id}", Outing.encodeTrack(track).toByteArray(Charsets.UTF_8))
+        val all = (_outings.value + o).sortedByDescending { it.start }
+        all.drop(500).forEach { store.putBytes("trk_${it.id}", null) }
+        _outings.value = all.take(500)
+        persistOutings()
+    }
+
+    fun track(id: Long): List<TrackPoint> = store.getBytes("trk_$id")?.let { Outing.decodeTrack(String(it, Charsets.UTF_8)) } ?: emptyList()
+
+    @Synchronized
+    fun deleteOuting(id: Long) {
+        store.putBytes("trk_$id", null)
+        _outings.value = _outings.value.filterNot { it.id == id }
+        persistOutings()
+    }
+
+    @Synchronized
+    fun renameOuting(id: Long, name: String) {
+        _outings.value = _outings.value.map { if (it.id == id || it.routeId == id) it.copy(name = name.take(40)) else it }
+        persistOutings()
+    }
+
+    /** Tracé de référence d'un parcours (celui d'un autre passage si la première sortie a été supprimée). */
+    fun routeTrack(routeId: Long): List<TrackPoint> = track(routeId).ifEmpty {
+        _outings.value.filter { it.routeId == routeId }.sortedBy { it.start }.asSequence()
+            .map { track(it.id) }.firstOrNull { it.size >= 2 } ?: emptyList()
+    }
+
+    /** Meilleur temps (en mouvement) sur un parcours, parmi les sorties valides. */
+    fun bestOn(routeId: Long): Outing? = _outings.value.filter { it.routeId == routeId && it.valid }.minByOrNull { it.movingMs }
+
     // ---------- Réglages ----------
     @Synchronized
     fun updateSettings(transform: (Settings) -> Settings) {
@@ -486,6 +561,9 @@ object Repo {
             .put("steps", JSONObject().put("days", _steps.value.toJson().getJSONObject("days")))
             .put("dex", _dex.value.toJson())
             .put("social", _social.value.toJson())
+            .put("sport", _sport.value.toJson())
+            .put("outings", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
+            .put("tracks", JSONObject().apply { _outings.value.forEach { o -> put(o.id.toString(), Outing.encodeTrack(track(o.id))) } })
             .put("dexPhotos", JSONObject().apply {
                 _dex.value.unlocked.keys.forEach { id ->
                     dexPhoto(id)?.let { put(id, android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP)) }
@@ -534,6 +612,16 @@ object Repo {
         val stepDays = o.optJSONObject("steps")?.let { StepsData.fromJson(it).days } ?: emptyMap()
         _steps.value = StepsData(days = stepDays)
         put(K_STEPS, _steps.value.toJson().toString())
+        val sport = o.optJSONObject("sport")?.let { runCatching { SportState.fromJson(it) }.getOrNull() } ?: SportState()
+        saveSport(sport)
+        _outings.value.forEach { store.putBytes("trk_${it.id}", null) }
+        val outs = o.optJSONArray("outings")?.mapObjects { Outing.fromJson(it) }?.take(500) ?: emptyList()
+        val tracks = o.optJSONObject("tracks")
+        outs.forEach { out -> tracks?.optString(out.id.toString())?.takeIf { it.isNotBlank() }?.let {
+            store.putBytes("trk_${out.id}", Outing.encodeTrack(Outing.decodeTrack(it)).toByteArray(Charsets.UTF_8))
+        } }
+        _outings.value = outs
+        persistOutings()
         val social = o.optJSONObject("social")?.let { runCatching { SocialState.fromJson(it) }.getOrNull() } ?: SocialState()
         _social.value = social
         put(K_SOCIAL, social.toJson().toString())
@@ -574,6 +662,8 @@ object Repo {
         _steps.value = StepsData()
         _dex.value = DexState()
         _social.value = SocialState()
+        _sport.value = SportState()
+        _outings.value = emptyList()
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
     }
@@ -602,6 +692,8 @@ object Repo {
     private const val K_STEPS = "steps"
     private const val K_DEX = "dex"
     private const val K_SOCIAL = "social"
+    private const val K_SPORT = "sport"
+    private const val K_OUTINGS = "outings"
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -620,6 +712,8 @@ object Repo {
             .put("steps", _steps.value.toJson().getJSONObject("days"))
             .put("nutridex", _dex.value.toJson())
             .put("amis", _social.value.toJson())
+            .put("sport", _sport.value.toJson())
+            .put("sorties", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
             .put("settings", JSONObject()
                 .put("aiEnabled", s.aiEnabled)
                 .put("aiConsentAt", s.aiConsentAt)

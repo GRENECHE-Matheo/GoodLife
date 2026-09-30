@@ -44,6 +44,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.FilterChip
@@ -129,6 +131,8 @@ fun ScanScreen(onDone: () -> Unit) {
     var askConsent by remember { mutableStateOf(false) }
     var keyDraft by remember { mutableStateOf("") }
     var newDex by remember { mutableStateOf<List<String>>(emptyList()) }
+    var lastJpeg by remember { mutableStateOf<ByteArray?>(null) }
+    var chat by remember { mutableStateOf(false) }
     var showDex by remember { mutableStateOf(false) }
 
     fun reset() { photo = null; result = null; product = null; error = null; loading = null; newDex = emptyList() }
@@ -140,6 +144,7 @@ fun ScanScreen(onDone: () -> Unit) {
                 if (mode == "photo") {
                     loading = "Analyse du repas par l'IA…"
                     val jpeg = withContext(Dispatchers.Default) { bmp.toJpeg() }
+                    lastJpeg = jpeg
                     val r = Gemini(settings.apiKey, settings.model).analyzeFood(jpeg, profile)
                     result = r
                     // Nutridex : les aliments reconnus se débloquent avec une petite vignette de la photo
@@ -309,7 +314,8 @@ fun ScanScreen(onDone: () -> Unit) {
                         ResultCard(
                         r = result!!,
                         onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
-                        onRetake = { reset() }
+                        onRetake = { reset() },
+                        onAsk = { chat = true }
                     )
                     }
                     product != null -> ProductCard(
@@ -330,6 +336,18 @@ fun ScanScreen(onDone: () -> Unit) {
         }
     }
     if (askConsent) AiConsentDialog(onDismiss = { askConsent = false })
+    val r = result
+    if (chat && r != null) {
+        AiChatDialog(
+            title = r.dish,
+            context = "L'utilisateur a photographié un repas (photo jointe). Analyse de l'IA : ${r.dish}, environ ${r.kcal} kcal, " +
+                "protéines ${r.proteinG.toInt()} g, glucides ${r.carbsG.toInt()} g, lipides ${r.fatG.toInt()} g. " +
+                "Aliments : ${r.items.joinToString("; ")}. Conseil déjà donné : ${r.advice}",
+            image = lastJpeg,
+            suggestions = listOf("C'est équilibré ?", "Comment le rendre plus léger ?", "Riche en protéines ?", "Quoi manger avec ?"),
+            onDismiss = { chat = false }
+        )
+    }
 }
 
 @Composable
@@ -377,7 +395,7 @@ private fun ProductCard(p: FoodProduct, onAdd: (Meal) -> Unit, onRetake: () -> U
 }
 
 @Composable
-private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> Unit) {
+private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> Unit, onAsk: () -> Unit) {
     var name by remember(r) { mutableStateOf(r.dish) }
     var kcal by remember(r) { mutableStateOf(r.kcal.toString()) }
 
@@ -409,6 +427,11 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> U
         AiContentFooter(
             "Analyse photo : ${r.dish}, ${r.kcal} kcal\n${r.items.joinToString("\n")}\n${r.advice}"
         )
+        FilledTonalButton(onClick = onAsk) {
+            Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Poser une question sur ce repas")
+        }
         OutlinedTextField(
             value = name, onValueChange = { name = it },
             label = { Text("Nom du repas") }, singleLine = true, modifier = Modifier.fillMaxWidth()

@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.7 · mise à jour le 30 septembre 2026
+Version 0.8 · mise à jour le 30 septembre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -14,7 +14,7 @@ L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on p
 
 ## Ce qui reste sur ton téléphone
 
-Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton Nutridex et ses photos, la liste de tes amis et rencontres, et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement explicite (case à cocher au premier lancement). Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
+Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés) et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement explicite (case à cocher au premier lancement). Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
 
 ## Ce qui est envoyé si tu actives l'IA
 
@@ -25,6 +25,8 @@ L'IA est désactivée par défaut, demande un consentement séparé (réservé a
 • Recette : le nom du plat, tes habitudes et allergies.
 • Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.
 • Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.
+• Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites que tu écris (données de santé).
+• Questions à l'IA (sur une photo, une recette ou ton programme) : tes questions, le contexte concerné (photo et analyse, recette ou programme), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.
 Ne sont jamais envoyés : ton prénom, ton sommeil, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
 
 ## À qui ces données sont envoyées
@@ -43,6 +45,14 @@ Le code-barres est lu sur le téléphone avec ML Kit (modèle intégré, aucune 
 ## Les pas
 
 Si tu actives le suivi des pas, ils sont comptés sur le téléphone : par le capteur de pas (relevé toutes les 15 minutes, lecture d'un simple compteur) ou, si tu le choisis, en lecture seule dans Health Connect (pas enregistrés par Samsung Health, Google Fit, une montre…). GoodLife ne lit que le nombre de pas, rien d'autre, et ne les envoie nulle part, sauf ta moyenne de pas si tu demandes un objectif à l'IA. Tu peux couper le suivi dans Paramètres › Pas.
+
+## Activités GPS (course, marche, vélo)
+
+Ta position n'est utilisée que pendant une activité que tu lances toi-même (autorisation « pendant l'utilisation »). Tant qu'elle est en cours, une notification l'indique et le suivi continue écran éteint. Le tracé, le temps, la distance, la vitesse et le dénivelé sont enregistrés chiffrés sur ton téléphone, jamais envoyés, et inclus dans ta sauvegarde chiffrée si tu l'as activée. Tu peux supprimer une activité à tout moment. Pas de localisation en arrière-plan.
+
+## Carte et clubs
+
+Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, © OpenMapTiles) : comme pour toute appli de carte, le serveur voit ton adresse IP et la zone affichée. Quand tu cherches des clubs, les coordonnées de la zone cherchée sont envoyées à l'API Overpass d'OpenStreetMap (serveur public géré par une association allemande) ; rien d'autre. Les informations des clubs (tarifs, horaires, site) viennent d'OpenStreetMap et peuvent être incomplètes : vérifie-les auprès du club.
 
 ## Le Nutridex
 

@@ -1,5 +1,6 @@
 package com.goodlife.app.data
 
+import com.goodlife.app.game.Game
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -229,12 +230,14 @@ internal fun JSONArray.strings(): List<String> =
 data class GameState(
     val recoveredDays: Set<String> = emptySet(),
     val quizResults: Map<String, Int> = emptyMap(),   // jour → bonnes réponses (premier essai)
-    val weights: List<Pair<String, Double>> = emptyList()
+    val weights: List<Pair<String, Double>> = emptyList(),
+    val sportXp: Map<String, Int> = emptyMap()        // jour → XP gagnée en faisant du sport (plafonnée)
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("recoveredDays", JSONArray(recoveredDays.toList()))
         .put("quizResults", JSONObject().apply { quizResults.forEach { (k, v) -> put(k, v) } })
         .put("weights", JSONArray().apply { weights.forEach { (d, w) -> put(JSONObject().put("date", d).put("kg", w)) } })
+        .put("sportXp", JSONObject().apply { sportXp.forEach { (k, v) -> put(k, v) } })
 
     companion object {
         fun fromJson(o: JSONObject): GameState {
@@ -242,7 +245,8 @@ data class GameState(
             return GameState(
                 recoveredDays = o.optJSONArray("recoveredDays")?.strings()?.toSet() ?: emptySet(),
                 quizResults = q?.keys()?.asSequence()?.associateWith { q.optInt(it) } ?: emptyMap(),
-                weights = o.optJSONArray("weights")?.mapObjects { it.optString("date") to it.optDouble("kg") } ?: emptyList()
+                weights = o.optJSONArray("weights")?.mapObjects { it.optString("date") to it.optDouble("kg") } ?: emptyList(),
+                sportXp = o.optJSONObject("sportXp")?.let { x -> x.keys().asSequence().associateWith { x.optInt(it).coerceIn(0, Game.SPORT_XP_PER_DAY) } } ?: emptyMap()
             )
         }
     }
@@ -355,5 +359,124 @@ data class SocialState(
             cheersOut = o.optJSONArray("cheersOut")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList(),
             cheersIn = o.optJSONArray("cheersIn")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList()
         )
+    }
+}
+
+/** Un exercice d'une séance (proposé par l'IA). */
+data class Exercise(val name: String, val detail: String, val rest: String, val tip: String) {
+    fun toJson(): JSONObject = JSONObject().put("name", name).put("detail", detail).put("rest", rest).put("tip", tip)
+
+    companion object {
+        fun fromJson(o: JSONObject) = Exercise(o.optString("name"), o.optString("detail"), o.optString("rest"), o.optString("tip"))
+    }
+}
+
+/** Une séance du programme ; [day] = jour de la semaine (1 = lundi … 7 = dimanche). */
+data class SportSession(
+    val day: Int, val title: String, val minutes: Int,
+    val warmup: String, val exercises: List<Exercise>, val cooldown: String
+) {
+    fun toJson(): JSONObject = JSONObject().put("day", day).put("title", title).put("minutes", minutes)
+        .put("warmup", warmup).put("cooldown", cooldown)
+        .put("exercises", JSONArray().apply { exercises.forEach { put(it.toJson()) } })
+
+    companion object {
+        fun fromJson(o: JSONObject) = SportSession(
+            o.optInt("day", 1).coerceIn(1, 7), o.optString("title"), o.optInt("minutes", 30).coerceIn(5, 180),
+            o.optString("warmup"), o.optJSONArray("exercises")?.mapObjects { Exercise.fromJson(it) } ?: emptyList(),
+            o.optString("cooldown")
+        )
+    }
+}
+
+/** Programme sportif de la semaine, avec les réponses du questionnaire qui l'ont produit. */
+data class SportProgram(
+    val createdAt: Long,
+    val goal: String,
+    val level: String,
+    val equipment: List<String>,
+    val daysPerWeek: Int,
+    val minutes: Int,
+    val likes: String,
+    val limits: String,
+    val sessions: List<SportSession>,
+    val advice: String
+) {
+    fun toJson(): JSONObject = JSONObject().put("createdAt", createdAt).put("goal", goal).put("level", level)
+        .put("equipment", JSONArray(equipment)).put("daysPerWeek", daysPerWeek).put("minutes", minutes)
+        .put("likes", likes).put("limits", limits).put("advice", advice)
+        .put("sessions", JSONArray().apply { sessions.forEach { put(it.toJson()) } })
+
+    companion object {
+        fun fromJson(o: JSONObject) = SportProgram(
+            o.optLong("createdAt"), o.optString("goal"), o.optString("level"),
+            o.optJSONArray("equipment")?.strings() ?: emptyList(), o.optInt("daysPerWeek", 3), o.optInt("minutes", 30),
+            o.optString("likes"), o.optString("limits"),
+            o.optJSONArray("sessions")?.mapObjects { SportSession.fromJson(it) } ?: emptyList(),
+            o.optString("advice")
+        )
+    }
+}
+
+/** Programme en cours et séances faites (« AAAA-MM-JJ#indice »). */
+data class SportState(val program: SportProgram? = null, val done: Set<String> = emptySet()) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("program", program?.toJson() ?: JSONObject.NULL)
+        .put("done", JSONArray(done.toList()))
+
+    companion object {
+        fun fromJson(o: JSONObject) = SportState(
+            o.optJSONObject("program")?.let { SportProgram.fromJson(it) },
+            o.optJSONArray("done")?.strings()?.toSet() ?: emptySet()
+        )
+    }
+}
+
+/** Type de sortie GPS. */
+enum class OutingType(val label: String, val emoji: String) { RUN("Course", "🏃"), WALK("Marche", "🚶"), BIKE("Vélo", "🚴") }
+
+/** Point d'un tracé : latitude, longitude, altitude (m, NaN si inconnue), temps (ms). */
+data class TrackPoint(val lat: Double, val lng: Double, val alt: Double, val t: Long)
+
+/**
+ * Résumé d'une sortie (le tracé complet est stocké à part, chiffré).
+ * [routeId] : parcours de référence (id de la première sortie sur ce trajet) ; [valid] : le parcours a bien été suivi.
+ */
+data class Outing(
+    val id: Long,
+    val type: OutingType,
+    val start: Long,
+    val end: Long,
+    val movingMs: Long,
+    val distanceM: Double,
+    val elevGainM: Double,
+    val maxSpeed: Double,        // m/s
+    val routeId: Long,
+    val valid: Boolean = true,
+    val name: String = ""
+) {
+    val avgSpeed: Double get() = if (movingMs > 0) distanceM / (movingMs / 1000.0) else 0.0
+
+    fun toJson(): JSONObject = JSONObject().put("id", id).put("type", type.name).put("start", start).put("end", end)
+        .put("movingMs", movingMs).put("distanceM", distanceM).put("elevGainM", elevGainM).put("maxSpeed", maxSpeed)
+        .put("routeId", routeId).put("valid", valid).put("name", name)
+
+    companion object {
+        fun fromJson(o: JSONObject) = Outing(
+            o.optLong("id"), enumOr(o.optString("type"), OutingType.RUN), o.optLong("start"), o.optLong("end"),
+            o.optLong("movingMs"), o.optDouble("distanceM", 0.0), o.optDouble("elevGainM", 0.0), o.optDouble("maxSpeed", 0.0),
+            o.optLong("routeId"), o.optBoolean("valid", true), o.optString("name")
+        )
+
+        fun encodeTrack(points: List<TrackPoint>): String = JSONArray().apply {
+            points.forEach { put(JSONArray().put(it.lat).put(it.lng).put(if (it.alt.isNaN()) JSONObject.NULL else it.alt).put(it.t)) }
+        }.toString()
+
+        fun decodeTrack(s: String): List<TrackPoint> = runCatching {
+            val a = JSONArray(s)
+            (0 until a.length()).mapNotNull { i ->
+                a.optJSONArray(i)?.let { p -> TrackPoint(p.optDouble(0), p.optDouble(1), p.optDouble(2, Double.NaN), p.optLong(3)) }
+            }
+        }.getOrDefault(emptyList())
     }
 }

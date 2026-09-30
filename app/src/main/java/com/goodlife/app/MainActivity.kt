@@ -67,7 +67,8 @@ import com.goodlife.app.ui.screens.ProfileScreen
 import com.goodlife.app.ui.screens.PrivacyScreen
 import androidx.compose.foundation.layout.safeDrawingPadding
 import com.goodlife.app.ui.screens.ScanScreen
-import com.goodlife.app.ui.screens.SleepScreen
+import com.goodlife.app.ui.screens.FormeScreen
+import androidx.compose.material.icons.filled.FitnessCenter
 import com.goodlife.app.ui.theme.GoodLifeTheme
 import com.goodlife.app.ui.theme.isAppInDarkTheme
 
@@ -161,7 +162,7 @@ private val tabs = listOf(
     Tab("Accueil", Icons.Filled.Home),
     Tab("Scanner", Icons.Filled.PhotoCamera),
     Tab("Planning", Icons.Filled.DateRange),
-    Tab("Sommeil", Icons.Filled.NightsStay),
+    Tab("Forme", Icons.Filled.FitnessCenter),
     Tab("Profil", Icons.Filled.Person)
 )
 
@@ -208,7 +209,7 @@ private fun MainTabs() {
                 0 -> HomeScreen(onScan = { tab = 1 }, onOpenProfile = { tab = 4 })
                 1 -> ScanScreen(onDone = { tab = 0 })
                 2 -> PlanningScreen()
-                3 -> SleepScreen()
+                3 -> FormeScreen()
                 else -> ProfileScreen()
             }
         }
