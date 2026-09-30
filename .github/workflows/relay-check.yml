@@ -7,5 +7,35 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: État du relais (n'affiche jamais la clé)
-        run: curl -fsS https://goodlife-relay.matheo-greneche0.workers.dev/health
+      - name: Configuration du relais (n'affiche jamais la clé)
+        run: |
+          H=$(curl -fsS https://goodlife-relay.matheo-greneche0.workers.dev/health)
+          echo "$H"
+          echo "$H" | grep -q '"geminiKeyConfigured":true' || { echo "::error::GEMINI_API_KEY absente du relais"; exit 1; }
+          echo "$H" | grep -q '"appSecretConfigured":true' || { echo "::error::APP_SECRET absent du relais"; exit 1; }
+
+      - name: Test complet (requête signée comme l'app)
+        env:
+          RELAY_SECRET: ${{ secrets.GOODLIFE_RELAY_SECRET }}
+        run: |
+          python3 - <<'PY'
+          import hmac, hashlib, json, os, time, uuid, urllib.request, urllib.error
+          body = json.dumps({"prompt": 'Réponds uniquement avec ce JSON : {"ok": true}'}).encode()
+          install, t = str(uuid.uuid4()), str(int(time.time() * 1000))
+          msg = f"{install}\n{t}\n{hashlib.sha256(body).hexdigest()}".encode()
+          sig = hmac.new(os.environ["RELAY_SECRET"].encode(), msg, hashlib.sha256).hexdigest()
+          req = urllib.request.Request("https://goodlife-relay.matheo-greneche0.workers.dev/v1/generate", data=body,
+              headers={"content-type": "application/json", "x-gl-install": install, "x-gl-time": t, "x-gl-sig": sig})
+          try:
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  print("OK", r.status, r.read().decode()[:300])
+          except urllib.error.HTTPError as e:
+              print("::error::HTTP", e.code, e.read().decode()[:300]); raise SystemExit(1)
+          # Une requête non signée doit être refusée
+          bad = urllib.request.Request("https://goodlife-relay.matheo-greneche0.workers.dev/v1/generate", data=body,
+              headers={"content-type": "application/json"})
+          try:
+              urllib.request.urlopen(bad, timeout=30); print("::error::requête non signée acceptée !"); raise SystemExit(1)
+          except urllib.error.HTTPError as e:
+              print("Requête non signée refusée :", e.code)
+          PY
