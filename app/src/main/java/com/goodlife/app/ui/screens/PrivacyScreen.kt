@@ -43,8 +43,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
     "Ce qui reste sur ton téléphone" to
         "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, " +
         "ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton " +
-        "Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés) " +
-        "et tes réglages. " +
+        "Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés), " +
+        "les actus déjà lues et tes réglages. " +
         "Certaines de ces informations sont des données de santé. " +
         "Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. " +
         "Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement " +
@@ -61,9 +61,17 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "• Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.\n" +
         "• Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites " +
         "que tu écris (données de santé).\n" +
-        "• Questions à l'IA (sur une photo, une recette ou ton programme) : tes questions, le contexte concerné (photo et " +
-        "analyse, recette ou programme), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.\n" +
-        "Ne sont jamais envoyés : ton prénom, ton sommeil, ton historique complet. " +
+        "• Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné " +
+        "(photo et analyse, recette, programme, ou titre et extrait de l'actu), tes allergies et habitudes. La conversation " +
+        "n'est pas gardée après fermeture.\n" +
+        "• Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, " +
+        "objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours " +
+        "(jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, " +
+        "évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains " +
+        "jours. Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste " +
+        "en mémoire tant que l'app est ouverte, sans être enregistrée.\n" +
+        "Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que tu fais analyser), tes positions GPS, " +
+        "ton historique complet. " +
         "Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.",
     "À qui ces données sont envoyées" to
         "• Google LLC (API Gemini), directement depuis ton téléphone, avec ta propre clé API et donc sous ton propre " +
@@ -100,6 +108,18 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "le calcul de l'itinéraire se fait ensuite sur ton téléphone. Les cartes hors ligne sont téléchargées depuis " +
         "OpenFreeMap pour la seule zone que tu choisis, et tu peux les supprimer à tout moment. Les informations des " +
         "clubs (tarifs, horaires, site) viennent d'OpenStreetMap et peuvent être incomplètes : vérifie-les auprès du club.",
+    "Notifications du coach" to
+        "Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Coach et notifications). " +
+        "Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, " +
+        "sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes " +
+        "chiffres. Tu peux couper chaque notification à tout moment.",
+    "Actus du jour" to
+        "Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, " +
+        "Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et " +
+        "le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. " +
+        "Seuls le titre et un court extrait sont affichés ; l'article complet s'ouvre chez la source, dans ton navigateur, " +
+        "seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te " +
+        "remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.",
     "Le Nutridex" to
         "Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. " +
         "Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, " +
@@ -167,7 +187,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.8.1 · mise à jour le 30 septembre 2026",
+                "Version 0.9 · mise à jour le 1er octobre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

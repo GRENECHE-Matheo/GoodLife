@@ -22,13 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.8.1
+## 🆕 Nouveautés de la v0.9
 
-- **Boucles** d'une distance choisie et **destination** par appui long sur la carte, en course, marche ou vélo.
-- **Guidage** : distance restante et alerte si tu t'écartes du parcours.
-- Itinéraires **sans autoroute ni voie rapide**, en privilégiant chemins, parcs et pistes cyclables.
-- **Cartes hors ligne** par zone, avec la taille estimée avant téléchargement.
-- Nouvelle interface de carte, plus claire.
+- **Parler au chef** : un coach qui connaît tes chiffres et te conseille sur l'alimentation, le sport et la motivation ;
+  il peut te proposer des repas à ajouter au planning d'un geste.
+- **Notifications du coach** : bilan du matin, mot de midi, rappel du soir si ta série est en danger, bilan du dimanche.
+- **Vraies actus du jour** sur l'alimentation et le sport, avec une actu insolite, pour tout le monde et sans clé.
+- **Inscription en plusieurs pages**, plus simple et plus claire.
 
 👉 Toutes les évolutions, version par version : **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -54,11 +54,14 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 - **Sommeil** : détection automatique (Sleep API de Google Play Services) ou saisie manuelle.
 
 ### 🏆 Motivation
+- **Le chef, ton coach** : un mot du jour sur l'accueil, une conversation pour tout lui demander (avec l'IA), et des
+  notifications motivantes si tu les acceptes (bilan du matin, midi, soir si la série est en danger, dimanche).
 - **Score du jour** = 60 % alimentation + 40 % pas ; **série** validée dès 80/100.
 - **XP et niveaux**, de « Commis » à « Légende de la cuisine », courbes de score, calories et poids.
 - **Quiz du chef** : 5 questions par jour, qui peuvent sauver une série cassée ; sons et barre d'XP animée.
 - **Nutridex** : 161 aliments sains à débloquer en les prenant en photo.
-- **Actus du jour** : une anecdote insolite et deux découvertes chaque jour.
+- **Actus du jour** : de vraies actus sur l'alimentation et le sport (franceinfo, Sciences et Avenir, Futura, Anses,
+  Santé publique France), avec une actu insolite, jamais deux fois la même ; des anecdotes vérifiées sans internet.
 
 ### 👥 Amis, sans serveur
 - Cartes de joueur signées échangées par **Tap to Sync** (NFC, en collant les téléphones), **QR code** ou
@@ -95,7 +98,7 @@ Chaque réponse est marquée « Généré par l'IA » avec un bouton « Signaler
 Modèle par défaut : `gemini-3.5-flash-lite` ; si un modèle disparaît, l'app bascule sur un autre.
 
 **Sans clé ni IA**, l'app reste utile : code-barres, saisie « aliment + grammes », pas, activités GPS, parcours,
-clubs, planning, sommeil, quiz, amis.
+clubs, planning, sommeil, quiz, amis, actus du jour, mot du chef et notifications.
 
 ## 📦 Deux versions : GitHub et Google Play
 
@@ -127,6 +130,8 @@ minSdk 26 · targetSdk 36.
 - Table de composition nutritionnelle **Ciqual 2025**, Anses — Licence Ouverte Etalab 2.0 (doi:10.57745/RDMHWY).
 - **Open Food Facts** (code-barres) — ODbL.
 - Cartes **OpenFreeMap** / **OpenMapTiles**, données © contributeurs **OpenStreetMap** (ODbL) ; clubs et chemins via l'API Overpass.
+- Actus : flux RSS publics de **franceinfo**, **Sciences et Avenir**, **Futura**, de l'**Anses** et de **Santé publique France**
+  (titre et court extrait, lien vers l'article chez la source).
 
 ## Licence
 

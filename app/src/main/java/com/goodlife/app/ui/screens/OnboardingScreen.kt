@@ -1,37 +1,78 @@
+@file:OptIn(ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.goodlife.app.ai.Nutrition
+import com.goodlife.app.data.ActivityLevel
+import com.goodlife.app.data.Goal
 import com.goodlife.app.data.Profile
 import com.goodlife.app.data.Repo
+import com.goodlife.app.data.Sex
 import com.goodlife.app.ui.ChefMascot
 import com.goodlife.app.ui.ChefMood
+import com.goodlife.app.ui.Motion
 import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.SlideSwitch
+import com.goodlife.app.ui.toNumber
+
+private const val PAGES = 7
 
 @Composable
 fun OnboardingScreen() {
@@ -42,56 +83,266 @@ fun OnboardingScreen() {
                 PrivacyScreen(onBack = { showPolicy = false })
             }
         } else {
-            OnboardingContent(onOpenPolicy = { showPolicy = true })
+            OnboardingPages(onOpenPolicy = { showPolicy = true })
+        }
+    }
+}
+
+/**
+ * Inscription en plusieurs pages courtes : bienvenue, confidentialité, toi, ton corps, ton objectif,
+ * récapitulatif (consentement santé) et notifications du coach. Rien n'est enregistré avant la dernière page.
+ */
+@Composable
+private fun OnboardingPages(onOpenPolicy: () -> Unit) {
+    val context = LocalContext.current
+    var page by rememberSaveable { mutableIntStateOf(0) }
+    var policyOk by rememberSaveable { mutableStateOf(false) }
+    var healthOk by rememberSaveable { mutableStateOf(false) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var age by rememberSaveable { mutableStateOf("") }
+    var sex by rememberSaveable { mutableStateOf(Sex.HOMME) }
+    var weight by rememberSaveable { mutableStateOf("") }
+    var height by rememberSaveable { mutableStateOf("") }
+    var activity by rememberSaveable { mutableStateOf(ActivityLevel.MODERE) }
+    var goal by rememberSaveable { mutableStateOf(Goal.MAINTIEN) }
+    var habits by rememberSaveable { mutableStateOf("") }
+    var allergies by rememberSaveable { mutableStateOf("") }
+    var notifs by rememberSaveable { mutableStateOf(listOf(true, true, true, true)) }
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
+
+    fun profile() = Profile(
+        name = name.trim(), age = age.toNumber()?.toInt() ?: 0, sex = sex,
+        weightKg = weight.toNumber() ?: 0.0, heightCm = height.toNumber() ?: 0.0,
+        activity = activity, goal = goal, habits = habits.trim(), allergies = allergies.trim()
+    )
+
+    fun finish(prefs: NotifPrefs) {
+        Repo.updateSettings { it.copy(privacyAcceptedAt = System.currentTimeMillis()) }
+        Repo.saveProfile(Nutrition.formulaTarget(profile()))
+        saveNotifPrefs(context, prefs)
+    }
+    val prefs = NotifPrefs(notifs[0], notifs[1], notifs[2], notifs[3])
+    val askNotif = rememberNotifPermission { granted -> finish(if (granted) prefs else NotifPrefs(false, false, false, false)) }
+
+    fun next() {
+        error = when (page) {
+            1 -> if (!policyOk) "Coche la case pour accepter la politique de confidentialité." else null
+            2 -> ageError(age.toNumber()?.toInt())
+            3 -> bodyError(weight.toNumber(), height.toNumber())
+            4 -> goalError(goal, profile())
+            5 -> if (!healthOk) "Coche la case pour que GoodLife puisse enregistrer tes données." else null
+            else -> null
+        }
+        if (error == null && page < PAGES - 1) page++
+    }
+    fun back() { error = null; if (page > 0) page-- }
+    BackHandler(enabled = page > 0) { back() }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
+                // Barre de progression
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (page > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+                    else Spacer(Modifier.size(48.dp))
+                    val progress by animateFloatAsState((page + 1f) / PAGES, label = "progress")
+                    LinearProgressIndicator(
+                        progress = { progress }, strokeCap = StrokeCap.Round,
+                        modifier = Modifier.weight(1f).height(8.dp)
+                    )
+                    Text("${page + 1}/$PAGES", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 12.dp))
+                }
+                AnimatedContent(
+                    targetState = page,
+                    transitionSpec = { Motion.sharedAxisX(forward = targetState > initialState) },
+                    modifier = Modifier.weight(1f),
+                    label = "page"
+                ) { p ->
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        when (p) {
+                            0 -> WelcomePage()
+                            1 -> PolicyPage(policyOk, { policyOk = it; error = null }, onOpenPolicy)
+                            2 -> {
+                                PageTitle(ChefMood.CONTENT, "Faisons connaissance", "Pour personnaliser tes conseils. Ton prénom reste sur ton téléphone.")
+                                OutlinedTextField(name, { name = it.take(40) }, label = { Text("Prénom (facultatif)") },
+                                    singleLine = true, modifier = Modifier.fillMaxWidth())
+                                Field(age, { age = it; error = null }, "Âge", decimal = false)
+                                Chips("Sexe (pour le calcul des besoins)", Sex.entries, sex, { it.label }) { sex = it }
+                            }
+                            3 -> {
+                                PageTitle(ChefMood.QUESTION, "Ton corps", "Pour estimer tes besoins en énergie. Tu pourras tout modifier plus tard.")
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Field(weight, { weight = it; error = null }, "Poids (kg)", Modifier.weight(1f))
+                                    Field(height, { height = it; error = null }, "Taille (cm)", Modifier.weight(1f))
+                                }
+                                Chips("Au quotidien, tu es plutôt…", ActivityLevel.entries, activity, { it.label }) { activity = it }
+                                Text(ACTIVITY_HELP[activity] ?: "", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            4 -> {
+                                PageTitle(ChefMood.BRAVO, "Ton objectif", "Le chef adapte le score, les idées de repas et les conseils.")
+                                Chips("Objectif", Goal.entries, goal, { it.label }) { goal = it; error = null }
+                                OutlinedTextField(habits, { habits = it.take(300) }, label = { Text("Habitudes alimentaires (facultatif)") },
+                                    placeholder = { Text("Ex : végétarien, je saute souvent le petit-déj…") },
+                                    minLines = 2, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(allergies, { allergies = it.take(200) }, label = { Text("Allergies / intolérances (facultatif)") },
+                                    placeholder = { Text("Ex : arachides, lactose, gluten") }, modifier = Modifier.fillMaxWidth())
+                            }
+                            5 -> SummaryPage(profile(), healthOk) { healthOk = it; error = null }
+                            else -> {
+                                PageTitle(ChefMood.BRAVO, "Le chef t'accompagne", "Des petits messages pour garder le rythme, sans t'embêter.")
+                                NotifChoices(prefs) { n -> notifs = listOf(n.morning, n.noon, n.evening, n.weekly) }
+                                Text(
+                                    "Préparés sur ton téléphone, jamais plus d'un à la fois. Sur l'écran verrouillé, seul " +
+                                        "« Un message du chef » s'affiche. Tu peux tout changer dans Paramètres.",
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                // Boutons du bas
+                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (error != null) Text(
+                        error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    when (page) {
+                        0 -> {
+                            Button(onClick = { next() }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("C'est parti !") }
+                        }
+                        PAGES - 1 -> {
+                            Button(
+                                onClick = { if (prefs.any) askNotif() else finish(prefs) },
+                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                            ) { Text("Terminer") }
+                            TextButton(onClick = { finish(NotifPrefs(false, false, false, false)) }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Pas de notifications pour l'instant")
+                            }
+                        }
+                        else -> Button(onClick = { next() }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Continuer") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val ACTIVITY_HELP = mapOf(
+    ActivityLevel.SEDENTAIRE to "Surtout assis (bureau, cours), peu de marche.",
+    ActivityLevel.LEGER to "Un peu de marche chaque jour, ou du sport 1 à 2 fois par semaine.",
+    ActivityLevel.MODERE to "Souvent debout ou en mouvement, ou du sport 3 à 4 fois par semaine.",
+    ActivityLevel.ACTIF to "Métier physique, ou du sport presque tous les jours.",
+    ActivityLevel.TRES_ACTIF to "Entraînement intense chaque jour ou travail très physique."
+)
+
+@Composable
+private fun ColumnScope.WelcomePage() {
+    ChefMascot(size = 120.dp, mood = ChefMood.BRAVO, modifier = Modifier.align(Alignment.CenterHorizontally))
+    Text("Bienvenue sur GoodLife", style = MaterialTheme.typography.headlineLarge)
+    Text("Ton coach pour mieux manger et bouger plus, à ton rythme.", style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Feature(Icons.Filled.Restaurant, "Mange mieux, sans te priver", "Photo de ton assiette, idées de repas, planning de la semaine.")
+    Feature(Icons.Filled.DirectionsRun, "Bouge plus", "Pas, programme sportif, course, marche et vélo avec la carte.")
+    Feature(Icons.Filled.LocalFireDepartment, "Reste motivé", "Séries, niveaux, quiz et les petits mots du chef.")
+    Feature(Icons.Filled.Lock, "Tes données restent chez toi", "Aucun compte, aucune pub, tout est chiffré sur ton téléphone.")
+    Text(
+        "Réservé aux ${Nutrition.MIN_AGE} ans et plus. GoodLife est une app de bien-être, pas un dispositif médical : " +
+            "demande l'avis d'un professionnel de santé avant de changer ton alimentation.",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    SectionCard(title = "Tu changes de téléphone ?", icon = Icons.Filled.Restore) {
+        Text(
+            "Restaure ta sauvegarde GoodLife (fichier .goodlife) avec son mot de passe pour tout retrouver.",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        RestoreButton(outlined = true)
+    }
+}
+
+@Composable
+private fun PolicyPage(accepted: Boolean, onAccept: (Boolean) -> Unit, onOpenPolicy: () -> Unit) {
+    PageTitle(ChefMood.CONTENT, "Tes données restent chez toi", "Voici exactement ce qui peut quitter ton téléphone, et quand.")
+    SectionCard {
+        DataFlowSummary()
+        TextButton(onClick = onOpenPolicy) { Text("Lire la politique de confidentialité complète") }
+    }
+    CheckLine(accepted, onAccept, "J'ai lu et j'accepte la politique de confidentialité de GoodLife.")
+}
+
+@Composable
+private fun SummaryPage(p: Profile, consent: Boolean, onConsent: (Boolean) -> Unit) {
+    val t = Nutrition.formulaTarget(p)
+    PageTitle(ChefMood.BRAVO, if (p.name.isBlank()) "C'est presque fini !" else "C'est presque fini, ${p.name} !", "Voici ton point de départ.")
+    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Ton objectif quotidien", style = MaterialTheme.typography.labelLarge)
+            Text("${com.goodlife.app.coach.Coach.fmt(t.targetKcal)} kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
+            Text("Protéines ${t.proteinG} g · Glucides ${t.carbsG} g · Lipides ${t.fatG} g", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Calculé sur ton téléphone (formule de Mifflin-St Jeor) selon ton âge, ton poids, ta taille, ton activité et " +
+                    "ton objectif « ${p.goal.label} ». Tu pourras l'affiner plus tard.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+    CheckLine(
+        consent, onConsent,
+        "J'accepte que GoodLife enregistre sur ce téléphone mes données de santé (poids, taille, repas, pas, sommeil, allergies) " +
+            "pour calculer mes besoins. Je peux retirer cet accord en effaçant mes données (Paramètres)."
+    )
+}
+
+@Composable
+private fun PageTitle(mood: ChefMood, title: String, subtitle: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ChefMascot(size = 64.dp, mood = mood)
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun OnboardingContent(onOpenPolicy: () -> Unit) {
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
-            Column(
-                Modifier.widthIn(max = 640.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ChefMascot(size = 96.dp, mood = ChefMood.BRAVO)
-                Text("Bienvenue sur GoodLife", style = MaterialTheme.typography.headlineLarge)
-                Text(
-                    "Quelques infos pour calculer tes besoins et adapter les idées de repas.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "Réservé aux ${Nutrition.MIN_AGE} ans et plus. GoodLife est une app de bien-être, pas un dispositif " +
-                        "médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Demande l'avis d'un " +
-                        "professionnel de santé avant de changer ton alimentation.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                SectionCard(title = "Tes données", icon = Icons.Filled.Lock) {
-                    DataFlowSummary()
-                    TextButton(onClick = onOpenPolicy) { Text("Politique de confidentialité complète") }
-                }
-                SectionCard(title = "Tu changes de téléphone ?", icon = Icons.Filled.Restore) {
-                    Text(
-                        "Si tu as une sauvegarde GoodLife (fichier .goodlife), restaure-la avec son mot de passe : " +
-                            "tu retrouves ton profil, tes repas, ton sommeil et ta progression.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    RestoreButton(outlined = false)
-                }
-                ProfileForm(
-                    initial = Profile(), saveLabel = "Commencer",
-                    consentText = "J'accepte que GoodLife enregistre sur ce téléphone mes données de santé " +
-                        "(poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins. " +
-                        "Je peux retirer cet accord en effaçant mes données (Paramètres)."
-                ) { p ->
-                    Repo.updateSettings { it.copy(privacyAcceptedAt = System.currentTimeMillis()) }
-                    Repo.saveProfile(Nutrition.formulaTarget(p))
-                }
-            }
+private fun Feature(icon: ImageVector, title: String, text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 2.dp))
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+@Composable
+private fun CheckLine(checked: Boolean, onChange: (Boolean) -> Unit, text: String) {
+    Row(Modifier.fillMaxWidth().toggleable(checked, role = Role.Checkbox, onValueChange = onChange), verticalAlignment = Alignment.Top) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun <T> Chips(label: String, values: List<T>, selected: T, name: (T) -> String, onSelect: (T) -> Unit) {
+    Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        values.forEach { v -> FilterChip(selected = v == selected, onClick = { onSelect(v) }, label = { Text(name(v)) }) }
+    }
+}
+
+@Composable
+private fun Field(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier.fillMaxWidth(), decimal: Boolean = true) {
+    OutlinedTextField(
+        value = value, onValueChange = { onChange(it.take(6)) }, label = { Text(label) }, singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
+        modifier = modifier
+    )
 }

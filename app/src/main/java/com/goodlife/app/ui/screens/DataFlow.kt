@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -50,8 +51,9 @@ fun DataFlowSummary(showAi: Boolean = true) {
             FlowLine(
                 Icons.Filled.AutoAwesome, "IA (si tu l'actives) → Google Gemini",
                 "Photo du repas et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, " +
-                    "objectif, habitudes, allergies et repas du jour (données de santé). Envoyé avec ta propre clé. " +
-                    "Jamais ton prénom ni ton sommeil."
+                    "objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres " +
+                    "de la semaine (scores, pas, sport, poids) et ton planning. Envoyé avec ta propre clé. " +
+                    "Jamais ton prénom, ton sommeil ni tes positions."
             )
         }
         FlowLine(
@@ -65,6 +67,11 @@ fun DataFlowSummary(showAi: Boolean = true) {
         FlowLine(
             Icons.Filled.Map, "Carte → OpenFreeMap et OpenStreetMap",
             "La zone affichée, et celle où tu cherches des clubs, des boucles ou un itinéraire. Ta position exacte et tes tracés GPS restent sur le téléphone."
+        )
+        FlowLine(
+            Icons.Filled.Newspaper, "Actus du jour → sites d'actualité",
+            "Une fois par jour, l'app lit les flux publics de franceinfo, Sciences et Avenir, Futura, Anses et Santé publique " +
+                "France. Ces sites voient ton adresse IP, rien d'autre. Un article ne s'ouvre chez eux que si tu le touches."
         )
         FlowLine(
             Icons.Filled.Group, "Amis (si ton profil est public) → le téléphone de tes amis",

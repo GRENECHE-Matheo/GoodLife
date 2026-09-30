@@ -50,7 +50,7 @@
 | Public cible | 13–15 ans (15 ans seulement), 16–17 ans, 18 ans et plus. **Pas** de moins de 13 ans → pas concerné par le programme Familles |
 | Classification du contenu | Questionnaire IARC : pas de violence, pas de contenu sexuel, pas de jeux d'argent ; mentionner les conseils nutritionnels |
 | Applications de santé | Remplir la **déclaration** : suivi nutritionnel, suivi du sommeil, bien-être ; **pas** un dispositif médical ; pas d'accès à Health Connect |
-| Contenu généré par IA | L'app utilise l'IA (Gemini) pour analyser des photos de repas et proposer des idées/recettes. Chaque réponse est marquée « Généré par l'IA » avec un bouton « Signaler » dans l'app |
+| Contenu généré par IA | L'app utilise l'IA (Gemini) pour analyser des photos de repas, proposer des idées/recettes et discuter avec le coach. Chaque réponse est marquée « Généré par l'IA » avec un bouton « Signaler » dans l'app |
 | Applis gouvernementales / financières / VPN | Non |
 
 ## 5. Sécurité des données (Data safety)
@@ -65,7 +65,8 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 | Type Play | Détail | Finalité |
 |---|---|---|
 | Photos et vidéos › Photos | Photo du repas à analyser | Fonctionnalité de l'appli |
-| Santé et remise en forme › Santé | Poids, taille, allergies, repas du jour, objectif | Fonctionnalité de l'appli |
+| Santé et remise en forme › Santé | Poids, taille, allergies, repas du jour, objectif, évolution du poids (coach) | Fonctionnalité de l'appli |
+| Santé et remise en forme › Remise en forme | Pas, séances de sport, nombre et distance des sorties (résumés envoyés au coach) | Fonctionnalité de l'appli |
 | Informations personnelles › Autres | Âge, sexe | Fonctionnalité de l'appli |
 
 - **Traitement éphémère** : non (Google peut conserver temporairement, voir ses conditions).
@@ -86,6 +87,9 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 - **Pas** : lus sur le téléphone (capteur ou Health Connect), jamais transmis → pas « collectés » ; seule la moyenne peut partir
   vers Gemini si l'utilisateur demande un objectif à l'IA (déjà couvert par « Santé et remise en forme »).
 - Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.
+- **Notifications du coach** : préparées et programmées sur le téléphone (AlarmManager), sans serveur → rien à déclarer.
+- **Actus du jour** : l'app **lit** des flux RSS publics (franceinfo, Sciences et Avenir, Futura, Anses, Santé publique
+  France) ; aucune donnée de l'utilisateur n'est envoyée (seulement l'adresse IP, comme pour tout site) → rien à déclarer.
 
 ## 6. Autorisations sensibles
 
@@ -94,11 +98,12 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 | `CAMERA` | Photo du repas et scan de code-barres (dans l'app) |
 | `ACTIVITY_RECOGNITION` | Détection du sommeil (Sleep API) et compteur de pas, seulement si activés |
 | `health.READ_STEPS` | Lecture seule des pas dans Health Connect, si l'utilisateur choisit cette source |
-| `RECEIVE_BOOT_COMPLETED` | Réactiver sommeil et StreetPass après un redémarrage |
-| `INTERNET` | IA (si activée), Open Food Facts |
+| `RECEIVE_BOOT_COMPLETED` | Réactiver sommeil, StreetPass et les rappels du coach après un redémarrage |
+| `INTERNET` | IA (si activée), Open Food Facts, carte, actus du jour (flux RSS publics) |
 | `NFC` | Tap to Sync : échange de cartes entre amis en collant les téléphones |
 | `BLUETOOTH_SCAN` (neverForLocation), `BLUETOOTH_ADVERTISE`, `BLUETOOTH_CONNECT` | StreetPass (Android 12+, 18+, désactivé par défaut) |
-| `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `POST_NOTIFICATIONS` | Service StreetPass avec sa notification |
+| `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Service StreetPass avec sa notification |
+| `POST_NOTIFICATIONS` | Notifications du coach (acceptées par l'utilisateur), StreetPass et activités GPS |
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | Activités GPS (course, marche, vélo), seulement pendant une activité lancée par l'utilisateur |
 | `FOREGROUND_SERVICE_LOCATION` | Suivi GPS écran éteint pendant l'activité, avec notification |
 

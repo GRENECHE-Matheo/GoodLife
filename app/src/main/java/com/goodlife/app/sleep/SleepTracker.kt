@@ -89,9 +89,10 @@ class SleepReceiver : BroadcastReceiver() {
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         Repo.init(context)
         if (Repo.settings.value.sleepAuto) SleepTracker.subscribe(context)
         com.goodlife.app.social.StreetPass.sync(context)
+        com.goodlife.app.coach.CoachNotifier.schedule(context)
     }
 }

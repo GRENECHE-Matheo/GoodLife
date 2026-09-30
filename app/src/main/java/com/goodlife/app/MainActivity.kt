@@ -84,6 +84,7 @@ class MainActivity : FragmentActivity() {
         UpdateInstaller.cleanup(this, onlyInstalled = true)
         com.goodlife.app.steps.Steps.schedule(this)
         com.goodlife.app.social.StreetPass.sync(this)
+        com.goodlife.app.coach.CoachNotifier.schedule(this)
         val s = Repo.settings.value
         applyScreenshotBlock(s.blockScreenshots)
         // Rotation / changement de thème : pas de re-verrouillage ; retour après plus d'1 min : verrouillage.

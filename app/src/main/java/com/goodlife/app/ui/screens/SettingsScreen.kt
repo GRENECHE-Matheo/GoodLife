@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -166,6 +167,15 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Sécurité ----
+        SectionCard(title = "Coach et notifications", icon = Icons.Filled.Notifications) {
+            Text(
+                "Messages préparés sur ton téléphone (sans réseau ni IA), jamais plus d'un à la fois. " +
+                    "Sur l'écran verrouillé, seul « Un message du chef » s'affiche.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            NotifSettingsBlock(settings)
+        }
+
         SectionCard(title = "Sécurité", icon = Icons.Filled.Fingerprint) {
             SettingSwitch(
                 title = "Verrouiller avec l'empreinte",

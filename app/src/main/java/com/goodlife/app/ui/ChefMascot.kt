@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -43,6 +44,25 @@ fun ChefMascot(modifier: Modifier = Modifier, size: Dp = 96.dp, mood: ChefMood =
         pop.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 320f))
     }
     Canvas(modifier.size(size).graphicsLayer { scaleX = pop.value; scaleY = pop.value; transformOrigin = TransformOrigin(0.5f, 1f) }) {
+        drawChef(mood)
+    }
+}
+
+/**
+ * Le cuisto rendu en image (notifications, widgets) : même dessin que [ChefMascot], sans Compose à l'écran.
+ */
+fun chefBitmap(mood: ChefMood, px: Int = 192): android.graphics.Bitmap {
+    val image = androidx.compose.ui.graphics.ImageBitmap(px, px)
+    androidx.compose.ui.graphics.drawscope.CanvasDrawScope().draw(
+        androidx.compose.ui.unit.Density(1f), androidx.compose.ui.unit.LayoutDirection.Ltr,
+        androidx.compose.ui.graphics.Canvas(image), Size(px.toFloat(), px.toFloat())
+    ) { drawChef(mood) }
+    return image.asAndroidBitmap()
+}
+
+/** Dessine le cuisto dans la zone courante (100 × 100 unités mises à l'échelle). */
+fun DrawScope.drawChef(mood: ChefMood) {
+    run {
         val u = this.size.minDimension / 100f
         fun o(x: Float, y: Float) = Offset(x * u, y * u)
         fun p(block: Path.() -> Unit) = Path().apply(block)

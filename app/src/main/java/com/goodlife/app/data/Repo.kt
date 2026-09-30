@@ -67,8 +67,17 @@ data class Settings(
     val streetPass: Boolean = false,
     // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
     val scoreRulesFrom: String = "",
-    val preferredOuting: String = "RUN"     // activité préférée (course / marche / vélo), pré-choisie sur la carte
+    val preferredOuting: String = "RUN",    // activité préférée (course / marche / vélo), pré-choisie sur la carte
+    // Notifications du coach : toutes coupées tant que la personne ne les a pas acceptées
+    val notifMorning: Boolean = false,      // bilan de la veille, le matin
+    val notifNoon: Boolean = false,         // repas prévu à midi + petit mot
+    val notifEvening: Boolean = false,      // série en danger, le soir
+    val notifWeekly: Boolean = false,       // bilan de la semaine, le dimanche
+    val notifAsked: Boolean = false,        // la question a déjà été posée (inscription ou accueil)
+    val lastNudgeDay: String = ""           // dernier « tu nous manques », pour ne pas insister
 ) {
+    val anyNotif: Boolean get() = notifMorning || notifNoon || notifEvening || notifWeekly
+
 
     fun toJson(): JSONObject = JSONObject()
         .put("apiKey", apiKey).put("model", model).put("sleepAuto", sleepAuto)
@@ -111,6 +120,12 @@ data class Settings(
         .put("streetPass", streetPass)
         .put("scoreRulesFrom", scoreRulesFrom)
         .put("preferredOuting", preferredOuting)
+        .put("notifMorning", notifMorning)
+        .put("notifNoon", notifNoon)
+        .put("notifEvening", notifEvening)
+        .put("notifWeekly", notifWeekly)
+        .put("notifAsked", notifAsked)
+        .put("lastNudgeDay", lastNudgeDay)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -156,7 +171,13 @@ data class Settings(
             shareDex = o.optBoolean("shareDex", true),
             streetPass = o.optBoolean("streetPass", false),
             scoreRulesFrom = o.optString("scoreRulesFrom"),
-            preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" }
+            preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" },
+            notifMorning = o.optBoolean("notifMorning", false),
+            notifNoon = o.optBoolean("notifNoon", false),
+            notifEvening = o.optBoolean("notifEvening", false),
+            notifWeekly = o.optBoolean("notifWeekly", false),
+            notifAsked = o.optBoolean("notifAsked", false),
+            lastNudgeDay = o.optString("lastNudgeDay")
         )
     }
 }
@@ -528,6 +549,10 @@ object Repo {
 
     /** Meilleur temps (en mouvement) sur un parcours, parmi les sorties valides. */
     fun bestOn(routeId: Long): Outing? = _outings.value.filter { it.routeId == routeId && it.valid }.minByOrNull { it.movingMs }
+
+    // ---------- Petits états annexes (actus du jour…) ----------
+    fun getExtra(key: String): String? = store.get("x_$key")
+    fun putExtra(key: String, value: String?) = store.put("x_$key", value)
 
     // ---------- Réglages ----------
     @Synchronized

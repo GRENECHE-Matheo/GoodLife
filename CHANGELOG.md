@@ -8,6 +8,26 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9 — 01/10/2026
+
+**Le chef devient ton coach : conseils perso, notifications et vraies actus du jour.**
+
+- ✨ **Parler au chef** depuis l'accueil : pose-lui toutes tes questions (quoi manger, recette, sport, bilan de ta semaine).
+  Il s'appuie sur tes chiffres (repas, pas, séries, sport, planning) et peut te proposer des repas : ils ne s'ajoutent
+  au planning que si tu appuies sur « Ajouter » (IA avec ta clé Gemini, 18 ans et plus).
+- ✨ **Le mot du chef** sur l'accueil : un petit message qui change selon ta journée, même sans IA.
+- ✨ **Notifications du coach** (si tu les acceptes) : bilan de la veille le matin, repas prévu et encouragement à midi,
+  rappel le soir seulement si ta série est en danger, bilan de la semaine le dimanche, félicitations aux grands paliers
+  de série. Jamais plus d'une à la fois, et rien de lisible sur l'écran verrouillé.
+- ✨ **Vraies actus du jour**, pour tout le monde et sans clé : alimentation et sport, tirées des flux publics de franceinfo,
+  Sciences et Avenir, Futura, Anses et Santé publique France, avec une actu insolite quand il y en a une (publiée le jour
+  même ou la veille). Jamais deux fois la même, pas de pub ni de sujets anxiogènes. Avec l'IA : « Demander au chef » sur une actu.
+- ✨ Sans internet, 137 nouvelles anecdotes vérifiées prennent le relais, sans jamais en répéter une.
+- 🛠️ **Inscription en 7 petites pages** : bienvenue, confidentialité (à accepter), toi, ton corps, ton objectif,
+  récapitulatif avec ton objectif calorique, et choix des notifications.
+- 🐛 Les actus changent bien à minuit, même si l'app reste ouverte.
+- 🔒 Politique de confidentialité v0.9 (coach, notifications, actus).
+
 ## v0.8.1 — 30/09/2026
 
 **Parcours en boucle, destination guidée et cartes hors ligne.**

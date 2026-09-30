@@ -111,22 +111,7 @@ fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null
                 val a = age.toNumber()?.toInt()
                 val w = weight.toNumber()
                 val h = height.toNumber()
-                error = when {
-                    a != null && a in 1 until Nutrition.MIN_AGE ->
-                        "GoodLife est réservée aux ${Nutrition.MIN_AGE} ans et plus."
-                    a == null || a !in Nutrition.MIN_AGE..110 -> "Âge invalide (${Nutrition.MIN_AGE} à 110 ans)."
-                    w == null || w !in 25.0..350.0 -> "Poids invalide."
-                    h == null || h !in 100.0..250.0 -> "Taille invalide (en cm)."
-                    goal == Goal.PERTE && !Nutrition.weightLossAllowed(
-                        initial.copy(age = a, weightKg = w, heightCm = h)
-                    ) -> if (a < 18)
-                        "L'objectif « Perdre du poids » n'est pas proposé avant 18 ans : pendant la croissance, " +
-                            "parles-en plutôt à un médecin. Choisis « Maintenir » ou « Prendre du poids »."
-                    else
-                        "Ton IMC est déjà sous 18,5 : l'objectif « Perdre du poids » n'est pas proposé. " +
-                            "Si tu veux perdre du poids malgré tout, parles-en à un médecin."
-                    else -> null
-                }
+                error = ageError(a) ?: bodyError(w, h) ?: goalError(goal, initial.copy(age = a!!, weightKg = w!!, heightCm = h!!))
                 if (error == null) {
                     onSave(
                         initial.copy(
@@ -140,6 +125,29 @@ fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null
             modifier = Modifier.fillMaxWidth().height(52.dp)
         ) { Text(saveLabel) }
     }
+}
+
+/** Vérifications du profil, partagées avec l'inscription en plusieurs pages. */
+fun ageError(a: Int?): String? = when {
+    a != null && a in 1 until Nutrition.MIN_AGE -> "GoodLife est réservée aux ${Nutrition.MIN_AGE} ans et plus."
+    a == null || a !in Nutrition.MIN_AGE..110 -> "Âge invalide (${Nutrition.MIN_AGE} à 110 ans)."
+    else -> null
+}
+
+fun bodyError(w: Double?, h: Double?): String? = when {
+    w == null || w !in 25.0..350.0 -> "Poids invalide."
+    h == null || h !in 100.0..250.0 -> "Taille invalide (en cm)."
+    else -> null
+}
+
+fun goalError(goal: Goal, p: Profile): String? = when {
+    goal == Goal.PERTE && !Nutrition.weightLossAllowed(p) -> if (p.age < 18)
+        "L'objectif « Perdre du poids » n'est pas proposé avant 18 ans : pendant la croissance, " +
+            "parles-en plutôt à un médecin. Choisis « Maintenir » ou « Prendre du poids »."
+    else
+        "Ton IMC est déjà sous 18,5 : l'objectif « Perdre du poids » n'est pas proposé. " +
+            "Si tu veux perdre du poids malgré tout, parles-en à un médecin."
+    else -> null
 }
 
 @Composable

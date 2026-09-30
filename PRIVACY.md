@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.8.1 · mise à jour le 30 septembre 2026
+Version 0.9 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -14,7 +14,7 @@ L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on p
 
 ## Ce qui reste sur ton téléphone
 
-Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés) et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement explicite (case à cocher au premier lancement). Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
+Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés), les actus déjà lues et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement explicite (case à cocher au premier lancement). Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
 
 ## Ce qui est envoyé si tu actives l'IA
 
@@ -26,8 +26,9 @@ L'IA est désactivée par défaut, demande un consentement séparé (réservé a
 • Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.
 • Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.
 • Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites que tu écris (données de santé).
-• Questions à l'IA (sur une photo, une recette ou ton programme) : tes questions, le contexte concerné (photo et analyse, recette ou programme), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.
-Ne sont jamais envoyés : ton prénom, ton sommeil, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
+• Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné (photo et analyse, recette, programme, ou titre et extrait de l'actu), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.
+• Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains jours. Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste en mémoire tant que l'app est ouverte, sans être enregistrée.
+Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que tu fais analyser), tes positions GPS, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
 
 ## À qui ces données sont envoyées
 
@@ -53,6 +54,14 @@ Ta position n'est utilisée que pendant une activité que tu lances toi-même (a
 ## Carte et clubs
 
 Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, © OpenMapTiles) : comme pour toute appli de carte, le serveur voit ton adresse IP et la zone affichée. Quand tu cherches des clubs, des boucles ou un itinéraire vers une destination, les coordonnées de la zone concernée sont envoyées à l'API Overpass d'OpenStreetMap (serveur public géré par une association allemande) pour récupérer les chemins ou les clubs ; le calcul de l'itinéraire se fait ensuite sur ton téléphone. Les cartes hors ligne sont téléchargées depuis OpenFreeMap pour la seule zone que tu choisis, et tu peux les supprimer à tout moment. Les informations des clubs (tarifs, horaires, site) viennent d'OpenStreetMap et peuvent être incomplètes : vérifie-les auprès du club.
+
+## Notifications du coach
+
+Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Coach et notifications). Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes chiffres. Tu peux couper chaque notification à tout moment.
+
+## Actus du jour
+
+Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seuls le titre et un court extrait sont affichés ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
 
 ## Le Nutridex
 

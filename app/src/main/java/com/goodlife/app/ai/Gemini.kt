@@ -27,6 +27,11 @@ class AiException(message: String) : Exception(message)
 /** Un message de conversation avec l'IA. */
 data class ChatMessage(val fromUser: Boolean, val text: String)
 
+/** Repas proposé par le coach, ajouté au planning seulement si la personne appuie sur « Ajouter ». */
+data class CoachMeal(val date: String, val slot: MealSlot, val name: String, val kcal: Int, val description: String)
+
+data class CoachReply(val text: String, val meals: List<CoachMeal>)
+
 /**
  * Client minimal de l'API Gemini (Google AI Studio), avec la clé personnelle de chaque utilisateur.
  * La clé est fournie par l'utilisateur et stockée chiffrée sur le téléphone.
@@ -77,6 +82,40 @@ class Gemini(private val apiKey: String, private val model: String) {
             .put("contents", contents)
             .put("generationConfig", JSONObject().put("temperature", 0.5).put("maxOutputTokens", 900))
         text(send(body)).trim().ifBlank { throw AiException("L'IA n'a pas répondu. Reformule ta question.") }
+    }
+
+    /**
+     * Le coach : conversation dont chaque réponse est un JSON {"reply", "meals"}. Les repas proposés ne sont
+     * jamais ajoutés automatiquement : l'app les affiche avec un bouton « Ajouter au planning ».
+     */
+    suspend fun coach(system: String, history: List<ChatMessage>): CoachReply = withContext(Dispatchers.IO) {
+        guard()
+        val contents = JSONArray()
+        history.forEach { m ->
+            contents.put(JSONObject().put("role", if (m.fromUser) "user" else "model").put("parts", parts(m.text, null)))
+        }
+        val body = JSONObject()
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
+            .put("contents", contents)
+            .put("generationConfig", JSONObject()
+                .put("responseMimeType", "application/json")
+                .put("temperature", 0.6)
+                .put("maxOutputTokens", 2000))
+        val o = extractJson(text(send(body)))
+        val reply = o.optString("reply").trim().ifBlank { throw AiException("Le chef n'a pas répondu. Reformule ta question.") }
+        val today = com.goodlife.app.data.localDay(0)
+        val last = com.goodlife.app.data.localDay(13)
+        val meals = o.optJSONArray("meals")?.mapObjects { m ->
+            CoachMeal(
+                date = m.optString("date"),
+                slot = MealSlot.entries.firstOrNull { it.name == m.optString("slot") } ?: MealSlot.guess(m.optString("slot")),
+                name = m.optString("name").trim().take(80),
+                kcal = m.optDouble("kcal", 0.0).roundToInt().coerceIn(0, 2500),
+                description = m.optString("description").trim().take(400)
+            )
+        }?.filter { it.name.isNotBlank() && it.date.matches(Regex("""\d{4}-\d{2}-\d{2}""")) && it.date in today..last }?.take(21)
+            ?: emptyList()
+        CoachReply(reply.take(3000), meals)
     }
 
     private fun parts(text: String, jpeg: ByteArray?): JSONArray {

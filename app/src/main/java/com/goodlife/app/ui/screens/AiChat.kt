@@ -55,7 +55,7 @@ import com.goodlife.app.ui.ChefMood
 import kotlinx.coroutines.launch
 
 /** Règles communes à toutes les conversations (sécurité et sujet). */
-private const val CHAT_RULES = """
+internal const val CHAT_RULES = """
 Tu es le coach de l'application GoodLife (bien-être, alimentation, sport). Réponds en français, simplement,
 en 2 à 6 phrases, avec des conseils concrets. Tu n'es pas un professionnel de santé : ne donne jamais de diagnostic,
 de traitement ni de dose de médicament ; pour toute question médicale, grossesse, maladie ou trouble du comportement
@@ -196,7 +196,7 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
 }
 
 @Composable
-private fun Bubble(fromUser: Boolean, text: String) {
+internal fun Bubble(fromUser: Boolean, text: String) {
     Surface(
         shape = RoundedCornerShape(
             topStart = if (fromUser) 20.dp else 4.dp, topEnd = if (fromUser) 4.dp else 20.dp,

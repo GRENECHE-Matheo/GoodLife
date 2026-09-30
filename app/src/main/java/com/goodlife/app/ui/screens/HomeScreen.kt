@@ -117,14 +117,15 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     val steps by Repo.steps.collectAsState()
     val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom) }
     var overlay by rememberSaveable { mutableStateOf("") }
-    SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress", "news" -> 1; else -> 2 } }) { screen ->
+    SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress", "news", "coach" -> 1; else -> 2 } }) { screen ->
         when (screen) {
             "news" -> NewsScreen(onBack = { overlay = "" })
+            "coach" -> CoachScreen(onBack = { overlay = "" })
             "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
             "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" })
             else -> HomeContent(
                 onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" },
-                onOpenProfile = onOpenProfile, onNews = { overlay = "news" }
+                onOpenProfile = onOpenProfile, onNews = { overlay = "news" }, onCoach = { overlay = "coach" }
             )
         }
     }
@@ -137,7 +138,8 @@ private fun HomeContent(
     onProgress: () -> Unit,
     onQuiz: () -> Unit,
     onOpenProfile: () -> Unit,
-    onNews: () -> Unit
+    onNews: () -> Unit,
+    onCoach: () -> Unit
 ) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
@@ -212,6 +214,8 @@ private fun HomeContent(
             }
         }
 
+        CoachCard(summary, p, onOpen = onCoach)
+        if (!settings.notifAsked) NotifOptInCard()
         NewsTeaser(onOpen = onNews)
 
         // Série cassée hier : le cuisto propose de la sauver
