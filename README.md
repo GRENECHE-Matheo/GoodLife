@@ -58,7 +58,8 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
   notifications motivantes si tu les acceptes (bilan du matin, midi, soir si la série est en danger, dimanche).
 - **Score du jour** = 60 % alimentation + 40 % pas ; **série** validée dès 80/100.
 - **XP et niveaux**, de « Commis » à « Légende de la cuisine », courbes de score, calories et poids.
-- **Quiz du chef** : 5 questions par jour, qui peuvent sauver une série cassée ; sons et barre d'XP animée.
+- **Quiz du chef** : 5 questions par jour, jamais les mêmes pendant des années (questions fabriquées à partir de la
+  table Ciqual de l'Anses), qui peuvent sauver une série cassée ; sons et barre d'XP animée.
 - **Nutridex** : 161 aliments sains à débloquer en les prenant en photo.
 - **Actus du jour** : de vraies actus sur l'alimentation et le sport (franceinfo, Sciences et Avenir, Futura, Anses,
   Santé publique France), avec une actu insolite, jamais deux fois la même ; des anecdotes vérifiées sans internet.

@@ -14,7 +14,7 @@ L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on p
 
 ## Ce qui reste sur ton téléphone
 
-Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés), les actus déjà lues et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement explicite (case à cocher au premier lancement). Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
+Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés), les actus déjà lues, les questions de quiz déjà posées et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement explicite (case à cocher au premier lancement). Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
 
 ## Ce qui est envoyé si tu actives l'IA
 

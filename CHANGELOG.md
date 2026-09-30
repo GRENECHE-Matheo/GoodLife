@@ -10,7 +10,12 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ## v0.9.1 — 01/10/2026
 
-**Vérification sécurité et droit, et résumé des articles officiels.**
+**Quiz sans fin, vérification sécurité et droit, et résumé des articles officiels.**
+
+- ✨ **Quiz du chef sans répétition, pour des années** : en plus des 60 questions classiques, des questions fabriquées
+  à partir de la table Ciqual de l'Anses (370 aliments du quotidien : « lequel a le plus de protéines ? », « combien de
+  kcal dans 100 g de… ? », vrai ou faux, duels…). Réponses toujours tirées des données officielles, jamais la même
+  question deux fois ; une question classique ne revient qu'après 2 ans, et au plus une tous les 15 jours.
 
 - ✨ **Résumé du chef** (avec l'IA) pour les articles de l'Anses et de Santé publique France : 3 à 5 points fidèles à
   l'article, source et date citées, l'article original restant la référence. Pas pour les articles republiés d'autres médias.

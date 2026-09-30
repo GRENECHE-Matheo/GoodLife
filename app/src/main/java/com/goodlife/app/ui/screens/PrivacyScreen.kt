@@ -44,7 +44,7 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, " +
         "ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton " +
         "Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés), " +
-        "les actus déjà lues et tes réglages. " +
+        "les actus déjà lues, les questions de quiz déjà posées et tes réglages. " +
         "Certaines de ces informations sont des données de santé. " +
         "Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. " +
         "Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement " +

@@ -86,7 +86,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
-    val questions = remember { QuizBank.forDay() }
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val questions = remember { QuizBank.today(appContext) }
     var index by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     var correct by rememberSaveable { mutableIntStateOf(0) }

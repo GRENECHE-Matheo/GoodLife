@@ -1,5 +1,10 @@
 package com.goodlife.app.game
 
+import android.content.Context
+import com.goodlife.app.data.Repo
+import com.goodlife.app.data.localDay
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Calendar
 import java.util.TimeZone
 import kotlin.random.Random
@@ -144,11 +149,8 @@ object QuizBank {
         return utc.timeInMillis / 86_400_000L
     }
 
-    /**
-     * Quiz du jour : 5 questions différentes chaque jour. On parcourt la banque dans un ordre mélangé ;
-     * à chaque tour complet, un nouveau mélange est utilisé, donc les journées ne se répètent jamais à l'identique.
-     */
-    fun forDay(date: Calendar = Calendar.getInstance()): List<DailyQuestion> {
+    /** Ancien tirage (avant la v0.9.1), gardé pour savoir quelles questions classiques ont déjà été posées. */
+    private fun legacyForDay(date: Calendar): List<DailyQuestion> {
         val n = Q.size
         val day = dayIndex(date)
         val start = day * PER_DAY
@@ -164,4 +166,95 @@ object QuizBank {
     }
 
     val size: Int get() = Q.size
+
+    private const val KEY = "quiz_state"
+    private const val CLASSIC_FIRST_ROUND = 2       // questions classiques par jour tant qu'il en reste d'inédites
+    private const val CLASSIC_GAP_DAYS = 15         // ensuite, au plus une ancienne question tous les 15 jours…
+    private const val CLASSIC_REST_DAYS = 730       // … et seulement si elle n'a pas été posée depuis 2 ans
+
+    /**
+     * Quiz du jour, jamais deux fois la même question :
+     * - les 60 questions classiques passent d'abord (2 par jour), puis ne reviennent qu'une à la fois, au plus
+     *   tous les 15 jours et après 2 ans de repos ;
+     * - le reste est fabriqué à partir de la table Ciqual (QuizGen) : l'app retient chaque question posée
+     *   (empreinte chiffrée sur le téléphone) et ne la repose jamais.
+     * Les questions du jour sont gardées toute la journée (même si on rouvre le quiz).
+     */
+    @Synchronized
+    fun today(context: Context): List<DailyQuestion> {
+        val day = localDay(0)
+        val st = runCatching { JSONObject(Repo.getExtra(KEY) ?: "{}") }.getOrElse { JSONObject() }
+        if (st.optString("day") == day) {
+            st.optJSONArray("qs")?.let { a ->
+                val saved = (0 until a.length()).map { i ->
+                    val o = a.getJSONObject(i)
+                    val opts = o.getJSONArray("o").let { oa -> (0 until oa.length()).map { oa.getString(it) } }
+                    DailyQuestion(o.getString("q"), opts, o.getInt("c"), o.getString("e"))
+                }
+                if (saved.size == PER_DAY) return saved
+            }
+        }
+        val dayNum = dayIndex(Calendar.getInstance())
+        // Questions classiques : jour (numéro) de dernière pose, par indice
+        val classic = st.optJSONObject("classic") ?: JSONObject().also { c ->
+            // Première fois : on reprend ce que l'ancien tirage a montré les jours où le quiz a été fait
+            Repo.game.value.quizResults.keys.forEach { d ->
+                runCatching {
+                    val cal = Calendar.getInstance().apply { time = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(d)!! }
+                    val n = dayIndex(cal)
+                    legacyForDay(cal).forEach { q -> Q.indexOfFirst { it.question == q.question }.takeIf { it >= 0 }?.let { c.put(it.toString(), n) } }
+                }
+            }
+        }
+        val seen = st.optJSONArray("seen")?.let { a -> (0 until a.length()).map { a.getString(it) } }?.toMutableSet() ?: mutableSetOf()
+        var lastClassic = st.optLong("lastClassic", -1_000L)
+
+        val picked = mutableListOf<DailyQuestion>()
+        val rnd = Random(dayNum * 1_000_003L + (st.optLong("salt").takeIf { it != 0L } ?: Random.nextLong().also { st.put("salt", it) }))
+        val never = Q.indices.filter { !classic.has(it.toString()) }.shuffled(rnd)
+        if (never.isNotEmpty()) {
+            never.take(CLASSIC_FIRST_ROUND).forEach { i -> picked += classicQuestion(i, rnd); classic.put(i.toString(), dayNum) }
+            lastClassic = dayNum
+        } else if (dayNum - lastClassic >= CLASSIC_GAP_DAYS) {
+            Q.indices.filter { dayNum - classic.optLong(it.toString()) >= CLASSIC_REST_DAYS }.shuffled(rnd).firstOrNull()?.let { i ->
+                picked += classicQuestion(i, rnd); classic.put(i.toString(), dayNum); lastClassic = dayNum
+            }
+        }
+        // Questions fabriquées : jamais déjà posées, et des types variés dans la journée
+        val foods = QuizGen.load(context)
+        val usedTypes = mutableListOf<Int>()
+        var tries = 0
+        while (picked.size < PER_DAY && tries < 3000) {
+            tries++
+            val type = rnd.nextInt(QuizGen.TYPES)
+            if (usedTypes.count { it == type } >= 1 && tries < 2000) continue
+            val made = QuizGen.make(foods, rnd, type) ?: continue
+            val h = hash(made.key)
+            if (h in seen || picked.any { it.question == made.question.question && it.options == made.question.options }) continue
+            seen += h; usedTypes += type
+            picked += made.question
+        }
+        picked.shuffle(rnd)
+        st.put("day", day)
+            .put("qs", JSONArray().apply {
+                picked.forEach { q -> put(JSONObject().put("q", q.question).put("o", JSONArray(q.options)).put("c", q.correctIndex).put("e", q.explanation)) }
+            })
+            .put("classic", classic)
+            .put("lastClassic", lastClassic)
+            .put("seen", JSONArray(seen.toList()))
+        Repo.putExtra(KEY, st.toString())
+        return picked
+    }
+
+    private fun classicQuestion(i: Int, rnd: Random): DailyQuestion {
+        val q = Q[i]
+        val opts = q.answers.shuffled(rnd)
+        return DailyQuestion(q.question, opts, opts.indexOf(q.answers[0]), q.explanation)
+    }
+
+    /** Empreinte courte d'une question (8 caractères) pour la mémoire des questions posées. */
+    private fun hash(key: String): String {
+        val d = java.security.MessageDigest.getInstance("SHA-256").digest(key.toByteArray(Charsets.UTF_8))
+        return d.take(4).joinToString("") { "%02x".format(it) }
+    }
 }
