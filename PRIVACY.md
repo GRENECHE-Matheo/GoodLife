@@ -62,6 +62,7 @@ Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Par
 ## Actus du jour
 
 Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
+• Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page publique de l'article et envoie son titre et son texte à Google Gemini, avec ta clé, pour le résumer. Aucune donnée te concernant n'est envoyée. Le résumé n'est pas gardé.
 
 ## Le Nutridex
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -109,6 +110,7 @@ fun NewsScreen(onBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
     var askAbout by remember { mutableStateOf<FeedItem?>(null) }
+    var summarize by remember { mutableStateOf<FeedItem?>(null) }
     val uri = LocalUriHandler.current
     val aiReady = Repo.aiAllowed() && Repo.settings.collectAsState().value.apiKey.isNotBlank()
 
@@ -126,7 +128,9 @@ fun NewsScreen(onBack: () -> Unit) {
             val odd = feed?.firstOrNull { it.kind == FeedItem.INSOLITE }
             if (odd != null) {
                 Text("Actu insolite", style = MaterialTheme.typography.titleMedium)
-                FeedCard(odd, highlight = true, onOpen = { runCatching { uri.openUri(odd.url) } }, onAsk = if (aiReady) ({ askAbout = odd }) else null)
+                FeedCard(odd, highlight = true, onOpen = { runCatching { uri.openUri(odd.url) } },
+                    onAsk = if (aiReady) ({ askAbout = odd }) else null,
+                    onSummary = if (aiReady && odd.public) ({ summarize = odd }) else null)
             }
             Text("À la une", style = MaterialTheme.typography.titleMedium)
             when {
@@ -146,7 +150,9 @@ fun NewsScreen(onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 else -> feed!!.filter { it.kind != FeedItem.INSOLITE }.forEach { item ->
-                    FeedCard(item, onOpen = { runCatching { uri.openUri(item.url) } }, onAsk = if (aiReady) ({ askAbout = item }) else null)
+                    FeedCard(item, onOpen = { runCatching { uri.openUri(item.url) } },
+                        onAsk = if (aiReady && !item.public) ({ askAbout = item }) else null,
+                        onSummary = if (aiReady && item.public) ({ summarize = item }) else null)
                 }
             }
 
@@ -163,6 +169,7 @@ fun NewsScreen(onBack: () -> Unit) {
         }
     }
 
+    summarize?.let { item -> ArticleSummaryDialog(item, onOpen = { runCatching { uri.openUri(item.url) } }, onDismiss = { summarize = null }) }
     askAbout?.let { item ->
         AiChatDialog(
             title = item.title,
@@ -204,14 +211,17 @@ private fun OfflineAnecdotes(today: String) {
 }
 
 @Composable
-private fun FeedCard(item: FeedItem, onOpen: () -> Unit, onAsk: (() -> Unit)?, highlight: Boolean = false) {
+private fun FeedCard(
+    item: FeedItem, onOpen: () -> Unit, onAsk: (() -> Unit)?, highlight: Boolean = false, onSummary: (() -> Unit)? = null
+) {
     Surface(
         onClick = onOpen, shape = RoundedCornerShape(20.dp),
         color = if (highlight) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "${item.source} · ${SimpleDateFormat("d MMM", Locale.FRANCE).format(java.util.Date(item.time))}",
+                if (item.time == NewsFeed.NO_DATE) item.source
+                else "${item.source} · ${SimpleDateFormat("d MMM", Locale.FRANCE).format(java.util.Date(item.time))}",
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary
             )
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
@@ -223,10 +233,59 @@ private fun FeedCard(item: FeedItem, onOpen: () -> Unit, onAsk: (() -> Unit)?, h
                 Spacer(Modifier.width(6.dp))
                 Text("Lire l'article", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f))
-                if (onAsk != null) TextButton(onClick = onAsk) { Text("Demander au chef") }
+                if (onSummary != null) TextButton(onClick = onSummary) { Text("Résumé du chef") }
+                else if (onAsk != null) TextButton(onClick = onAsk) { Text("Demander au chef") }
             }
         }
     }
+}
+
+/**
+ * Résumé IA d'un article d'organisme public (réutilisation d'informations publiques : source et date citées,
+ * sens respecté, l'article reste la référence). Rien n'est gardé.
+ */
+@Composable
+private fun ArticleSummaryDialog(item: FeedItem, onOpen: () -> Unit, onDismiss: () -> Unit) {
+    val settings = Repo.settings.collectAsState().value
+    var points by remember { mutableStateOf<List<String>?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(item.url) {
+        try {
+            val text = NewsFeed.articleText(item.url)
+            points = com.goodlife.app.ai.Gemini(settings.apiKey, settings.model).summarizeArticle(item.source, item.title, text)
+        } catch (e: Exception) {
+            error = e.message
+        }
+    }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Résumé du chef") },
+        text = {
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(item.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+                when {
+                    error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
+                    points == null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Le chef lit l'article…")
+                    }
+                    else -> {
+                        points!!.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+                        Text(
+                            "Résumé généré par l'IA à partir de l'article de ${item.source}" +
+                                (if (item.time != NewsFeed.NO_DATE) " du ${SimpleDateFormat("d MMMM yyyy", Locale.FRANCE).format(java.util.Date(item.time))}" else "") +
+                                ". Il peut contenir des erreurs : l'article original fait foi.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        com.goodlife.app.ui.AiContentFooter("Résumé d'article (${item.source}) : ${item.title}\n" + points!!.joinToString("\n"))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onOpen) { Text("Lire l'article") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer") } }
+    )
 }
 
 @Composable

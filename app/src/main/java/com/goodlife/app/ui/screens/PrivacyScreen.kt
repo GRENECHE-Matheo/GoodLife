@@ -122,7 +122,10 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre " +
         "chez la source, dans ton navigateur, " +
         "seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te " +
-        "remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.",
+        "remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.\n" +
+        "• Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page " +
+        "publique de l'article et envoie son titre et son texte à Google Gemini, avec ta clé, pour le résumer. Aucune donnée " +
+        "te concernant n'est envoyée. Le résumé n'est pas gardé.",
     "Le Nutridex" to
         "Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. " +
         "Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, " +

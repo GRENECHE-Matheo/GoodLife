@@ -62,6 +62,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 - **Nutridex** : 161 aliments sains à débloquer en les prenant en photo.
 - **Actus du jour** : de vraies actus sur l'alimentation et le sport (franceinfo, Sciences et Avenir, Futura, Anses,
   Santé publique France), avec une actu insolite, jamais deux fois la même ; des anecdotes vérifiées sans internet.
+  Avec l'IA : « Résumé du chef » des articles de l'Anses et de Santé publique France.
 
 ### 👥 Amis, sans serveur
 - Cartes de joueur signées échangées par **Tap to Sync** (NFC, en collant les téléphones), **QR code** ou
@@ -131,7 +132,8 @@ minSdk 26 · targetSdk 36.
 - **Open Food Facts** (code-barres) — ODbL.
 - Cartes **OpenFreeMap** / **OpenMapTiles**, données © contributeurs **OpenStreetMap** (ODbL) ; clubs et chemins via l'API Overpass.
 - Actus : flux RSS publics de **franceinfo**, **Sciences et Avenir**, **Futura**, de l'**Anses** et de **Santé publique France**
-  (titre et court extrait, lien vers l'article chez la source).
+  (titre et lien vers l'article chez la source ; court extrait et résumé IA seulement pour les organismes publics,
+  au titre de la réutilisation des informations publiques).
 
 ## Licence
 

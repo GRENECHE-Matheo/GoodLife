@@ -118,6 +118,26 @@ class Gemini(private val apiKey: String, private val model: String) {
         CoachReply(reply.take(3000), meals)
     }
 
+    /**
+     * Résumé fidèle d'un article d'organisme public (Anses, Santé publique France). Aucune donnée personnelle
+     * n'est envoyée : seulement le titre et le texte public de l'article.
+     */
+    suspend fun summarizeArticle(source: String, title: String, text: String): List<String> {
+        val prompt = """
+            Résume fidèlement cet article publié par $source, pour le grand public, en français simple.
+            Règles : n'ajoute AUCUNE information absente du texte, ne change pas le sens, garde les chiffres exacts,
+            pas de conseil personnel ni médical en plus. S'il s'agit d'une recommandation officielle, dis-le.
+            3 à 5 points courts (une phrase chacun).
+            Titre : $title
+            Texte :
+            $text
+            Réponds UNIQUEMENT en JSON : {"points": ["..."]}
+        """.trimIndent()
+        val o = call(prompt, null)
+        return o.optJSONArray("points")?.strings()?.map { it.trim().take(300) }?.filter { it.isNotBlank() }?.take(6)
+            ?.ifEmpty { null } ?: throw AiException("L'IA n'a pas pu résumer cet article.")
+    }
+
     private fun parts(text: String, jpeg: ByteArray?): JSONArray {
         val parts = JSONArray().put(JSONObject().put("text", text))
         if (jpeg != null) {

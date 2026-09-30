@@ -10,7 +10,11 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ## v0.9.1 — 01/10/2026
 
-**Vérification sécurité et droit.**
+**Vérification sécurité et droit, et résumé des articles officiels.**
+
+- ✨ **Résumé du chef** (avec l'IA) pour les articles de l'Anses et de Santé publique France : 3 à 5 points fidèles à
+  l'article, source et date citées, l'article original restant la référence. Pas pour les articles republiés d'autres médias.
+- ✨ L'actu insolite est cherchée dans plus de sources (dont tout Futura), toujours publiée le jour même ou la veille.
 
 - 🔒 **Coach** : avant la première question, il demande clairement ton accord pour envoyer tes chiffres (données de santé)
   à Google Gemini. Cet accord est retiré si tu désactives l'IA.
@@ -20,6 +24,8 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
   éditeurs de presse) ; l'Anses et Santé publique France gardent un court extrait.
 - 🔒 Effacer ses données coupe aussi les rappels déjà programmés ; l'export RGPD contient tes choix de notifications.
 - 🐛 Le mot du chef ne parle plus de « garder ta série » quand tu n'en as pas encore.
+- 🐛 Les actus de Santé publique France s'affichent (leur flux avait changé d'adresse) ; les avis administratifs de
+  l'Anses (autorisations de produits) sont écartés.
 
 ## v0.9 — 01/10/2026
 

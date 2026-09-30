@@ -23,10 +23,11 @@ import java.util.Locale
 data class FeedItem(
     val title: String, val summary: String, val url: String, val source: String, val time: Long,
     val kind: String = FOOD,    // food | sport | insolite
-    val theme: String = kind    // food | sport (thème réel, même pour une actu insolite)
+    val theme: String = kind,   // food | sport (thème réel, même pour une actu insolite)
+    val public: Boolean = false // organisme public : informations publiques réutilisables (résumé IA possible)
 ) {
     fun toJson(): JSONObject = JSONObject().put("title", title).put("summary", summary).put("url", url)
-        .put("source", source).put("time", time).put("kind", kind)
+        .put("source", source).put("time", time).put("kind", kind).put("public", public)
 
     companion object {
         const val FOOD = "food"
@@ -34,7 +35,7 @@ data class FeedItem(
         const val INSOLITE = "insolite"
         fun fromJson(o: JSONObject) = FeedItem(
             o.optString("title"), o.optString("summary"), o.optString("url"), o.optString("source"), o.optLong("time"),
-            o.optString("kind", FOOD).ifBlank { FOOD }
+            o.optString("kind", FOOD).ifBlank { FOOD }, public = o.optBoolean("public", false)
         )
     }
 }
@@ -51,16 +52,21 @@ object NewsFeed {
      * [press] : éditeur de presse. Droits voisins (art. L218-2 et L211-3-1 du code de la propriété intellectuelle) :
      * seuls le titre et le lien sont repris, sans extrait. Les organismes publics gardent un court extrait.
      */
-    private class Source(val name: String, val url: String, val kind: String?, val press: Boolean = true)
+    private class Source(
+        val name: String, val url: String, val kind: String?,
+        val press: Boolean = true,
+        val insoliteOnly: Boolean = false   // flux trop large : on n'y prend que les actus insolites
+    )
 
     private val SOURCES = listOf(
         Source("franceinfo", "https://www.francetvinfo.fr/sante/alimentation.rss", FeedItem.FOOD),
         Source("Sciences et Avenir", "https://www.sciencesetavenir.fr/nutrition/rss.xml", FeedItem.FOOD),
         Source("franceinfo Sport", "https://www.francetvinfo.fr/sports.rss", FeedItem.SPORT),
         Source("Futura Santé", "https://www.futura-sciences.com/rss/sante/actualites.xml", null),
+        Source("Futura", "https://www.futura-sciences.com/rss/actualites.xml", null, insoliteOnly = true),
         Source("Sciences et Avenir", "https://www.sciencesetavenir.fr/sante/rss.xml", null),
         Source("Anses", "https://www.anses.fr/fr/rss.xml", null, press = false),
-        Source("Santé publique France", "https://www.santepubliquefrance.fr/rss/actualites.xml", null, press = false)
+        Source("Santé publique France", "https://www.santepubliquefrance.fr/rss/news/1008", null, press = false)
     )
 
     /** Seulement l'alimentation et le sport (le texte est entouré d'espaces pour les mots courts). */
@@ -91,11 +97,17 @@ object NewsFeed {
         "condamn", "accident",
         // Publicité déguisée (bons plans des sites d'actu)
         "offre", "promo", "bon plan", "bons plans", "soldes", "réduction", "prix cassé", "vente flash", "black friday",
-        "amazon", "cdiscount", "aliexpress", "vevor", "€ ", "euros seulement", "à saisir", "dernières heures", "offert", "vpn", "abonnement", "forfait"
+        "amazon", "cdiscount", "aliexpress", "vevor", "€ ", "euros seulement", "à saisir", "dernières heures", "offert", "vpn", "abonnement", "forfait",
+        // Avis administratifs (autorisations de produits, décisions réglementaires) : pas des actus grand public
+        "conclusions de l", "autorisation", "changement mineur", "demande de modification", "phytopharmaceutique",
+        "biocide", "médicament vétérinaire", "marché public", "appel à candidatures", "appel à projets", "consultation publique"
     )
 
     private const val KEY = "news_feed"
-    private const val VERSION = 5   // change quand les règles de choix changent (les actus du jour sont alors rechoisies)
+    /** Article sans date dans son flux. */
+    const val NO_DATE = -1L
+
+    private const val VERSION = 7   // change quand les règles de choix changent (les actus du jour sont alors rechoisies)
     private const val PER_DAY = 3      // actus alimentation / sport, en plus de l'actu insolite si on en trouve une
     private const val MAX_AGE_MS = 8L * 86_400_000L
 
@@ -119,7 +131,7 @@ object NewsFeed {
         val seen = st.optJSONArray("seen")?.let { a -> (0 until a.length()).map { a.optString(it) } }?.toMutableList() ?: mutableListOf()
         val now = System.currentTimeMillis()
         val fresh = all.asSequence()
-            .filter { it.url !in seen && it.time in (now - MAX_AGE_MS)..(now + 86_400_000L) }
+            .filter { it.url !in seen && (it.time == NO_DATE || it.time in (now - MAX_AGE_MS)..(now + 86_400_000L)) }
             .distinctBy { it.title.lowercase() }
             .sortedByDescending { it.time }
             .toList()
@@ -127,18 +139,20 @@ object NewsFeed {
         // L'insolite : un vrai article publié aujourd'hui ou hier, sinon rien
         val sinceYesterday = Repo.dayBounds(-1).first
         fresh.firstOrNull { it.kind == FeedItem.INSOLITE && it.time >= sinceYesterday }?.let { picked += it }
+        // Le reste doit être un thème normal (les insolites du flux « insolite seulement » ne servent qu'ici)
+        val regularPool = fresh.filter { it.kind != FeedItem.INSOLITE || it.source != "Futura" }
         // Puis 2 actus sur l'alimentation et 1 sur le sport, en variant les sources
         fun has(it: FeedItem) = picked.any { p -> p.url == it.url }
         fun regular() = picked.count { it.kind != FeedItem.INSOLITE }
         fun take(theme: String, n: Int) {
-            val pool = fresh.filter { it.theme == theme && !has(it) }
+            val pool = regularPool.filter { it.theme == theme && !has(it) }
             val bySource = pool.groupBy { it.source }.values.mapNotNull { it.firstOrNull() }.sortedByDescending { it.time }
             (bySource + pool).distinctBy { it.url }.take(n).forEach { picked += it.copy(kind = it.theme) }
         }
         take(FeedItem.FOOD, 2)
         take(FeedItem.SPORT, 1)
         // Pas assez d'actus d'un thème : on complète avec l'autre
-        fresh.forEach { if (regular() < PER_DAY && !has(it)) picked += it.copy(kind = it.theme) }
+        regularPool.forEach { if (regular() < PER_DAY && !has(it)) picked += it.copy(kind = it.theme) }
         seen += picked.map { it.url }
         Repo.putExtra(KEY, JSONObject()
             .put("day", localDay(0)).put("v", VERSION)
@@ -146,6 +160,48 @@ object NewsFeed {
             .put("seen", JSONArray(seen.takeLast(400)))
             .toString())
         return picked
+    }
+
+    /** Sites dont les articles peuvent être résumés (informations publiques d'établissements publics). */
+    private val PUBLIC_HOSTS = setOf("www.anses.fr", "www.santepubliquefrance.fr")
+
+    class NotReusable(message: String) : IOException(message)
+
+    /**
+     * Texte d'un article d'organisme public, pour le résumer avec l'IA (réutilisation d'informations publiques,
+     * code des relations entre le public et l'administration, art. L321-1 et suivants : source citée, sens respecté).
+     * Refusé si l'article est republié d'un autre média (licence Creative Commons, droits d'un tiers).
+     */
+    suspend fun articleText(url: String): String = withContext(Dispatchers.IO) {
+        val u = URL(url)
+        if (u.protocol != "https" || u.host !in PUBLIC_HOSTS) throw NotReusable("Résumé possible seulement pour l'Anses et Santé publique France.")
+        val conn = (u.openConnection() as HttpURLConnection).apply {
+            connectTimeout = 12_000; readTimeout = 20_000
+            setRequestProperty("User-Agent", USER_AGENT)
+            setRequestProperty("Accept", "text/html")
+        }
+        val page = try {
+            if (conn.responseCode !in 200..299) throw IOException("Article indisponible (${conn.responseCode}).")
+            conn.inputStream.use { it.readBytes().take(2_000_000).toByteArray() }.toString(Charsets.UTF_8)
+        } catch (e: NotReusable) {
+            throw e
+        } catch (e: IOException) {
+            throw networkError(u.host, e)
+        } finally {
+            conn.disconnect()
+        }
+        val main = Regex("<main\\b.*?</main>", RegexOption.DOT_MATCHES_ALL).find(page)?.value
+            ?: Regex("<article\\b.*?</article>", RegexOption.DOT_MATCHES_ALL).find(page)?.value ?: page
+        val body = main.replace(Regex("<(script|style|nav|header|footer|aside|form)\\b.*?</\\1>", RegexOption.DOT_MATCHES_ALL), " ")
+        val paragraphs = Regex("<(p|li|h2|h3)\\b[^>]*>(.*?)</\\1>", RegexOption.DOT_MATCHES_ALL).findAll(body)
+            .map { clean(it.groupValues[2]) }.filter { it.length > 30 }.toList()
+        val text = paragraphs.joinToString("\n")
+        val lower = text.lowercase()
+        if ("creative commons" in lower || "republié à partir de" in lower || "the conversation" in lower) {
+            throw NotReusable("Cet article est republié d'un autre média sous une licence qui ne permet pas de le modifier : lis-le directement chez la source.")
+        }
+        if (text.length < 200) throw IOException("Impossible de lire cet article. Ouvre-le chez la source.")
+        text.take(9000)
     }
 
     /** Thème de l'actu, ou null si elle ne parle ni d'alimentation ni de sport. */
@@ -192,6 +248,7 @@ object NewsFeed {
         p.setInput(input, null)
         val out = mutableListOf<FeedItem>()
         var inItem = false
+        var undated = 0
         var title = ""; var desc = ""; var link = ""; var date = ""
         var event = p.eventType
         while (event != XmlPullParser.END_DOCUMENT && out.size < 40) {
@@ -214,10 +271,13 @@ object NewsFeed {
                     val text = " ${t.lowercase()} ${d.lowercase()} "
                     val time = parseDate(date)
                     val kind = kindOf(s, text, " ${t.lowercase()} ")
-                    if (t.isNotBlank() && link.startsWith("https://") && time > 0 && !excluded(text) && kind != null) {
+                    // Sans date : seulement les 5 premiers articles du flux (les plus récents)
+                    val dated = time > 0 || (date.isBlank() && undated++ < 5)
+                    val keep = !s.insoliteOnly || kind?.startsWith(FeedItem.INSOLITE) == true
+                    if (t.isNotBlank() && link.startsWith("https://") && dated && keep && !excluded(text) && kind != null) {
                         out += FeedItem(
-                            t.take(160), if (s.press) "" else shorten(d), link.trim(), s.name, time,
-                            kind.substringBefore(':'), kind.substringAfter(':')
+                            t.take(160), if (s.press) "" else shorten(d), link.trim(), s.name, if (time > 0) time else NO_DATE,
+                            kind.substringBefore(':'), kind.substringAfter(':'), public = !s.press
                         )
                     }
                 }

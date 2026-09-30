@@ -71,7 +71,8 @@ fun DataFlowSummary(showAi: Boolean = true) {
         FlowLine(
             Icons.Filled.Newspaper, "Actus du jour → sites d'actualité",
             "Une fois par jour, l'app lit les flux publics de franceinfo, Sciences et Avenir, Futura, Anses et Santé publique " +
-                "France. Ces sites voient ton adresse IP, rien d'autre. Un article ne s'ouvre chez eux que si tu le touches."
+                "France. Ces sites voient ton adresse IP, rien d'autre. Un article ne s'ouvre chez eux que si tu le touches. " +
+                "Avec l'IA, le « Résumé du chef » d'un article public envoie seulement le texte de cet article à Gemini."
         )
         FlowLine(
             Icons.Filled.Group, "Amis (si ton profil est public) → le téléphone de tes amis",
