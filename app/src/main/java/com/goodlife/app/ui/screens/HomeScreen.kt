@@ -113,21 +113,13 @@ fun HomeScreen(onScan: () -> Unit) {
         )
 
         val update = if (settings.checkUpdates) Updater.availableUpdate() else null
-        if (update != null && update.first != settings.dismissedTag) {
+        if (update != null && update.tag != settings.dismissedTag) {
             SectionCard(
-                title = "Nouvelle version ${update.first}",
+                title = "Nouvelle version ${update.tag} disponible",
                 icon = Icons.Filled.SystemUpdate,
                 container = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Text(
-                    "Télécharge l'APK depuis la page officielle GitHub, puis installe-le par-dessus : " +
-                        "tes données et ta clé sont conservées.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { uri.openUri(update.second) }) { Text("Télécharger") }
-                    TextButton(onClick = { Repo.updateSettings { it.copy(dismissedTag = update.first) } }) { Text("Plus tard") }
-                }
+                UpdatePanel(update, showDismiss = true)
             }
         }
 

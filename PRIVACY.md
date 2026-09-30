@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.3 · mise à jour le 30 septembre 2026
+Version 0.3.1 · mise à jour le 30 septembre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -36,7 +36,7 @@ Le code-barres est lu sur le téléphone avec ML Kit (modèle intégré, aucune 
 
 ## Vérification des mises à jour
 
-Si l'option est activée (Paramètres › Mises à jour), l'app demande au plus toutes les 12 h à GitHub quelle est la dernière version publiée. GitHub voit alors ton adresse IP. Aucune autre donnée n'est envoyée. L'app n'installe rien toute seule : elle ouvre la page officielle de téléchargement.
+Si l'option est activée (Paramètres › Mises à jour), l'app demande à GitHub, au plus toutes les 30 minutes, quelle est la dernière version publiée ; si tu appuies sur « Installer », elle télécharge l'APK depuis la page officielle du projet. GitHub voit alors ton adresse IP ; aucune autre donnée n'est envoyée. Avant l'installation, l'app vérifie l'empreinte du fichier et qu'il est signé avec la même clé que l'app installée, puis Android te demande de confirmer. Rien n'est installé sans ton accord.
 
 ## Retirer ton consentement
 

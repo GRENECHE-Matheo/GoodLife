@@ -259,33 +259,29 @@ fun SettingsScreen(onBack: () -> Unit) {
         SectionCard(title = "Mises à jour", icon = Icons.Filled.SystemUpdate) {
             SettingSwitch(
                 title = "Me prévenir des nouvelles versions",
-                subtitle = "Vérifie les versions publiées sur GitHub (au plus toutes les 12 h).",
+                subtitle = "À chaque ouverture de l'app (au plus toutes les 30 min), vérifie les versions publiées sur GitHub.",
                 checked = settings.checkUpdates,
                 onChange = { v -> Repo.updateSettings { it.copy(checkUpdates = v) } }
             )
             val update = Updater.availableUpdate()
             Text(
-                if (update != null) "Nouvelle version ${update.first} disponible (tu as la ${BuildConfig.VERSION_NAME})."
+                if (update != null) "Nouvelle version ${update.tag} disponible (tu as la ${BuildConfig.VERSION_NAME})."
                 else "Tu as la version ${BuildConfig.VERSION_NAME}.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    enabled = !checking,
-                    onClick = {
-                        checking = true; updateMessage = null
-                        scope.launch {
-                            val err = Updater.check(force = true)
-                            updateMessage = err?.let { "Vérification impossible : $it" }
-                                ?: if (Updater.availableUpdate() == null) "Tu as la dernière version." else null
-                            checking = false
-                        }
+            OutlinedButton(
+                enabled = !checking,
+                onClick = {
+                    checking = true; updateMessage = null
+                    scope.launch {
+                        val err = Updater.check(force = true)
+                        updateMessage = err?.let { "Vérification impossible : $it" }
+                            ?: if (Updater.availableUpdate() == null) "Tu as la dernière version." else null
+                        checking = false
                     }
-                ) { Text(if (checking) "Vérification…" else "Vérifier maintenant") }
-                if (update != null) {
-                    Button(onClick = { uri.openUri(update.second) }) { Text("Télécharger") }
                 }
-            }
+            ) { Text(if (checking) "Vérification…" else "Vérifier les mises à jour") }
+            if (update != null) UpdatePanel(update, showDismiss = false)
             if (updateMessage != null) Text(updateMessage!!, style = MaterialTheme.typography.bodySmall)
         }
 

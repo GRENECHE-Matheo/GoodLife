@@ -59,9 +59,11 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "code-barres est envoyé à Open Food Facts (association française, base de données ouverte) pour obtenir les " +
         "valeurs nutritionnelles. Open Food Facts voit ton adresse IP, comme n'importe quel site web.",
     "Vérification des mises à jour" to
-        "Si l'option est activée (Paramètres › Mises à jour), l'app demande au plus toutes les 12 h à GitHub " +
-        "quelle est la dernière version publiée. GitHub voit alors ton adresse IP. Aucune autre donnée n'est envoyée. " +
-        "L'app n'installe rien toute seule : elle ouvre la page officielle de téléchargement.",
+        "Si l'option est activée (Paramètres › Mises à jour), l'app demande à GitHub, au plus toutes les 30 minutes, " +
+        "quelle est la dernière version publiée ; si tu appuies sur « Installer », elle télécharge l'APK depuis la page " +
+        "officielle du projet. GitHub voit alors ton adresse IP ; aucune autre donnée n'est envoyée. Avant l'installation, " +
+        "l'app vérifie l'empreinte du fichier et qu'il est signé avec la même clé que l'app installée, puis Android te " +
+        "demande de confirmer. Rien n'est installé sans ton accord.",
     "Retirer ton consentement" to
         "Tu peux désactiver l'IA à tout moment dans Paramètres › Intelligence artificielle. " +
         "Plus rien n'est alors envoyé. Ce retrait ne remet pas en cause les demandes faites avant.",
@@ -94,7 +96,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
                 Text("Confidentialité", style = MaterialTheme.typography.headlineSmall)
             }
             Text(
-                "Version 0.3 · mise à jour le 30 septembre 2026",
+                "Version 0.3.1 · mise à jour le 30 septembre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

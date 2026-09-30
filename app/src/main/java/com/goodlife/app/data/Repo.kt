@@ -36,6 +36,8 @@ data class Settings(
     val lastUpdateCheck: Long = 0L,
     val latestTag: String = "",
     val latestUrl: String = "",
+    val latestApkUrl: String = "",
+    val latestApkDigest: String = "",
     val dismissedTag: String = "",
     val aiEnabled: Boolean = false,
     val aiConsentAsked: Boolean = false,
@@ -56,6 +58,8 @@ data class Settings(
         .put("lastUpdateCheck", lastUpdateCheck)
         .put("latestTag", latestTag)
         .put("latestUrl", latestUrl)
+        .put("latestApkUrl", latestApkUrl)
+        .put("latestApkDigest", latestApkDigest)
         .put("dismissedTag", dismissedTag)
         .put("aiEnabled", aiEnabled)
         .put("aiConsentAsked", aiConsentAsked)
@@ -79,6 +83,8 @@ data class Settings(
             lastUpdateCheck = o.optLong("lastUpdateCheck", 0L),
             latestTag = o.optString("latestTag"),
             latestUrl = o.optString("latestUrl"),
+            latestApkUrl = o.optString("latestApkUrl"),
+            latestApkDigest = o.optString("latestApkDigest"),
             dismissedTag = o.optString("dismissedTag"),
             aiEnabled = o.optBoolean("aiEnabled", false),
             aiConsentAsked = o.optBoolean("aiConsentAsked", false),

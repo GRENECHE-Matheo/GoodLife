@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.fragment.app.FragmentActivity
 import com.goodlife.app.data.Repo
+import com.goodlife.app.net.UpdateInstaller
 import com.goodlife.app.security.AppLock
 import com.goodlife.app.ui.screens.AiChoiceScreen
 import com.goodlife.app.ui.screens.HomeScreen
@@ -52,6 +53,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Repo.init(this)
+        UpdateInstaller.cleanup(this, onlyInstalled = true)
         val s = Repo.settings.value
         applyScreenshotBlock(s.blockScreenshots)
         locked.value = s.appLock

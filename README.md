@@ -1,4 +1,4 @@
-# GoodLife — v0.3
+# GoodLife — v0.3.1
 
 > ⚠️ **Projet assisté par IA** : le code de cette application a été écrit avec l'assistance
 > d'une intelligence artificielle (Claude, par Anthropic), puis relu et piloté par son auteur.
@@ -21,7 +21,8 @@ Material You inspirée des applications Google.
   « marquer comme mangé » ajoute le repas au journal.
 - **Idées de repas IA** : liste courte, détails au toucher, boutons « Planifier » et « Recette ».
 - **IA désactivée par défaut** : consentement explicite au démarrage et dans les Paramètres, réservé aux 18 ans et plus.
-- **Mises à jour** : l'app signale les nouvelles versions publiées sur GitHub et ouvre la page officielle.
+- **Mises à jour intégrées** : à l'ouverture, l'app détecte une nouvelle release GitHub et l'installe en un bouton,
+  après avoir vérifié l'empreinte SHA-256 du fichier et que sa signature est identique à celle de l'app installée.
 - **RGPD** : politique de confidentialité dans l'app (`PRIVACY.md`), export des données (JSON), effacement,
   retrait du consentement.
 - **Paramètres** : thème (système / clair / sombre), couleur (Material You ou 5 couleurs),
