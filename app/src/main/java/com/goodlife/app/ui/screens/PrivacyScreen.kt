@@ -68,7 +68,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours " +
         "(jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, " +
         "évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains " +
-        "jours. Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste " +
+        "jours. Ces envois demandent ton accord, une fois, avant ta première question au coach (retiré si tu désactives l'IA). " +
+        "Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste " +
         "en mémoire tant que l'app est ouverte, sans être enregistrée.\n" +
         "Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que tu fais analyser), tes positions GPS, " +
         "ton historique complet. " +
@@ -112,12 +113,14 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Coach et notifications). " +
         "Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, " +
         "sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes " +
-        "chiffres. Tu peux couper chaque notification à tout moment.",
+        "chiffres ; si le verrouillage par empreinte est activé, les chiffres ne s'affichent nulle part dans les notifications. " +
+        "Tu peux couper chaque notification à tout moment.",
     "Actus du jour" to
         "Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, " +
         "Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et " +
         "le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. " +
-        "Seuls le titre et un court extrait sont affichés ; l'article complet s'ouvre chez la source, dans ton navigateur, " +
+        "Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre " +
+        "chez la source, dans ton navigateur, " +
         "seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te " +
         "remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.",
     "Le Nutridex" to
@@ -187,7 +190,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.9 · mise à jour le 1er octobre 2026",
+                "Version 0.9.1 · mise à jour le 1er octobre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

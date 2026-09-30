@@ -46,8 +46,12 @@ data class FeedItem(
  * Chaque actu n'est montrée qu'une fois : l'app retient les liens déjà proposés.
  */
 object NewsFeed {
-    /** [kind] : thème imposé par la source (null = source générale, filtrée par mots-clés). */
-    private class Source(val name: String, val url: String, val kind: String?)
+    /**
+     * [kind] : thème imposé par la source (null = source générale, filtrée par mots-clés).
+     * [press] : éditeur de presse. Droits voisins (art. L218-2 et L211-3-1 du code de la propriété intellectuelle) :
+     * seuls le titre et le lien sont repris, sans extrait. Les organismes publics gardent un court extrait.
+     */
+    private class Source(val name: String, val url: String, val kind: String?, val press: Boolean = true)
 
     private val SOURCES = listOf(
         Source("franceinfo", "https://www.francetvinfo.fr/sante/alimentation.rss", FeedItem.FOOD),
@@ -55,8 +59,8 @@ object NewsFeed {
         Source("franceinfo Sport", "https://www.francetvinfo.fr/sports.rss", FeedItem.SPORT),
         Source("Futura Santé", "https://www.futura-sciences.com/rss/sante/actualites.xml", null),
         Source("Sciences et Avenir", "https://www.sciencesetavenir.fr/sante/rss.xml", null),
-        Source("Anses", "https://www.anses.fr/fr/rss.xml", null),
-        Source("Santé publique France", "https://www.santepubliquefrance.fr/rss/actualites.xml", null)
+        Source("Anses", "https://www.anses.fr/fr/rss.xml", null, press = false),
+        Source("Santé publique France", "https://www.santepubliquefrance.fr/rss/actualites.xml", null, press = false)
     )
 
     /** Seulement l'alimentation et le sport (le texte est entouré d'espaces pour les mots courts). */
@@ -91,7 +95,7 @@ object NewsFeed {
     )
 
     private const val KEY = "news_feed"
-    private const val VERSION = 4   // change quand les règles de choix changent (les actus du jour sont alors rechoisies)
+    private const val VERSION = 5   // change quand les règles de choix changent (les actus du jour sont alors rechoisies)
     private const val PER_DAY = 3      // actus alimentation / sport, en plus de l'actu insolite si on en trouve une
     private const val MAX_AGE_MS = 8L * 86_400_000L
 
@@ -211,7 +215,10 @@ object NewsFeed {
                     val time = parseDate(date)
                     val kind = kindOf(s, text, " ${t.lowercase()} ")
                     if (t.isNotBlank() && link.startsWith("https://") && time > 0 && !excluded(text) && kind != null) {
-                        out += FeedItem(t.take(160), shorten(d), link.trim(), s.name, time, kind.substringBefore(':'), kind.substringAfter(':'))
+                        out += FeedItem(
+                            t.take(160), if (s.press) "" else shorten(d), link.trim(), s.name, time,
+                            kind.substringBefore(':'), kind.substringAfter(':')
+                        )
                     }
                 }
             }

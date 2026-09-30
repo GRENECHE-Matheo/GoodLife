@@ -8,6 +8,19 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.1 — 01/10/2026
+
+**Vérification sécurité et droit.**
+
+- 🔒 **Coach** : avant la première question, il demande clairement ton accord pour envoyer tes chiffres (données de santé)
+  à Google Gemini. Cet accord est retiré si tu désactives l'IA.
+- 🔒 **Notifications** : si le verrouillage par empreinte est activé, aucun chiffre n'apparaît dans les notifications,
+  même téléphone déverrouillé.
+- 🔒 **Actus** : pour les articles de presse, seuls le titre, la source et le lien sont repris (droits voisins des
+  éditeurs de presse) ; l'Anses et Santé publique France gardent un court extrait.
+- 🔒 Effacer ses données coupe aussi les rappels déjà programmés ; l'export RGPD contient tes choix de notifications.
+- 🐛 Le mot du chef ne parle plus de « garder ta série » quand tu n'en as pas encore.
+
 ## v0.9 — 01/10/2026
 
 **Le chef devient ton coach : conseils perso, notifications et vraies actus du jour.**

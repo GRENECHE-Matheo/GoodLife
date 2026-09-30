@@ -74,7 +74,8 @@ data class Settings(
     val notifEvening: Boolean = false,      // série en danger, le soir
     val notifWeekly: Boolean = false,       // bilan de la semaine, le dimanche
     val notifAsked: Boolean = false,        // la question a déjà été posée (inscription ou accueil)
-    val lastNudgeDay: String = ""           // dernier « tu nous manques », pour ne pas insister
+    val lastNudgeDay: String = "",          // dernier « tu nous manques », pour ne pas insister
+    val coachConsentAt: Long = 0L           // accord pour envoyer au coach le résumé de ses chiffres (0 = pas encore)
 ) {
     val anyNotif: Boolean get() = notifMorning || notifNoon || notifEvening || notifWeekly
 
@@ -126,6 +127,7 @@ data class Settings(
         .put("notifWeekly", notifWeekly)
         .put("notifAsked", notifAsked)
         .put("lastNudgeDay", lastNudgeDay)
+        .put("coachConsentAt", coachConsentAt)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -177,7 +179,8 @@ data class Settings(
             notifEvening = o.optBoolean("notifEvening", false),
             notifWeekly = o.optBoolean("notifWeekly", false),
             notifAsked = o.optBoolean("notifAsked", false),
-            lastNudgeDay = o.optString("lastNudgeDay")
+            lastNudgeDay = o.optString("lastNudgeDay"),
+            coachConsentAt = o.optLong("coachConsentAt", 0L)
         )
     }
 }
@@ -232,9 +235,12 @@ object Repo {
         revision++
     }
 
+    private var appContext: Context? = null
+
     @Synchronized
     fun init(context: Context) {
         if (::store.isInitialized) return
+        appContext = context.applicationContext
         store = SecureStore(context.applicationContext)
         _profile.value = store.get(K_PROFILE)?.let { runCatching { Profile.fromJson(JSONObject(it)) }.getOrNull() }
         _meals.value = store.get(K_MEALS)?.let { s ->
@@ -694,6 +700,7 @@ object Repo {
         _outings.value = emptyList()
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
+        appContext?.let { com.goodlife.app.coach.CoachNotifier.schedule(it) }
     }
 
     fun dayBounds(dayOffset: Int = 0): Pair<Long, Long> {
@@ -747,7 +754,11 @@ object Repo {
                 .put("aiConsentAt", s.aiConsentAt)
                 .put("privacyAcceptedAt", s.privacyAcceptedAt)
                 .put("personalApiKeySaved", s.apiKey.isNotBlank())
-                .put("checkUpdates", s.checkUpdates))
+                .put("checkUpdates", s.checkUpdates)
+                .put("coachConsentAt", s.coachConsentAt)
+                .put("notifications", JSONObject()
+                    .put("bilanDuMatin", s.notifMorning).put("motDeMidi", s.notifNoon)
+                    .put("serieEnDanger", s.notifEvening).put("bilanDeLaSemaine", s.notifWeekly)))
             .toString(2)
     }
 }

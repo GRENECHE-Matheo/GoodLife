@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.9 · mise à jour le 1er octobre 2026
+Version 0.9.1 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -27,7 +27,7 @@ L'IA est désactivée par défaut, demande un consentement séparé (réservé a
 • Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.
 • Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites que tu écris (données de santé).
 • Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné (photo et analyse, recette, programme, ou titre et extrait de l'actu), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.
-• Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains jours. Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste en mémoire tant que l'app est ouverte, sans être enregistrée.
+• Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains jours. Ces envois demandent ton accord, une fois, avant ta première question au coach (retiré si tu désactives l'IA). Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste en mémoire tant que l'app est ouverte, sans être enregistrée.
 Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que tu fais analyser), tes positions GPS, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
 
 ## À qui ces données sont envoyées
@@ -57,11 +57,11 @@ Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, �
 
 ## Notifications du coach
 
-Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Coach et notifications). Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes chiffres. Tu peux couper chaque notification à tout moment.
+Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Coach et notifications). Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes chiffres ; si le verrouillage par empreinte est activé, les chiffres ne s'affichent nulle part dans les notifications. Tu peux couper chaque notification à tout moment.
 
 ## Actus du jour
 
-Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seuls le titre et un court extrait sont affichés ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
+Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
 
 ## Le Nutridex
 

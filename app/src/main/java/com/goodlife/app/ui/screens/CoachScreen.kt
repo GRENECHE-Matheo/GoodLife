@@ -112,9 +112,13 @@ fun CoachScreen(onBack: () -> Unit) {
         if (summary != null && profile != null) Coach.homeMessage(summary, profile!!) else ChefMood.CONTENT to ""
     }
 
+    var askConsent by remember { mutableStateOf<String?>(null) }
+
     fun send(text: String) {
         val q = text.trim().take(600)
         if (q.isEmpty() || loading) return
+        // Première fois : accord explicite pour envoyer le résumé de ses chiffres (données de santé)
+        if (Repo.settings.value.coachConsentAt == 0L) { askConsent = q; return }
         if (entries.count { it.message.fromUser } >= MAX_TURNS) {
             error = "On a beaucoup discuté ! Appuie sur « Nouvelle conversation » pour recommencer."
             return
@@ -223,6 +227,16 @@ fun CoachScreen(onBack: () -> Unit) {
                             Icon(Icons.AutoMirrored.Filled.Send, "Envoyer")
                         }
                     }
+                    askConsent?.let { q ->
+                        CoachConsentDialog(
+                            onAccept = {
+                                Repo.updateSettings { it.copy(coachConsentAt = System.currentTimeMillis()) }
+                                askConsent = null
+                                send(q)
+                            },
+                            onDismiss = { askConsent = null; input = q }
+                        )
+                    }
                     Text(
                         "Tes questions et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini " +
                             "avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. Rien n'est gardé après la fermeture de l'app.",
@@ -233,6 +247,27 @@ fun CoachScreen(onBack: () -> Unit) {
             }
         }
     }
+}
+
+/** Ce que le coach envoie à Google, à accepter une fois avant la première question. */
+@Composable
+private fun CoachConsentDialog(onAccept: () -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Le chef a besoin de tes chiffres") },
+        text = {
+            Text(
+                "Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : " +
+                    "ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, " +
+                    "un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), " +
+                    "ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\n" +
+                    "Jamais ton prénom, ton sommeil, tes photos ni tes positions GPS. Tu peux retirer cet accord en " +
+                    "désactivant l'IA dans Paramètres."
+            )
+        },
+        confirmButton = { TextButton(onClick = onAccept) { Text("J'accepte") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+    )
 }
 
 /** Repas proposés par le coach : rien n'est ajouté au planning sans un appui sur « Ajouter ». */

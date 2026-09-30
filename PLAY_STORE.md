@@ -90,6 +90,8 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 - **Notifications du coach** : préparées et programmées sur le téléphone (AlarmManager), sans serveur → rien à déclarer.
 - **Actus du jour** : l'app **lit** des flux RSS publics (franceinfo, Sciences et Avenir, Futura, Anses, Santé publique
   France) ; aucune donnée de l'utilisateur n'est envoyée (seulement l'adresse IP, comme pour tout site) → rien à déclarer.
+- **Déclaration « Applications d'actualités »** (Contenu de l'appli) : répondre **non**, GoodLife n'est pas une appli
+  d'actualités (les actus sont une petite rubrique). Pour la presse, seuls le titre et le lien sont repris (droits voisins).
 
 ## 6. Autorisations sensibles
 

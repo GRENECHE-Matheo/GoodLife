@@ -153,9 +153,10 @@ fun NewsScreen(onBack: () -> Unit) {
             // ---- Secours sans internet : anecdotes vérifiées de la banque intégrée (jamais deux fois la même) ----
             if (!loading && (error != null || feed.isNullOrEmpty())) OfflineAnecdotes(today)
             Text(
-                "Actus trouvées chaque jour dans les flux publics de franceinfo, Sciences et Avenir, Futura, Anses, Inserm " +
-                    "et Santé publique France (alimentation et sport uniquement). Seuls le titre et un court extrait sont " +
-                    "affichés : l'article complet s'ouvre chez la source. Contenu d'information, pas un avis médical.",
+                "Actus trouvées chaque jour dans les flux publics de franceinfo, Sciences et Avenir, Futura, de l'Anses " +
+                    "et de Santé publique France (alimentation et sport uniquement). Seuls le titre (et, pour les organismes " +
+                    "publics, un court extrait) sont affichés : l'article complet s'ouvre chez la source. Les articles " +
+                    "appartiennent à leurs éditeurs. Contenu d'information, pas un avis médical.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -165,8 +166,10 @@ fun NewsScreen(onBack: () -> Unit) {
     askAbout?.let { item ->
         AiChatDialog(
             title = item.title,
-            context = "Actualité publiée par ${item.source} : « ${item.title} ». Extrait : ${item.summary}\n" +
-                "Tu ne connais que ce titre et cet extrait : ne prétends pas avoir lu l'article, et invite à le lire pour les détails.",
+            context = "Actualité publiée par ${item.source} : « ${item.title} »." +
+                (if (item.summary.isNotBlank()) " Extrait : ${item.summary}" else "") + "\n" +
+                "Tu ne connais que ce titre${if (item.summary.isNotBlank()) " et cet extrait" else ""} : ne prétends pas avoir lu " +
+                "l'article, reste prudent, et invite à le lire chez la source pour les détails.",
             suggestions = listOf("Explique-moi simplement", "Qu'est-ce que ça change pour moi ?", "Est-ce que c'est fiable ?"),
             onDismiss = { askAbout = null }
         )

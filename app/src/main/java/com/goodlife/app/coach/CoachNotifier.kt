@@ -192,6 +192,10 @@ object CoachNotifier {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val channel = if (note.remind) CH_REMIND else CH_SUMMARY
+        // App verrouillée par empreinte : le contenu reste discret aussi dans le volet des notifications
+        val locked = Repo.settings.value.appLock
+        val title = if (locked) "Un message du chef" else note.title
+        val text = if (locked) "Ouvre GoodLife pour le lire." else note.text
         // Écran verrouillé : seulement « GoodLife », sans les chiffres (données de santé)
         val public = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notif_chef)
@@ -201,9 +205,9 @@ object CoachNotifier {
         val n = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notif_chef)
             .setLargeIcon(runCatching { chefBitmap(note.mood) }.getOrNull())
-            .setContentTitle(note.title)
-            .setContentText(note.text.lineSequence().first())
-            .setStyle(NotificationCompat.BigTextStyle().bigText(note.text))
+            .setContentTitle(title)
+            .setContentText(text.lineSequence().first())
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)

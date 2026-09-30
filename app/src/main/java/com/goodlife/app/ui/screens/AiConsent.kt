@@ -40,7 +40,7 @@ fun enableAi() = Repo.updateSettings {
     it.copy(aiEnabled = true, aiConsentAsked = true, aiConsentAt = System.currentTimeMillis())
 }
 
-fun disableAi() = Repo.updateSettings { it.copy(aiEnabled = false, aiConsentAsked = true) }
+fun disableAi() = Repo.updateSettings { it.copy(aiEnabled = false, aiConsentAsked = true, coachConsentAt = 0L) }
 
 /** Explication honnête de ce que l'activation de l'IA implique. */
 @Composable

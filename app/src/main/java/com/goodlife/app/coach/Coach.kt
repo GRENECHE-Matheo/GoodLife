@@ -125,7 +125,8 @@ object Coach {
                 if (okYesterday) "Hier : ${y.score}/100, bravo ! On repart pour une belle journée ?"
                 else "Hier : ${y.score}/100. Pas grave du tout : aujourd'hui est une nouvelle page."
             s.today.kcal == 0 && hour >= 14 -> com.goodlife.app.ui.ChefMood.QUESTION to
-                "Qu'as-tu mangé aujourd'hui ? Note-le pour garder ta série${if (s.streak > 0) " de ${s.streak} jours" else ""}."
+                if (s.streak > 0) "Qu'as-tu mangé aujourd'hui ? Note-le pour garder ta série de ${s.streak} jour${if (s.streak > 1) "s" else ""}."
+                else "Qu'as-tu mangé aujourd'hui ? Note tes repas pour lancer ta série !"
             s.today.kcal > 0 && s.today.stepGoal > 0 && s.today.steps < s.today.stepGoal / 2 && hour >= 16 -> com.goodlife.app.ui.ChefMood.CONTENT to
                 "Encore ${fmt(s.today.stepGoal - s.today.steps)} pas pour ton objectif : une petite marche ce soir ?"
             else -> com.goodlife.app.ui.ChefMood.CONTENT to pick(ENCOURAGEMENTS, 7)
