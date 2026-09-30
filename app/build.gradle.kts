@@ -14,8 +14,8 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.2.1"
 
         // Relais GoodLife (10 analyses gratuites/jour sans clé personnelle)
         buildConfigField("String", "RELAY_URL", "\"https://goodlife-relay.matheo-greneche0.workers.dev\"")

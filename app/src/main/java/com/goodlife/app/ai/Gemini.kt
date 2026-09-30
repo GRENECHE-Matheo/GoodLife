@@ -76,6 +76,8 @@ class Gemini(private val apiKey: String, private val model: String) {
             setRequestProperty("x-gl-install", install)
             setRequestProperty("x-gl-time", time)
             setRequestProperty("x-gl-sig", signature)
+            // User-agent explicite : certains filtres anti-robots de Cloudflare bloquent les user-agents génériques.
+            setRequestProperty("User-Agent", "GoodLife-Android/${BuildConfig.VERSION_NAME}")
         }
         val (code, text) = try {
             conn.outputStream.use { it.write(body) }
