@@ -25,7 +25,7 @@ jobs:
           msg = f"{install}\n{t}\n{hashlib.sha256(body).hexdigest()}".encode()
           sig = hmac.new(os.environ["RELAY_SECRET"].encode(), msg, hashlib.sha256).hexdigest()
           req = urllib.request.Request("https://goodlife-relay.matheo-greneche0.workers.dev/v1/generate", data=body,
-              headers={"content-type": "application/json", "x-gl-install": install, "x-gl-time": t, "x-gl-sig": sig})
+              headers={"user-agent": "GoodLife-Android/0.2", "content-type": "application/json", "x-gl-install": install, "x-gl-time": t, "x-gl-sig": sig})
           try:
               with urllib.request.urlopen(req, timeout=60) as r:
                   print("OK", r.status, r.read().decode()[:300])
@@ -33,7 +33,7 @@ jobs:
               print("::error::HTTP", e.code, e.read().decode()[:300]); raise SystemExit(1)
           # Une requête non signée doit être refusée
           bad = urllib.request.Request("https://goodlife-relay.matheo-greneche0.workers.dev/v1/generate", data=body,
-              headers={"content-type": "application/json"})
+              headers={"user-agent": "GoodLife-Android/0.2", "content-type": "application/json"})
           try:
               urllib.request.urlopen(bad, timeout=30); print("::error::requête non signée acceptée !"); raise SystemExit(1)
           except urllib.error.HTTPError as e:
