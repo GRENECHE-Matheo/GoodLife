@@ -220,3 +220,27 @@ internal fun <T> JSONArray.mapObjects(block: (JSONObject) -> T): List<T> =
 
 internal fun JSONArray.strings(): List<String> =
     (0 until length()).mapNotNull { i -> optString(i).takeIf { it.isNotBlank() } }
+
+
+/** Progression : jours rattrapés grâce au quiz, résultats des quiz, historique des pesées. */
+data class GameState(
+    val recoveredDays: Set<String> = emptySet(),
+    val quizResults: Map<String, Int> = emptyMap(),   // jour → bonnes réponses (premier essai)
+    val weights: List<Pair<String, Double>> = emptyList()
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("recoveredDays", JSONArray(recoveredDays.toList()))
+        .put("quizResults", JSONObject().apply { quizResults.forEach { (k, v) -> put(k, v) } })
+        .put("weights", JSONArray().apply { weights.forEach { (d, w) -> put(JSONObject().put("date", d).put("kg", w)) } })
+
+    companion object {
+        fun fromJson(o: JSONObject): GameState {
+            val q = o.optJSONObject("quizResults")
+            return GameState(
+                recoveredDays = o.optJSONArray("recoveredDays")?.strings()?.toSet() ?: emptySet(),
+                quizResults = q?.keys()?.asSequence()?.associateWith { q.optInt(it) } ?: emptyMap(),
+                weights = o.optJSONArray("weights")?.mapObjects { it.optString("date") to it.optDouble("kg") } ?: emptyList()
+            )
+        }
+    }
+}

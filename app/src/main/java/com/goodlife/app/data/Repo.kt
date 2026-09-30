@@ -110,6 +110,12 @@ object Repo {
     private val _plan = MutableStateFlow<List<PlannedMeal>>(emptyList())
     val plan: StateFlow<List<PlannedMeal>> = _plan
 
+    private val _game = MutableStateFlow(GameState())
+    val game: StateFlow<GameState> = _game
+
+    private val _avatar = MutableStateFlow<ByteArray?>(null)
+    val avatar: StateFlow<ByteArray?> = _avatar
+
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings
 
@@ -127,6 +133,9 @@ object Repo {
         _plan.value = store.get(K_PLAN)?.let { s ->
             runCatching { JSONArray(s).mapObjects { PlannedMeal.fromJson(it) } }.getOrNull()
         } ?: emptyList()
+        _game.value = store.get(K_GAME)?.let { runCatching { GameState.fromJson(JSONObject(it)) }.getOrNull() }
+            ?: GameState()
+        _avatar.value = store.get(K_AVATAR)?.let { runCatching { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }.getOrNull() }
         _settings.value = store.get(K_SETTINGS)?.let { runCatching { Settings.fromJson(JSONObject(it)) }.getOrNull() }
             ?: Settings()
     }
@@ -134,8 +143,29 @@ object Repo {
     // ---------- Profil ----------
     @Synchronized
     fun saveProfile(p: Profile) {
+        val old = _profile.value
         _profile.value = p
         store.put(K_PROFILE, p.toJson().toString())
+        if (old == null || old.weightKg != p.weightKg) logWeight(p.weightKg)
+    }
+
+    // ---------- Jeu : séries, quiz, pesées ----------
+    @Synchronized
+    fun updateGame(transform: (GameState) -> GameState) {
+        val g = transform(_game.value)
+        _game.value = g
+        store.put(K_GAME, g.toJson().toString())
+    }
+
+    fun logWeight(kg: Double) {
+        val today = localDay(0)
+        updateGame { g -> g.copy(weights = (g.weights.filterNot { it.first == today } + (today to kg)).sortedBy { it.first }.takeLast(400)) }
+    }
+
+    @Synchronized
+    fun saveAvatar(jpeg: ByteArray?) {
+        _avatar.value = jpeg
+        store.put(K_AVATAR, jpeg?.let { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) })
     }
 
     // ---------- Repas ----------
@@ -226,6 +256,8 @@ object Repo {
         _meals.value = emptyList()
         _sleep.value = emptyList()
         _plan.value = emptyList()
+        _game.value = GameState()
+        _avatar.value = null
         _settings.value = Settings()
     }
 
@@ -245,6 +277,8 @@ object Repo {
     private const val K_SLEEP = "sleep"
     private const val K_SETTINGS = "settings"
     private const val K_PLAN = "plan"
+    private const val K_GAME = "game"
+    private const val K_AVATAR = "avatar"
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -259,6 +293,7 @@ object Repo {
             .put("meals", JSONArray().apply { _meals.value.forEach { put(it.toJson()) } })
             .put("mealPlan", JSONArray().apply { _plan.value.forEach { put(it.toJson()) } })
             .put("sleep", JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } })
+            .put("game", _game.value.toJson())
             .put("settings", JSONObject()
                 .put("aiEnabled", s.aiEnabled)
                 .put("aiConsentAt", s.aiConsentAt)

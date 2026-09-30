@@ -1,4 +1,4 @@
-# GoodLife — v0.3.1
+# GoodLife — v0.4
 
 > ⚠️ **Projet assisté par IA** : le code de cette application a été écrit avec l'assistance
 > d'une intelligence artificielle (Claude, par Anthropic), puis relu et piloté par son auteur.
@@ -21,6 +21,12 @@ Material You inspirée des applications Google.
   « marquer comme mangé » ajoute le repas au journal.
 - **Idées de repas IA** : liste courte, détails au toucher, boutons « Planifier » et « Recette ».
 - **IA désactivée par défaut** : consentement explicite au démarrage et dans les Paramètres, réservé aux 18 ans et plus.
+- **Progression** : score quotidien (0–100) selon la proximité avec l'objectif, séries de jours réussis
+  (perte : sous l'objectif sans descendre sous 70 % ; prise : au moins l'objectif ; maintien : ±10 %),
+  XP et niveaux (de « Commis » à « Légende de la cuisine »), courbes de score, de calories et de poids.
+- **Quiz du chef** : 5 questions d'alimentation différentes chaque jour (banque de 60 questions, sans IA),
+  présentées par le petit cuisto ; 4/5 le lendemain d'une série cassée permettent de la sauver.
+- **Photo de profil** : choisie dans la galerie, recadrée et stockée chiffrée sur le téléphone.
 - **Mises à jour intégrées** : à l'ouverture, l'app détecte une nouvelle release GitHub et l'installe en un bouton,
   après avoir vérifié l'empreinte SHA-256 du fichier et que sa signature est identique à celle de l'app installée.
 - **RGPD** : politique de confidentialité dans l'app (`PRIVACY.md`), export des données (JSON), effacement,

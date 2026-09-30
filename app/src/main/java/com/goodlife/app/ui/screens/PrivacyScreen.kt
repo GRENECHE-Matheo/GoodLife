@@ -30,8 +30,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "L'app n'a pas de serveur et n'envoie aucune donnée à son développeur. " +
         "Pour toute question : github.com/GRENECHE-Matheo.",
     "Ce qui reste sur ton téléphone" to
-        "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), tes repas, ton emploi du temps " +
-        "de repas, ton sommeil et tes réglages. Certaines de ces informations sont des données de santé. " +
+        "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, " +
+        "ton emploi du temps de repas, ton sommeil, tes pesées, ta progression (séries, niveaux, quiz) et tes réglages. Certaines de ces informations sont des données de santé. " +
         "Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte ni sauvegarde cloud, " +
         "et ne sont envoyées nulle part tant que l'IA est désactivée. Base légale : ton consentement explicite, " +
         "donné au premier lancement. Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).",
@@ -96,7 +96,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
                 Text("Confidentialité", style = MaterialTheme.typography.headlineSmall)
             }
             Text(
-                "Version 0.3.1 · mise à jour le 30 septembre 2026",
+                "Version 0.4 · mise à jour le 30 septembre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

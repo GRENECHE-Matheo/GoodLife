@@ -3,6 +3,19 @@
 package com.goodlife.app.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Surface
+import androidx.compose.ui.platform.LocalContext
+import com.goodlife.app.ui.Avatar
+import com.goodlife.app.ui.avatarJpegFromUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
@@ -67,6 +80,12 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
     val p = profile ?: return
 
     var editing by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val avatar by Repo.avatar.collectAsState()
+    var avatarMenu by remember { mutableStateOf(false) }
+    val pickAvatar = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) avatarJpegFromUri(context, uri)?.let { Repo.saveAvatar(it) }
+    }
     var aiLoading by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
 
@@ -75,8 +94,37 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box {
+                Avatar(avatar, p.name, 72.dp, Modifier.clickable { avatarMenu = true })
+                Surface(
+                    onClick = { avatarMenu = true },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.BottomEnd).size(26.dp)
+                ) {
+                    Icon(Icons.Filled.Edit, "Changer la photo", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(5.dp))
+                }
+                DropdownMenu(expanded = avatarMenu, onDismissRequest = { avatarMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Choisir une photo") },
+                        onClick = {
+                            avatarMenu = false
+                            pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
+                    )
+                    if (avatar != null) {
+                        DropdownMenuItem(text = { Text("Retirer la photo") }, onClick = { avatarMenu = false; Repo.saveAvatar(null) })
+                    }
+                }
+            }
+            Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                ScreenTitle("Profil", "IMC ${"%.1f".format(Nutrition.bmi(p))}")
+                Text(p.name.ifBlank { "Profil" }, style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "IMC ${"%.1f".format(Nutrition.bmi(p))}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             FilledTonalIconButton(onClick = onOpenSettings) { Icon(Icons.Filled.Settings, "Paramètres") }
         }

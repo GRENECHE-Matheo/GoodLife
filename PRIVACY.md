@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.3.1 · mise à jour le 30 septembre 2026
+Version 0.4 · mise à jour le 30 septembre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -10,7 +10,7 @@ GoodLife est un projet personnel développé par Mathéo Greneche, avec l'assist
 
 ## Ce qui reste sur ton téléphone
 
-Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), tes repas, ton emploi du temps de repas, ton sommeil et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte ni sauvegarde cloud, et ne sont envoyées nulle part tant que l'IA est désactivée. Base légale : ton consentement explicite, donné au premier lancement. Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
+Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, ton emploi du temps de repas, ton sommeil, tes pesées, ta progression (séries, niveaux, quiz) et tes réglages. Certaines de ces informations sont des données de santé. Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte ni sauvegarde cloud, et ne sont envoyées nulle part tant que l'IA est désactivée. Base légale : ton consentement explicite, donné au premier lancement. Durée : tant que l'app est installée (repas : 1 an, emploi du temps : 3 mois).
 
 ## Ce qui est envoyé si tu actives l'IA
 

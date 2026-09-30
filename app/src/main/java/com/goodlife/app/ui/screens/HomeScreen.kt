@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.goodlife.app.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
@@ -17,6 +19,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.StrokeCap
+import com.goodlife.app.game.Game
+import com.goodlife.app.game.GameSummary
+import com.goodlife.app.game.QuizBank
+import com.goodlife.app.ui.Avatar
+import com.goodlife.app.ui.ChefMascot
+import com.goodlife.app.ui.ChefMood
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
@@ -80,8 +96,24 @@ import java.util.Calendar
 fun HomeScreen(onScan: () -> Unit) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
+    val game by Repo.game.collectAsState()
+    val p = profile ?: return
+    val summary = remember(meals, p, game) { Game.summarize(meals, p, game) }
+    var overlay by rememberSaveable { mutableStateOf("") }
+    when (overlay) {
+        "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
+        "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, onClose = { overlay = "" })
+        else -> HomeContent(onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" })
+    }
+}
+
+@Composable
+private fun HomeContent(onScan: () -> Unit, summary: GameSummary, onProgress: () -> Unit, onQuiz: () -> Unit) {
+    val profile by Repo.profile.collectAsState()
+    val meals by Repo.meals.collectAsState()
     val settings by Repo.settings.collectAsState()
     val scope = rememberCoroutineScope()
+    val avatar by Repo.avatar.collectAsState()
     val p = profile ?: return
 
     val today = Repo.mealsOfDay(meals)
@@ -107,10 +139,77 @@ fun HomeScreen(onScan: () -> Unit) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ScreenTitle(
-            if (p.name.isBlank()) hello else "$hello ${p.name}",
-            formatDay(System.currentTimeMillis()).replaceFirstChar { it.uppercase() }
-        )
+        // En-tête : photo, salutation, série et accès au quiz
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Avatar(avatar, p.name, 44.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (p.name.isBlank()) hello else "$hello ${p.name}",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    formatDay(System.currentTimeMillis()).replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Surface(
+                onClick = onProgress,
+                shape = RoundedCornerShape(50),
+                color = FLAME.copy(alpha = 0.15f)
+            ) {
+                Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.LocalFireDepartment, "Série", tint = FLAME, modifier = Modifier.size(20.dp))
+                    Text("${summary.streak}", fontWeight = FontWeight.Bold, color = FLAME)
+                }
+            }
+            Spacer(Modifier.width(4.dp))
+            Surface(onClick = onQuiz, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                ChefMascot(Modifier.padding(2.dp), size = 44.dp, mood = ChefMood.QUESTION)
+            }
+        }
+
+        // Série cassée hier : le cuisto propose de la sauver
+        if (summary.recoverableStreak > 0) {
+            SectionCard(container = FLAME.copy(alpha = 0.12f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ChefMascot(size = 64.dp, mood = ChefMood.TRISTE)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Ta série de ${summary.recoverableStreak} jours s'est arrêtée hier", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Réponds au quiz du chef (${QuizBank.PASS}/${QuizBank.PER_DAY}) aujourd'hui pour la sauver.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                Button(onClick = onQuiz) { Text("Sauver ma série") }
+            }
+        }
+
+        // Niveau et XP
+        Surface(onClick = onProgress, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Niveau ${summary.level.level} · ${summary.level.title}",
+                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("Score du jour : ${summary.today.score}", style = MaterialTheme.typography.labelLarge)
+                }
+                LinearProgressIndicator(
+                    progress = { summary.level.progress },
+                    modifier = Modifier.fillMaxWidth().height(10.dp),
+                    strokeCap = StrokeCap.Round
+                )
+                Text(
+                    "${summary.level.xpForNext - summary.level.xpInLevel} XP avant le niveau ${summary.level.level + 1} · voir mes progrès",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
 
         val update = if (settings.checkUpdates) Updater.availableUpdate() else null
         if (update != null && update.tag != settings.dismissedTag) {
