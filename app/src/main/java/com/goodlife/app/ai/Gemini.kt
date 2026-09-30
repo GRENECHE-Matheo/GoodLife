@@ -1,6 +1,8 @@
 package com.goodlife.app.ai
 
 import android.util.Base64
+import com.goodlife.app.BuildConfig
+import com.goodlife.app.data.Repo
 import com.goodlife.app.data.FoodAnalysis
 import com.goodlife.app.data.Meal
 import com.goodlife.app.data.MealSuggestion
@@ -13,6 +15,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 class AiException(message: String) : Exception(message)
@@ -24,22 +29,78 @@ class AiException(message: String) : Exception(message)
  */
 class Gemini(private val apiKey: String, private val model: String) {
 
+    /**
+     * Avec une clé perso → appel direct à Google (sans limite GoodLife).
+     * Sans clé → passage par le relais GoodLife (10 analyses/jour, clé gardée côté serveur).
+     */
     private suspend fun call(prompt: String, jpeg: ByteArray?): JSONObject = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank()) throw AiException("Ajoute ta clé API Gemini dans Profil › Clé IA.")
+        if (apiKey.isNotBlank()) callDirect(prompt, jpeg) else callRelay(prompt, jpeg)
+    }
+
+    private fun callDirect(prompt: String, jpeg: ByteArray?): JSONObject {
         val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
         var lastError = "Erreur inconnue"
         for (m in models) {
             val (code, body) = post(m, prompt, jpeg)
             when {
-                code in 200..299 -> return@withContext parse(body)
+                code in 200..299 -> return parse(body)
                 code == 404 -> { lastError = "Modèle $m indisponible"; continue }
-                code == 429 -> throw AiException("Quota gratuit atteint pour le moment. Réessaie dans une minute.")
+                code == 429 -> throw AiException("Quota de ta clé atteint pour le moment. Réessaie dans une minute.")
                 code == 400 || code == 401 || code == 403 ->
-                    throw AiException("Clé API refusée (${errorMessage(body)}). Vérifie-la dans Profil › Clé IA.")
+                    throw AiException("Clé API refusée (${errorMessage(body)}). Vérifie-la dans Paramètres.")
                 else -> { lastError = "Erreur serveur $code : ${errorMessage(body)}"; continue }
             }
         }
         throw AiException(lastError)
+    }
+
+    private fun callRelay(prompt: String, jpeg: ByteArray?): JSONObject {
+        val secret = BuildConfig.RELAY_SECRET
+        if (secret.isBlank()) {
+            throw AiException("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle.")
+        }
+        val payload = JSONObject().put("prompt", prompt)
+        if (jpeg != null) payload.put("image", Base64.encodeToString(jpeg, Base64.NO_WRAP))
+        val body = payload.toString().toByteArray(Charsets.UTF_8)
+
+        val install = Repo.settings.value.installId
+        val time = System.currentTimeMillis().toString()
+        val signature = hmacHex(secret, "$install\n$time\n${sha256Hex(body)}")
+
+        val conn = (URL("${BuildConfig.RELAY_URL}/v1/generate").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 20_000
+            readTimeout = 90_000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            setRequestProperty("x-gl-install", install)
+            setRequestProperty("x-gl-time", time)
+            setRequestProperty("x-gl-sig", signature)
+        }
+        val (code, text) = try {
+            conn.outputStream.use { it.write(body) }
+            val c = conn.responseCode
+            val stream = if (c in 200..299) conn.inputStream else conn.errorStream
+            c to (stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "")
+        } catch (e: java.io.IOException) {
+            throw AiException("Pas de connexion internet (${e.message ?: "réseau"}).")
+        } finally {
+            conn.disconnect()
+        }
+
+        val o = runCatching { JSONObject(text) }.getOrNull()
+        val message = o?.optString("message")?.takeIf { it.isNotBlank() }
+        return when {
+            code in 200..299 && o != null -> {
+                if (o.has("remaining")) Repo.setRelayRemaining(o.optInt("remaining"))
+                extractJson(o.optString("text"))
+            }
+            code == 429 -> {
+                Repo.setRelayRemaining(0)
+                throw AiException(message ?: "Limite gratuite du jour atteinte. Ajoute ta clé dans Paramètres.")
+            }
+            else -> throw AiException(message ?: "Service IA GoodLife indisponible ($code). Réessaie plus tard.")
+        }
     }
 
     private fun post(model: String, prompt: String, jpeg: ByteArray?): Pair<Int, String> {
@@ -96,11 +157,24 @@ class Gemini(private val apiKey: String, private val model: String) {
                 append(p.optString("text"))
             }
         }
+        return extractJson(text)
+    }
+
+    private fun extractJson(text: String): JSONObject {
         val start = text.indexOf('{')
         val end = text.lastIndexOf('}')
         if (start < 0 || end <= start) throw AiException("Réponse IA illisible.")
         return runCatching { JSONObject(text.substring(start, end + 1)) }
             .getOrElse { throw AiException("Réponse IA illisible.") }
+    }
+
+    private fun sha256Hex(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    private fun hmacHex(secret: String, message: String): String {
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+        return mac.doFinal(message.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
     }
 
     // ------------------------------------------------------------------

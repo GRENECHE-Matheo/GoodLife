@@ -1,0 +1,40 @@
+name: Deploy relay
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'relay/**', '.github/workflows/relay.yml' ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Vérifier le token Cloudflare
+        run: |
+          curl -fsS https://api.cloudflare.com/client/v4/user/tokens/verify \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | grep -q '"status":"active"'
+
+      - name: Déployer le relais
+        working-directory: relay
+        run: npx --yes wrangler@4 deploy
+
+      - name: Envoyer le secret de signature de l'app
+        working-directory: relay
+        env:
+          APP_SECRET: ${{ secrets.GOODLIFE_RELAY_SECRET }}
+        run: printf '%s' "$APP_SECRET" | npx --yes wrangler@4 secret put APP_SECRET
+
+      - name: Vérifier que le relais répond
+        run: |
+          sleep 10
+          curl -fsS https://goodlife-relay.matheo-greneche0.workers.dev/health

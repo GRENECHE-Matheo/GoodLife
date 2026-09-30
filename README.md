@@ -1,4 +1,4 @@
-# GoodLife — v0.1
+# GoodLife — v0.2
 
 > ⚠️ **Projet assisté par IA** : le code de cette application a été écrit avec l'assistance
 > d'une intelligence artificielle (Claude, par Anthropic), puis relu et piloté par son auteur.
@@ -33,6 +33,13 @@ Material You inspirée des applications Google.
   l'API Google Gemini. Les photos ne sont pas enregistrées.
 
 ## IA
+
+**Sans clé** : 10 analyses IA gratuites par jour et par installation, via le relais GoodLife
+(Cloudflare Worker, dossier `relay/`). La clé Gemini est stockée comme secret côté Cloudflare :
+elle n'est ni dans l'app, ni dans ce dépôt. Chaque requête est signée par l'app (HMAC-SHA256,
+horodatée) et le relais impose le modèle, la taille des requêtes et le quota (par installation et par IP).
+
+**Avec sa propre clé** (Paramètres › Intelligence artificielle) : appel direct à Google, sans la limite GoodLife.
 
 Modèle par défaut : `gemini-3.5-flash-lite` (rapide, gros quota gratuit). Si un modèle
 disparaît, l'app bascule automatiquement sur un autre.

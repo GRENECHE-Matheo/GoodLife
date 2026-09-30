@@ -5,7 +5,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
+import java.util.UUID
+
+/** Jour UTC au format AAAA-MM-JJ (même référence que le relais). */
+fun utcDay(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    .apply { timeZone = TimeZone.getTimeZone("UTC") }
+    .format(java.util.Date())
 
 data class Settings(
     val apiKey: String = "",
@@ -17,8 +26,15 @@ data class Settings(
     val appLock: Boolean = false,
     val blockScreenshots: Boolean = true,
     val themeMode: String = "system",   // system | light | dark
-    val themeColor: String = "auto"     // auto | blue | green | purple | orange | pink
+    val themeColor: String = "auto",    // auto | blue | green | purple | orange | pink
+    val installId: String = "",
+    val relayRemaining: Int = -1,
+    val relayDay: String = ""
 ) {
+    /** Analyses gratuites restantes aujourd'hui via le relais (null = inconnu → limite pleine). */
+    fun relayRemainingToday(limit: Int = RELAY_DAILY_LIMIT): Int =
+        if (relayDay == utcDay() && relayRemaining >= 0) relayRemaining else limit
+
     fun toJson(): JSONObject = JSONObject()
         .put("apiKey", apiKey).put("model", model).put("sleepAuto", sleepAuto)
         .put("manualSleepStart", manualSleepStart)
@@ -28,9 +44,13 @@ data class Settings(
         .put("blockScreenshots", blockScreenshots)
         .put("themeMode", themeMode)
         .put("themeColor", themeColor)
+        .put("installId", installId)
+        .put("relayRemaining", relayRemaining)
+        .put("relayDay", relayDay)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
+        const val RELAY_DAILY_LIMIT = 10
         fun fromJson(o: JSONObject) = Settings(
             apiKey = o.optString("apiKey"),
             model = o.optString("model", DEFAULT_MODEL).ifBlank { DEFAULT_MODEL },
@@ -41,7 +61,10 @@ data class Settings(
             appLock = o.optBoolean("appLock", false),
             blockScreenshots = o.optBoolean("blockScreenshots", true),
             themeMode = o.optString("themeMode", "system").ifBlank { "system" },
-            themeColor = o.optString("themeColor", "auto").ifBlank { "auto" }
+            themeColor = o.optString("themeColor", "auto").ifBlank { "auto" },
+            installId = o.optString("installId"),
+            relayRemaining = o.optInt("relayRemaining", -1),
+            relayDay = o.optString("relayDay")
         )
     }
 }
@@ -75,6 +98,10 @@ object Repo {
         } ?: emptyList()
         _settings.value = store.get(K_SETTINGS)?.let { runCatching { Settings.fromJson(JSONObject(it)) }.getOrNull() }
             ?: Settings()
+        // Identifiant anonyme et aléatoire de cette installation (sert au quota du relais).
+        if (_settings.value.installId.isBlank()) {
+            updateSettings { it.copy(installId = UUID.randomUUID().toString()) }
+        }
     }
 
     // ---------- Profil ----------
@@ -138,6 +165,10 @@ object Repo {
         store.put(K_SETTINGS, s.toJson().toString())
     }
 
+    fun setRelayRemaining(remaining: Int) {
+        updateSettings { it.copy(relayRemaining = remaining, relayDay = utcDay()) }
+    }
+
     @Synchronized
     fun wipeAll() {
         store.clear()
@@ -145,6 +176,7 @@ object Repo {
         _meals.value = emptyList()
         _sleep.value = emptyList()
         _settings.value = Settings()
+        updateSettings { it.copy(installId = UUID.randomUUID().toString()) }
     }
 
     fun dayBounds(dayOffset: Int = 0): Pair<Long, Long> {

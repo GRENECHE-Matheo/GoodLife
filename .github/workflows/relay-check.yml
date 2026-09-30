@@ -1,0 +1,11 @@
+name: Check relay
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: État du relais (n'affiche jamais la clé)
+        run: curl -fsS https://goodlife-relay.matheo-greneche0.workers.dev/health

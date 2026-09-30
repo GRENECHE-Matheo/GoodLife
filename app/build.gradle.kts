@@ -14,8 +14,13 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
+
+        // Relais GoodLife (10 analyses gratuites/jour sans clé personnelle)
+        buildConfigField("String", "RELAY_URL", "\"https://goodlife-relay.matheo-greneche0.workers.dev\"")
+        // Secret de signature injecté par GitHub Actions, jamais écrit dans le dépôt
+        buildConfigField("String", "RELAY_SECRET", "\"${System.getenv("GOODLIFE_RELAY_SECRET") ?: ""}\"")
     }
 
     signingConfigs {

@@ -156,9 +156,15 @@ fun SettingsScreen(onBack: () -> Unit) {
         // ---- IA ----
         SectionCard(title = "Intelligence artificielle", icon = Icons.Filled.VpnKey) {
             Text(
-                "L'analyse des photos utilise Google Gemini (offre gratuite). Crée ta clé gratuite sur " +
-                    "Google AI Studio et colle-la ici. Elle est chiffrée sur ton téléphone.",
+                "Sans clé : ${com.goodlife.app.data.Settings.RELAY_DAILY_LIMIT} analyses IA gratuites par jour, offertes par GoodLife " +
+                    "(Gemini 3.5 Flash-Lite). Restantes aujourd'hui : ${settings.relayRemainingToday()}.",
                 style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                "Pour en faire plus, crée ta propre clé gratuite sur Google AI Studio et colle-la ici. " +
+                    "Elle est chiffrée sur ton téléphone et n'est envoyée qu'à Google.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
                 Text("Obtenir une clé gratuite")
@@ -186,24 +192,33 @@ fun SettingsScreen(onBack: () -> Unit) {
                     Text("Enregistrée", color = MaterialTheme.colorScheme.primary)
                 }
             }
-            Text("Modèle", style = MaterialTheme.typography.labelLarge)
-            Gemini.KNOWN_MODELS.forEach { (id, desc) ->
-                Row(
-                    Modifier.fillMaxWidth().selectable(
-                        selected = settings.model == id,
-                        onClick = { Repo.updateSettings { it.copy(model = id) } },
-                        role = Role.RadioButton
-                    ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(selected = settings.model == id, onClick = null)
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(id)
-                        Text(
-                            desc, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            if (settings.apiKey.isNotBlank()) {
+                TextButton(onClick = {
+                    keyDraft = ""
+                    Repo.updateSettings { it.copy(apiKey = "") }
+                }) { Text("Retirer ma clé (revenir aux analyses offertes)") }
+            }
+            // Choix du modèle seulement avec une clé perso ; sinon modèle unique imposé par le relais.
+            if (settings.apiKey.isNotBlank()) {
+                Text("Modèle (avec ta clé)", style = MaterialTheme.typography.labelLarge)
+                Gemini.KNOWN_MODELS.forEach { (id, desc) ->
+                    Row(
+                        Modifier.fillMaxWidth().selectable(
+                            selected = settings.model == id,
+                            onClick = { Repo.updateSettings { it.copy(model = id) } },
+                            role = Role.RadioButton
+                        ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = settings.model == id, onClick = null)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(id)
+                            Text(
+                                desc, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -214,8 +229,9 @@ fun SettingsScreen(onBack: () -> Unit) {
             Text(
                 "• Profil, repas et sommeil : stockés uniquement sur ce téléphone, chiffrés (AES-256, Android Keystore).\n" +
                     "• Aucune sauvegarde cloud, aucun compte, aucune pub, aucun tracker.\n" +
-                    "• Quand tu analyses une photo, seules la photo et tes allergies partent vers Google Gemini. " +
-                    "Les photos ne sont jamais enregistrées sur le téléphone.",
+                    "• Quand tu analyses une photo, seules la photo et tes allergies partent vers Google Gemini " +
+                    "(directement avec ta clé, ou via le relais GoodLife sans clé, qui ne stocke rien). " +
+                    "Les photos ne sont jamais enregistrées.",
                 style = MaterialTheme.typography.bodyMedium
             )
             OutlinedButton(onClick = { confirmWipe = true }) {

@@ -133,6 +133,15 @@ fun ScanScreen(onDone: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ScreenTitle("Scanner un repas", "Cadre bien ton assiette, l'IA estime les calories")
+        if (settings.apiKey.isBlank()) {
+            val left = settings.relayRemainingToday()
+            Text(
+                if (left > 0) "Analyses gratuites restantes aujourd'hui : $left/${com.goodlife.app.data.Settings.RELAY_DAILY_LIMIT}"
+                else "Plus d'analyses gratuites aujourd'hui. Ajoute ta clé dans Paramètres pour continuer.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (left > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            )
+        }
 
         val current = photo
         if (current == null) {
