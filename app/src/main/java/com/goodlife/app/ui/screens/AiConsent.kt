@@ -1,6 +1,12 @@
 package com.goodlife.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Alignment
+import com.goodlife.app.ui.ChefMascot
+import com.goodlife.app.ui.ChefMood
+import com.goodlife.app.ui.SlideSwitch
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,8 +61,9 @@ fun AiConsentText() {
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            "Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. " +
-                "Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil.",
+            "Ces données ne sont ni vendues ni utilisées pour de la publicité par GoodLife. " +
+                "Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. " +
+                "Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -69,15 +76,18 @@ fun AiChoiceScreen() {
     val profile by Repo.profile.collectAsState()
     val adult = (profile?.age ?: 0) >= 18
     var showPolicy by remember { mutableStateOf(false) }
-    if (showPolicy) {
-        PrivacyScreen(onBack = { showPolicy = false })
-        return
-    }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    SlideSwitch(showPolicy) { open ->
+    if (open) {
+        Surface(Modifier.fillMaxSize().safeDrawingPadding(), color = MaterialTheme.colorScheme.background) {
+            PrivacyScreen(onBack = { showPolicy = false })
+        }
+    } else Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
         Column(
-            Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
+            Modifier.widthIn(max = 640.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            ChefMascot(size = 96.dp, mood = ChefMood.QUESTION)
             Text("Activer l'IA ?", style = MaterialTheme.typography.headlineMedium)
             SectionCard(title = "Ce que ça implique", icon = Icons.Filled.AutoAwesome) {
                 AiConsentText()
@@ -97,6 +107,8 @@ fun AiChoiceScreen() {
                 Text("Continuer sans IA")
             }
         }
+        }
+    }
     }
 }
 

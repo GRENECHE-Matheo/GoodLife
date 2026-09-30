@@ -94,6 +94,7 @@ import com.goodlife.app.data.FoodAnalysis
 import com.goodlife.app.data.Meal
 import com.goodlife.app.data.Repo
 import com.goodlife.app.ui.ScreenTitle
+import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.toNumber
 import kotlinx.coroutines.Dispatchers
@@ -162,10 +163,7 @@ fun ScanScreen(onDone: () -> Unit) {
         }
     }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    ScreenColumn {
         ScreenTitle("Scanner", if (mode == "photo") "Photo du repas : l'IA estime les calories" else "Code-barres d'un produit emballé")
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

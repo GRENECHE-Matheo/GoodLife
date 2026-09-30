@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,13 +66,25 @@ import kotlinx.coroutines.launch
 import com.goodlife.app.security.AppLock
 import com.goodlife.app.security.findFragmentActivity
 import com.goodlife.app.sleep.SleepTracker
+import com.goodlife.app.ui.ScreenColumn
+import com.goodlife.app.ui.SubScreenHeader
 import com.goodlife.app.ui.SectionCard
+import com.goodlife.app.ui.SlideSwitch
 import com.goodlife.app.ui.theme.THEME_COLORS
 import com.goodlife.app.ui.theme.THEME_MODES
 import com.goodlife.app.ui.theme.dynamicColorSupported
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit) {
+    var showPolicy by rememberSaveable { mutableStateOf(false) }
+    SlideSwitch(showPolicy) { open ->
+        if (open) PrivacyScreen(onBack = { showPolicy = false })
+        else SettingsContent(onBack, onOpenPolicy = { showPolicy = true })
+    }
+}
+
+@Composable
+private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
     val settings by Repo.settings.collectAsState()
     val context = LocalContext.current
     val uri = LocalUriHandler.current
@@ -81,7 +94,6 @@ fun SettingsScreen(onBack: () -> Unit) {
     var keySaved by remember { mutableStateOf(false) }
     var lockMessage by remember { mutableStateOf<String?>(null) }
     var confirmWipe by remember { mutableStateOf(false) }
-    var showPolicy by remember { mutableStateOf(false) }
     var askAiConsent by remember { mutableStateOf(false) }
     var exportMessage by remember { mutableStateOf<String?>(null) }
     var checking by remember { mutableStateOf(false) }
@@ -98,20 +110,9 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
     }
 
-    if (showPolicy) {
-        PrivacyScreen(onBack = { showPolicy = false })
-        return
-    }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
-            Spacer(Modifier.width(4.dp))
-            Text("Paramètres", style = MaterialTheme.typography.headlineMedium)
-        }
+    ScreenColumn {
+        SubScreenHeader("Paramètres", onBack)
 
         // ---- Apparence ----
         SectionCard(title = "Apparence", icon = Icons.Filled.Palette) {
@@ -286,20 +287,14 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
 
         // ---- Confidentialité ----
-        SectionCard(title = "Confidentialité", icon = Icons.Filled.Lock) {
+        SectionCard(title = "Ce qui quitte ton téléphone", icon = Icons.Filled.Lock) {
+            DataFlowSummary()
             Text(
-                "• Profil, repas, emploi du temps et sommeil : stockés uniquement sur ce téléphone, chiffrés.\n" +
-                    "• Aucun compte, aucune sauvegarde cloud, aucune pub, aucun traceur.\n" +
-                    (if (settings.aiEnabled)
-                        "• IA activée : pour chaque demande, la photo et/ou les infos nécessaires (données de santé) " +
-                            "sont envoyées directement à Google Gemini avec ta clé. Google peut les conserver " +
-                            "temporairement et les traiter hors de l'UE.\n"
-                    else "• IA désactivée : rien n'est envoyé à Google.\n") +
-                    "• Code-barres : lu sur le téléphone ; seul le numéro est envoyé à Open Food Facts.\n" +
-                    "• Mises à jour : si activé, l'app interroge GitHub (qui voit ton adresse IP).",
-                style = MaterialTheme.typography.bodyMedium
+                if (settings.aiEnabled) "IA : activée." else "IA : désactivée, rien n'est envoyé à Google.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
             )
-            TextButton(onClick = { showPolicy = true }) { Text("Lire la politique de confidentialité") }
+            TextButton(onClick = onOpenPolicy) { Text("Lire la politique de confidentialité") }
             OutlinedButton(onClick = { exportLauncher.launch("goodlife-export.json") }) {
                 Text("Exporter mes données (JSON)")
             }

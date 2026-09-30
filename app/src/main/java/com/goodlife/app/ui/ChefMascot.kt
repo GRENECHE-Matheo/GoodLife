@@ -1,6 +1,12 @@
 package com.goodlife.app.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -30,7 +36,13 @@ private val APRON = Color(0xFF1A73E8)
 /** Le petit cuisto de GoodLife, dessiné en vectoriel (100 × 100 unités mises à l'échelle). */
 @Composable
 fun ChefMascot(modifier: Modifier = Modifier, size: Dp = 96.dp, mood: ChefMood = ChefMood.CONTENT) {
-    Canvas(modifier.size(size)) {
+    // Petit rebond à chaque changement d'humeur
+    val pop = remember { Animatable(1f) }
+    LaunchedEffect(mood) {
+        pop.snapTo(0.88f)
+        pop.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 320f))
+    }
+    Canvas(modifier.size(size).graphicsLayer { scaleX = pop.value; scaleY = pop.value; transformOrigin = TransformOrigin(0.5f, 1f) }) {
         val u = this.size.minDimension / 100f
         fun o(x: Float, y: Float) = Offset(x * u, y * u)
         fun p(block: Path.() -> Unit) = Path().apply(block)

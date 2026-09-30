@@ -52,6 +52,8 @@ import com.goodlife.app.game.QuizBank
 import com.goodlife.app.ui.ChefMascot
 import com.goodlife.app.ui.ChefMood
 import com.goodlife.app.ui.LineChart
+import com.goodlife.app.ui.ScreenColumn
+import com.goodlife.app.ui.SubScreenHeader
 import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.toNumber
 
@@ -74,15 +76,8 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
     val lvl = summary.level
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
-                Spacer(Modifier.width(4.dp))
-                Text("Mes progrès", style = MaterialTheme.typography.headlineSmall)
-            }
+        ScreenColumn {
+            SubScreenHeader("Mes progrès", onBack)
 
             // ---- Niveau ----
             SectionCard(container = MaterialTheme.colorScheme.primaryContainer) {

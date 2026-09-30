@@ -3,6 +3,16 @@
 package com.goodlife.app.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import com.goodlife.app.ui.SlideSwitch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,6 +91,7 @@ import com.goodlife.app.net.Updater
 import com.goodlife.app.ui.CalorieRing
 import com.goodlife.app.ui.MacroBar
 import com.goodlife.app.ui.ScreenTitle
+import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.WeekBars
 import com.goodlife.app.ui.formatDay
@@ -93,22 +104,33 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 @Composable
-fun HomeScreen(onScan: () -> Unit) {
+fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
     val game by Repo.game.collectAsState()
     val p = profile ?: return
     val summary = remember(meals, p, game) { Game.summarize(meals, p, game) }
     var overlay by rememberSaveable { mutableStateOf("") }
-    when (overlay) {
-        "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
-        "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, onClose = { overlay = "" })
-        else -> HomeContent(onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" })
+    SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress" -> 1; else -> 2 } }) { screen ->
+        when (screen) {
+            "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
+            "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, onClose = { overlay = "" })
+            else -> HomeContent(
+                onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" },
+                onOpenProfile = onOpenProfile
+            )
+        }
     }
 }
 
 @Composable
-private fun HomeContent(onScan: () -> Unit, summary: GameSummary, onProgress: () -> Unit, onQuiz: () -> Unit) {
+private fun HomeContent(
+    onScan: () -> Unit,
+    summary: GameSummary,
+    onProgress: () -> Unit,
+    onQuiz: () -> Unit,
+    onOpenProfile: () -> Unit
+) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
     val settings by Repo.settings.collectAsState()
@@ -135,12 +157,14 @@ private fun HomeContent(onScan: () -> Unit, summary: GameSummary, onProgress: ()
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val hello = if (hour < 18) "Bonjour" else "Bonsoir"
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    ScreenColumn {
         // En-tête : photo, salutation, série et accès au quiz
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Appuyer sur sa photo ou son nom ouvre les infos du compte
+            Row(
+                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(onClick = onOpenProfile).padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             Avatar(avatar, p.name, 44.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -154,13 +178,22 @@ private fun HomeContent(onScan: () -> Unit, summary: GameSummary, onProgress: ()
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            }
             Surface(
                 onClick = onProgress,
                 shape = RoundedCornerShape(50),
                 color = FLAME.copy(alpha = 0.15f)
             ) {
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.LocalFireDepartment, "Série", tint = FLAME, modifier = Modifier.size(20.dp))
+                    val pulse = rememberInfiniteTransition(label = "flame")
+                    val scale by pulse.animateFloat(
+                        1f, if (summary.streak > 0) 1.15f else 1f,
+                        infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "flameScale"
+                    )
+                    Icon(
+                        Icons.Filled.LocalFireDepartment, "Série", tint = FLAME,
+                        modifier = Modifier.size(20.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+                    )
                     Text("${summary.streak}", fontWeight = FontWeight.Bold, color = FLAME)
                 }
             }
@@ -199,8 +232,9 @@ private fun HomeContent(onScan: () -> Unit, summary: GameSummary, onProgress: ()
                     )
                     Text("Score du jour : ${summary.today.score}", style = MaterialTheme.typography.labelLarge)
                 }
+                val xp by animateFloatAsState(summary.level.progress, tween(900, easing = FastOutSlowInEasing), label = "xp")
                 LinearProgressIndicator(
-                    progress = { summary.level.progress },
+                    progress = { xp },
                     modifier = Modifier.fillMaxWidth().height(10.dp),
                     strokeCap = StrokeCap.Round
                 )

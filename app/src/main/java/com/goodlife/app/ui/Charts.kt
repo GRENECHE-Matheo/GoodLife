@@ -1,6 +1,12 @@
 package com.goodlife.app.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +38,8 @@ fun LineChart(
     val grid = MaterialTheme.colorScheme.surfaceVariant
     val refColor = MaterialTheme.colorScheme.tertiary
     val present = values.filterNotNull()
+    val reveal = remember { Animatable(0f) }
+    LaunchedEffect(values) { reveal.snapTo(0f); reveal.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
     Column {
         Canvas(Modifier.fillMaxWidth().height(140.dp)) {
             if (present.isEmpty()) return@Canvas
@@ -57,9 +65,12 @@ fun LineChart(
                 val pt = Offset(i * stepX, y(v))
                 if (!started) { path.moveTo(pt.x, pt.y); started = true } else path.lineTo(pt.x, pt.y)
             }
-            drawPath(path, color, style = Stroke(3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-            values.forEachIndexed { i, v ->
-                if (v != null) drawCircle(color, 4.dp.toPx(), Offset(i * stepX, y(v)))
+            // La courbe se dessine de gauche à droite
+            clipRect(right = size.width * reveal.value + 6.dp.toPx()) {
+                drawPath(path, color, style = Stroke(3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                values.forEachIndexed { i, v ->
+                    if (v != null) drawCircle(color, 4.dp.toPx(), Offset(i * stepX, y(v)))
+                }
             }
         }
         Row(Modifier.fillMaxWidth()) {

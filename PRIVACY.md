@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.4 · mise à jour le 30 septembre 2026
+Version 0.5 · mise à jour le 30 septembre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -52,7 +52,7 @@ Accès et portabilité : Paramètres › Exporter mes données. Rectification : 
 
 ## Ce que GoodLife ne fait pas
 
-Pas de publicité, pas de revente de données, pas de traceur, pas de profilage marketing.
+Aucune donnée n'est vendue, louée ou partagée à des fins publicitaires. Pas de publicité, pas de traceur, pas de profilage marketing. GoodLife n'a pas de serveur : le développeur ne reçoit aucune de tes données.
 
 ## Important
 

@@ -7,7 +7,30 @@ import android.graphics.Color
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.ui.platform.LocalConfiguration
+import com.goodlife.app.ui.Motion
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -56,7 +79,12 @@ class MainActivity : FragmentActivity() {
         UpdateInstaller.cleanup(this, onlyInstalled = true)
         val s = Repo.settings.value
         applyScreenshotBlock(s.blockScreenshots)
-        locked.value = s.appLock
+        // Rotation / changement de thème : pas de re-verrouillage ; retour après plus d'1 min : verrouillage.
+        locked.value = s.appLock && (
+            savedInstanceState == null ||
+                savedInstanceState.getBoolean(KEY_LOCKED, true) ||
+                SystemClock.elapsedRealtime() - savedInstanceState.getLong(KEY_SAVED_AT, 0L) > AppLock.GRACE_MS
+            )
         enableEdgeToEdge()
         setContent {
             val settings by Repo.settings.collectAsState()
@@ -76,6 +104,12 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_LOCKED, locked.value)
+        outState.putLong(KEY_SAVED_AT, SystemClock.elapsedRealtime())
     }
 
     override fun onStop() {
@@ -98,6 +132,9 @@ class MainActivity : FragmentActivity() {
     }
 }
 
+private const val KEY_LOCKED = "goodlife_locked"
+private const val KEY_SAVED_AT = "goodlife_saved_at"
+
 private data class Tab(val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
@@ -108,40 +145,95 @@ private val tabs = listOf(
     Tab("Profil", Icons.Filled.Person)
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GoodLifeApp() {
     val profile by Repo.profile.collectAsState()
     val settings by Repo.settings.collectAsState()
-    if (profile == null) {
-        OnboardingScreen()
-    } else if (!settings.aiConsentAsked) {
-        // Choix explicite de l'IA, demandé une fois (y compris après mise à jour depuis la v0.2)
-        AiChoiceScreen()
+    val stage = when {
+        profile == null -> 0
+        !settings.aiConsentAsked -> 1
+        else -> 2
+    }
+    // Passage animé : accueil → choix de l'IA → application
+    AnimatedContent(
+        targetState = stage,
+        transitionSpec = { Motion.sharedAxisX(forward = targetState >= initialState) },
+        label = "stage"
+    ) { st ->
+        when (st) {
+            0 -> OnboardingScreen()
+            1 -> AiChoiceScreen()
+            else -> MainTabs()
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MainTabs() {
+    var tab by rememberSaveable { mutableIntStateOf(0) }
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    val keyboardOpen = WindowInsets.isImeVisible
+
+    val content: @Composable (Modifier) -> Unit = { modifier ->
+        // « Fade through » Material entre les onglets
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = { Motion.fadeThrough() },
+            modifier = modifier,
+            label = "tabs"
+        ) { t ->
+            when (t) {
+                0 -> HomeScreen(onScan = { tab = 1 }, onOpenProfile = { tab = 4 })
+                1 -> ScanScreen(onDone = { tab = 0 })
+                2 -> PlanningScreen()
+                3 -> SleepScreen()
+                else -> ProfileScreen()
+            }
+        }
+    }
+
+    if (wide) {
+        // Tablettes / paysage : rail de navigation à gauche, toujours visible
+        Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            NavigationRail(Modifier.fillMaxHeight().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start))) {
+                Spacer(Modifier.weight(1f))
+                tabs.forEachIndexed { i, t ->
+                    NavigationRailItem(
+                        selected = tab == i,
+                        onClick = { tab = i },
+                        icon = { Icon(t.icon, null) },
+                        label = { Text(t.label) }
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+            }
+            content(Modifier.weight(1f).fillMaxHeight().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)))
+        }
     } else {
-        var tab by rememberSaveable { mutableIntStateOf(0) }
+        // Téléphones : barre du bas fixe (masquée seulement quand le clavier est ouvert, comme les apps Google)
         Scaffold(
             bottomBar = {
-                NavigationBar {
-                    tabs.forEachIndexed { i, t ->
-                        NavigationBarItem(
-                            selected = tab == i,
-                            onClick = { tab = i },
-                            icon = { Icon(t.icon, null) },
-                            label = { Text(t.label) }
-                        )
+                AnimatedVisibility(
+                    visible = !keyboardOpen,
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut()
+                ) {
+                    NavigationBar {
+                        tabs.forEachIndexed { i, t ->
+                            NavigationBarItem(
+                                selected = tab == i,
+                                onClick = { tab = i },
+                                icon = { Icon(t.icon, null) },
+                                label = { Text(t.label, maxLines = 1) }
+                            )
+                        }
                     }
                 }
             }
         ) { padding ->
-            Box(Modifier.padding(padding)) {
-                when (tab) {
-                    0 -> HomeScreen(onScan = { tab = 1 })
-                    1 -> ScanScreen(onDone = { tab = 0 })
-                    2 -> PlanningScreen()
-                    3 -> SleepScreen()
-                    else -> ProfileScreen()
-                }
-            }
+            content(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding))
         }
     }
 }

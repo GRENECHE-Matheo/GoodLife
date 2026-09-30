@@ -1,6 +1,18 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.ui.ScreenColumn
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import com.goodlife.app.ui.Motion
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,13 +72,13 @@ private val BAD = Color(0xFFD93025)
 fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val questions = remember { QuizBank.forDay() }
-    var index by remember { mutableIntStateOf(0) }
-    var selected by remember { mutableStateOf<Int?>(null) }
-    var correct by remember { mutableIntStateOf(0) }
-    var finished by remember { mutableStateOf(false) }
+    var index by rememberSaveable { mutableIntStateOf(0) }
+    var selected by rememberSaveable { mutableStateOf<Int?>(null) }
+    var correct by rememberSaveable { mutableIntStateOf(0) }
+    var finished by rememberSaveable { mutableStateOf(false) }
     // Valeurs figées au début du quiz (elles changent dès que le résultat est enregistré)
-    val startRecoverable = remember { recoverableStreak }
-    val startDone = remember { alreadyDone }
+    val startRecoverable = rememberSaveable { recoverableStreak }
+    val startDone = rememberSaveable { alreadyDone }
 
     LaunchedEffect(finished) {
         if (finished && !startDone) {
@@ -79,16 +92,18 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
         }
     }
 
+    val quizProgress by animateFloatAsState(
+        (index + if (selected != null || finished) 1 else 0).toFloat() / questions.size,
+        animationSpec = spring(stiffness = Spring.StiffnessLow), label = "quizProgress"
+    )
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        ScreenColumn {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "Fermer") }
                 Spacer(Modifier.width(8.dp))
                 LinearProgressIndicator(
-                    progress = { (index + if (selected != null || finished) 1 else 0).toFloat() / questions.size },
+                    progress = { quizProgress },
                     modifier = Modifier.weight(1f).height(12.dp),
                     color = GOOD,
                     strokeCap = StrokeCap.Round
@@ -96,84 +111,99 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
             }
 
             if (!finished) {
-                val q = questions[index]
-                val answered = selected
-                Row(verticalAlignment = Alignment.Top) {
-                    ChefMascot(
-                        size = 96.dp,
-                        mood = when {
-                            answered == null -> ChefMood.QUESTION
-                            answered == q.correctIndex -> ChefMood.BRAVO
-                            else -> ChefMood.TRISTE
-                        }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 20.dp, bottomEnd = 20.dp, bottomStart = 20.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(Modifier.padding(14.dp)) {
-                            Text(
-                                "Question ${index + 1} sur ${questions.size}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                AnimatedContent(
+                    targetState = index,
+                    transitionSpec = { Motion.sharedAxisX(forward = true) },
+                    label = "question"
+                ) { idx ->
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        val q = questions[idx]
+                        val answered = selected
+                        Row(verticalAlignment = Alignment.Top) {
+                            ChefMascot(
+                                size = 96.dp,
+                                mood = when {
+                                    answered == null -> ChefMood.QUESTION
+                                    answered == q.correctIndex -> ChefMood.BRAVO
+                                    else -> ChefMood.TRISTE
+                                }
                             )
-                            Text(q.question, style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 20.dp, bottomEnd = 20.dp, bottomStart = 20.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(Modifier.padding(14.dp)) {
+                                    Text(
+                                        "Question ${idx + 1} sur ${questions.size}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(q.question, style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
                         }
-                    }
-                }
-                q.options.forEachIndexed { i, opt ->
-                    val isRight = i == q.correctIndex
-                    val color = when {
-                        answered == null -> MaterialTheme.colorScheme.outline
-                        isRight -> GOOD
-                        i == answered -> BAD
-                        else -> MaterialTheme.colorScheme.outlineVariant
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            if (answered == null) {
-                                selected = i
-                                if (isRight) correct++
-                            }
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(2.dp, color),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = when {
-                                answered != null && isRight -> GOOD.copy(alpha = 0.12f)
-                                answered == i -> BAD.copy(alpha = 0.12f)
-                                else -> Color.Transparent
-                            }
-                        ),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                    ) {
-                        Text(opt, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-                if (answered != null) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = (if (answered == q.correctIndex) GOOD else BAD).copy(alpha = 0.10f)
-                    ) {
-                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                if (answered == q.correctIndex) "Bien joué !" else "Pas tout à fait…",
-                                fontWeight = FontWeight.Bold,
-                                color = if (answered == q.correctIndex) GOOD else BAD
+                        q.options.forEachIndexed { i, opt ->
+                            val isRight = i == q.correctIndex
+                            val color by animateColorAsState(when {
+                                answered == null -> MaterialTheme.colorScheme.outline
+                                isRight -> GOOD
+                                i == answered -> BAD
+                                else -> MaterialTheme.colorScheme.outlineVariant
+                            }, label = "answerBorder")
+                            val fill by animateColorAsState(
+                                when {
+                                    answered != null && isRight -> GOOD.copy(alpha = 0.12f)
+                                    answered == i -> BAD.copy(alpha = 0.12f)
+                                    else -> Color.Transparent
+                                }, label = "answerFill"
                             )
-                            Text(q.explanation, style = MaterialTheme.typography.bodyMedium)
+                            OutlinedButton(
+                                onClick = {
+                                    if (answered == null) {
+                                        selected = i
+                                        if (isRight) correct++
+                                    }
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(2.dp, color),
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = fill),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                            ) {
+                                Text(opt, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                        AnimatedVisibility(
+                            visible = answered != null,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                        if (answered != null) Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = (if (answered == q.correctIndex) GOOD else BAD).copy(alpha = 0.10f)
+                            ) {
+                                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        if (answered == q.correctIndex) "Bien joué !" else "Pas tout à fait…",
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (answered == q.correctIndex) GOOD else BAD
+                                    )
+                                    Text(q.explanation, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    if (index < questions.lastIndex) { index++; selected = null } else finished = true
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = GOOD),
+                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                            ) { Text(if (index < questions.lastIndex) "Continuer" else "Voir le résultat") }
+                        }
                         }
                     }
-                    Button(
-                        onClick = {
-                            if (index < questions.lastIndex) { index++; selected = null } else finished = true
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GOOD),
-                        modifier = Modifier.fillMaxWidth().height(52.dp)
-                    ) { Text(if (index < questions.lastIndex) "Continuer" else "Voir le résultat") }
                 }
             } else {
                 val passed = correct >= QuizBank.PASS

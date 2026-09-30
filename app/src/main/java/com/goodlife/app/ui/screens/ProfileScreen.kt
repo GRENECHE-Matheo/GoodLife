@@ -15,6 +15,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Surface
 import androidx.compose.ui.platform.LocalContext
 import com.goodlife.app.ui.Avatar
+import com.goodlife.app.ui.SlideSwitch
 import com.goodlife.app.ui.avatarJpegFromUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,17 +59,20 @@ import com.goodlife.app.ai.Gemini
 import com.goodlife.app.ai.Nutrition
 import com.goodlife.app.data.Repo
 import com.goodlife.app.ui.ScreenTitle
+import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
 import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen() {
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    if (showSettings) {
-        BackHandler { showSettings = false }
-        SettingsScreen(onBack = { showSettings = false })
-    } else {
-        ProfileContent(onOpenSettings = { showSettings = true })
+    SlideSwitch(showSettings) { open ->
+        if (open) {
+            BackHandler { showSettings = false }
+            SettingsScreen(onBack = { showSettings = false })
+        } else {
+            ProfileContent(onOpenSettings = { showSettings = true })
+        }
     }
 }
 
@@ -89,10 +93,7 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
     var aiLoading by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    ScreenColumn {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box {
                 Avatar(avatar, p.name, 72.dp, Modifier.clickable { avatarMenu = true })

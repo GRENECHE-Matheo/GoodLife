@@ -2,7 +2,9 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import com.goodlife.app.ui.Motion
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +54,7 @@ import com.goodlife.app.data.PlannedMeal
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.localDay
 import com.goodlife.app.ui.ScreenTitle
+import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
 
 @Composable
@@ -63,14 +66,9 @@ fun PlanningScreen() {
     var addSlot by remember { mutableStateOf<MealSlot?>(null) }
 
     val days = (0..6).map { localDay(weekOffset * 7 + it) }
-    val ofDay = plan.filter { it.date == selected }
-    val total = ofDay.sumOf { it.kcal }
     val target = profile?.targetKcal ?: 0
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    ScreenColumn {
         ScreenTitle("Emploi du temps", "Organise tes repas de la semaine")
 
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -95,34 +93,41 @@ fun PlanningScreen() {
             }
         }
 
-        SectionCard {
-            Text(dayLabel(selected), style = MaterialTheme.typography.titleLarge)
-            Text(
-                if (target > 0) "Prévu : $total kcal sur $target kcal" else "Prévu : $total kcal",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (target > 0 && total > target) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        MealSlot.entries.forEach { slot ->
-            val items = ofDay.filter { it.slot == slot }
-            SectionCard(title = slot.label, icon = Icons.Filled.Restaurant) {
-                if (items.isEmpty()) {
+        // Changement de jour en fondu, comme dans Google Agenda
+        AnimatedContent(targetState = selected, transitionSpec = { Motion.fadeThrough() }, label = "day") { day ->
+            val ofDay = plan.filter { it.date == day }
+            val total = ofDay.sumOf { it.kcal }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                SectionCard {
+                    Text(dayLabel(day), style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "Rien de prévu.",
+                        if (target > 0) "Prévu : $total kcal sur $target kcal" else "Prévu : $total kcal",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (target > 0 && total > target) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                items.forEachIndexed { i, m ->
-                    if (i > 0) HorizontalDivider()
-                    PlannedRow(m)
-                }
-                TextButton(onClick = { addSlot = slot }) {
-                    Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Ajouter")
+
+                MealSlot.entries.forEach { slot ->
+                    val items = ofDay.filter { it.slot == slot }
+                    SectionCard(title = slot.label, icon = Icons.Filled.Restaurant) {
+                        if (items.isEmpty()) {
+                            Text(
+                                "Rien de prévu.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        items.forEachIndexed { i, m ->
+                            if (i > 0) HorizontalDivider()
+                            PlannedRow(m)
+                        }
+                        TextButton(onClick = { addSlot = slot }) {
+                            Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Ajouter")
+                        }
+                    }
                 }
             }
         }

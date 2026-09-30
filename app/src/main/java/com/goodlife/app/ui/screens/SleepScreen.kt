@@ -45,6 +45,7 @@ import com.goodlife.app.data.Repo
 import com.goodlife.app.data.SleepSession
 import com.goodlife.app.sleep.SleepTracker
 import com.goodlife.app.ui.ScreenTitle
+import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.WeekBars
 import com.goodlife.app.ui.formatDay
@@ -77,10 +78,7 @@ fun SleepScreen() {
     }
     val lastNight = perDay.last()
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    ScreenColumn {
         ScreenTitle("Sommeil", "Objectif : 7 à 9 h par nuit")
 
         SectionCard(title = "Cette nuit", icon = Icons.Filled.NightsStay) {

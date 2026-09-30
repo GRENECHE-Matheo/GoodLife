@@ -1,4 +1,4 @@
-# GoodLife — v0.4
+# GoodLife — v0.5
 
 > ⚠️ **Projet assisté par IA** : le code de cette application a été écrit avec l'assistance
 > d'une intelligence artificielle (Claude, par Anthropic), puis relu et piloté par son auteur.
@@ -27,6 +27,10 @@ Material You inspirée des applications Google.
 - **Quiz du chef** : 5 questions d'alimentation différentes chaque jour (banque de 60 questions, sans IA),
   présentées par le petit cuisto ; 4/5 le lendemain d'une série cassée permettent de la sauver.
 - **Photo de profil** : choisie dans la galerie, recadrée et stockée chiffrée sur le téléphone.
+- **Animations Material Motion** : fondu entre onglets, axe partagé pour les sous-écrans, anneau de calories,
+  barres et courbes animées, cuisto qui réagit.
+- **Responsive** : contenu centré (640 dp max), rail de navigation sur tablette/paysage, barre du bas fixe
+  (masquée seulement quand le clavier est ouvert).
 - **Mises à jour intégrées** : à l'ouverture, l'app détecte une nouvelle release GitHub et l'installe en un bouton,
   après avoir vérifié l'empreinte SHA-256 du fichier et que sa signature est identique à celle de l'app installée.
 - **RGPD** : politique de confidentialité dans l'app (`PRIVACY.md`), export des données (JSON), effacement,

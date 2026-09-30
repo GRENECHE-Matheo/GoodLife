@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.ui.ScreenColumn
+import com.goodlife.app.ui.SubScreenHeader
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -76,7 +78,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Retrait du consentement : interrupteur IA. Comme GoodLife n'a pas de serveur, toutes tes données sont sur ton téléphone. " +
         "Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).",
     "Ce que GoodLife ne fait pas" to
-        "Pas de publicité, pas de revente de données, pas de traceur, pas de profilage marketing.",
+        "Aucune donnée n'est vendue, louée ou partagée à des fins publicitaires. Pas de publicité, pas de traceur, " +
+        "pas de profilage marketing. GoodLife n'a pas de serveur : le développeur ne reçoit aucune de tes données.",
     "Important" to
         "Les calories et conseils donnés par l'IA sont des estimations indicatives. GoodLife n'est pas un dispositif " +
         "médical et ne remplace pas l'avis d'un professionnel de santé."
@@ -86,17 +89,10 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
 fun PrivacyScreen(onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
-                Spacer(Modifier.width(4.dp))
-                Text("Confidentialité", style = MaterialTheme.typography.headlineSmall)
-            }
+        ScreenColumn {
+            SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.4 · mise à jour le 30 septembre 2026",
+                "Version 0.5 · mise à jour le 30 septembre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
