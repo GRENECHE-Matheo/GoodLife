@@ -194,6 +194,9 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             if (lockMessage != null) Text(lockMessage!!, color = MaterialTheme.colorScheme.error)
         }
 
+        // ---- Pas ----
+        StepsSettingsSection()
+
         // ---- Sauvegarde ----
         BackupSection()
 

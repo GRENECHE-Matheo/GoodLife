@@ -85,7 +85,7 @@ private fun OnboardingContent(onOpenPolicy: () -> Unit) {
                 ProfileForm(
                     initial = Profile(), saveLabel = "Commencer",
                     consentText = "J'accepte que GoodLife enregistre sur ce téléphone mes données de santé " +
-                        "(poids, taille, repas, sommeil, allergies) pour calculer mes besoins. " +
+                        "(poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins. " +
                         "Je peux retirer cet accord en effaçant mes données (Paramètres)."
                 ) { p ->
                     Repo.updateSettings { it.copy(privacyAcceptedAt = System.currentTimeMillis()) }

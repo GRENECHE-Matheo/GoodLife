@@ -66,19 +66,24 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen() {
-    var showSettings by rememberSaveable { mutableStateOf(false) }
-    SlideSwitch(showSettings) { open ->
-        if (open) {
-            BackHandler { showSettings = false }
-            SettingsScreen(onBack = { showSettings = false })
-        } else {
-            ProfileContent(onOpenSettings = { showSettings = true })
+    var overlay by rememberSaveable { mutableStateOf("") }
+    SlideSwitch(overlay, depth = { if (it.isEmpty()) 0 else 1 }) { screen ->
+        when (screen) {
+            "settings" -> {
+                BackHandler { overlay = "" }
+                SettingsScreen(onBack = { overlay = "" })
+            }
+            "dex" -> NutridexScreen(onBack = { overlay = "" })
+            "friends" -> FriendsScreen(onBack = { overlay = "" })
+            else -> ProfileContent(
+                onOpenSettings = { overlay = "settings" }, onOpenDex = { overlay = "dex" }, onOpenFriends = { overlay = "friends" }
+            )
         }
     }
 }
 
 @Composable
-private fun ProfileContent(onOpenSettings: () -> Unit) {
+private fun ProfileContent(onOpenSettings: () -> Unit, onOpenDex: () -> Unit, onOpenFriends: () -> Unit) {
     val profile by Repo.profile.collectAsState()
     val settings by Repo.settings.collectAsState()
     val scope = rememberCoroutineScope()
@@ -131,6 +136,9 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
             FilledTonalIconButton(onClick = onOpenSettings) { Icon(Icons.Filled.Settings, "Paramètres") }
         }
 
+        NutridexCard(onOpen = onOpenDex)
+        FriendsCard(onOpen = onOpenFriends)
+
         SectionCard(title = "Objectif quotidien", icon = Icons.Filled.AutoAwesome) {
             Text("${p.targetKcal} kcal", style = MaterialTheme.typography.displaySmall)
             Text(
@@ -152,7 +160,7 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
                     aiLoading = true; aiError = null
                     scope.launch {
                         try {
-                            Repo.saveProfile(Gemini(settings.apiKey, settings.model).recommendTarget(p))
+                            Repo.saveProfile(Gemini(settings.apiKey, settings.model).recommendTarget(p, com.goodlife.app.steps.Steps.weekAverage()))
                         } catch (e: Exception) {
                             aiError = e.message
                         } finally {

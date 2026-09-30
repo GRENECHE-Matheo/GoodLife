@@ -49,7 +49,24 @@ data class Settings(
     val backupKey: String = "",
     val backupName: String = "",
     val lastBackupAt: Long = 0L,
-    val backupError: String = ""
+    val backupError: String = "",
+    // Pas : désactivé tant que l'utilisateur ne l'a pas activé (permission « Activité physique »)
+    val stepsEnabled: Boolean = false,
+    val stepsSource: String = "sensor",   // sensor (capteur du téléphone) | hc (Health Connect)
+    val stepsGoalMode: String = "auto",   // auto | manual | ia
+    val stepsGoalManual: Int = 8000,
+    val stepsGoalIa: Int = 0,
+    val stepsGoalIaWhy: String = "",
+    val lastNewsDay: String = "",
+    // Amis : profil privé par défaut ; rien n'est partagé tant que « Profil public » est coupé
+    val publicProfile: Boolean = false,
+    val pseudo: String = "",
+    val shareLevel: Boolean = true,
+    val shareStreak: Boolean = true,
+    val shareDex: Boolean = true,
+    val streetPass: Boolean = false,
+    // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
+    val scoreRulesFrom: String = ""
 ) {
 
     fun toJson(): JSONObject = JSONObject()
@@ -78,6 +95,20 @@ data class Settings(
         .put("backupName", backupName)
         .put("lastBackupAt", lastBackupAt)
         .put("backupError", backupError)
+        .put("stepsEnabled", stepsEnabled)
+        .put("stepsSource", stepsSource)
+        .put("stepsGoalMode", stepsGoalMode)
+        .put("stepsGoalManual", stepsGoalManual)
+        .put("stepsGoalIa", stepsGoalIa)
+        .put("stepsGoalIaWhy", stepsGoalIaWhy)
+        .put("lastNewsDay", lastNewsDay)
+        .put("publicProfile", publicProfile)
+        .put("pseudo", pseudo)
+        .put("shareLevel", shareLevel)
+        .put("shareStreak", shareStreak)
+        .put("shareDex", shareDex)
+        .put("streetPass", streetPass)
+        .put("scoreRulesFrom", scoreRulesFrom)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -108,7 +139,21 @@ data class Settings(
             backupKey = o.optString("backupKey"),
             backupName = o.optString("backupName"),
             lastBackupAt = o.optLong("lastBackupAt", 0L),
-            backupError = o.optString("backupError")
+            backupError = o.optString("backupError"),
+            stepsEnabled = o.optBoolean("stepsEnabled", false),
+            stepsSource = o.optString("stepsSource", "sensor").ifBlank { "sensor" },
+            stepsGoalMode = o.optString("stepsGoalMode", "auto").ifBlank { "auto" },
+            stepsGoalManual = o.optInt("stepsGoalManual", 8000),
+            stepsGoalIa = o.optInt("stepsGoalIa", 0),
+            stepsGoalIaWhy = o.optString("stepsGoalIaWhy"),
+            lastNewsDay = o.optString("lastNewsDay"),
+            publicProfile = o.optBoolean("publicProfile", false),
+            pseudo = o.optString("pseudo"),
+            shareLevel = o.optBoolean("shareLevel", true),
+            shareStreak = o.optBoolean("shareStreak", true),
+            shareDex = o.optBoolean("shareDex", true),
+            streetPass = o.optBoolean("streetPass", false),
+            scoreRulesFrom = o.optString("scoreRulesFrom")
         )
     }
 }
@@ -137,6 +182,15 @@ object Repo {
 
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings
+
+    private val _steps = MutableStateFlow(StepsData())
+    val steps: StateFlow<StepsData> = _steps
+
+    private val _dex = MutableStateFlow(DexState())
+    val dex: StateFlow<DexState> = _dex
+
+    private val _social = MutableStateFlow(SocialState())
+    val social: StateFlow<SocialState> = _social
 
     /** Compteur de modifications des données (hors réglages), pour ne sauvegarder que si besoin. */
     @Volatile var revision = 0L
@@ -167,6 +221,13 @@ object Repo {
         _avatar.value = store.get(K_AVATAR)?.let { runCatching { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }.getOrNull() }
         _settings.value = store.get(K_SETTINGS)?.let { runCatching { Settings.fromJson(JSONObject(it)) }.getOrNull() }
             ?: Settings()
+        _steps.value = store.get(K_STEPS)?.let { runCatching { StepsData.fromJson(JSONObject(it)) }.getOrNull() }
+            ?: StepsData()
+        _dex.value = store.get(K_DEX)?.let { runCatching { DexState.fromJson(JSONObject(it)) }.getOrNull() }
+            ?: DexState()
+        _social.value = store.get(K_SOCIAL)?.let { runCatching { SocialState.fromJson(JSONObject(it)) }.getOrNull() }
+            ?: SocialState()
+        if (_settings.value.scoreRulesFrom.isBlank()) updateSettings { it.copy(scoreRulesFrom = localDay(0)) }
         // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
         _profile.value?.let { p ->
             if (p.goal == Goal.PERTE && !com.goodlife.app.ai.Nutrition.weightLossAllowed(p)) {
@@ -261,6 +322,13 @@ object Repo {
         persistPlan()
     }
 
+    /** Ajoute un planning généré ; remplace ce qui était prévu (et pas encore mangé) sur ces jours et créneaux. */
+    @Synchronized
+    fun addPlannedWeek(meals: List<PlannedMeal>, dates: Set<String>, slots: Set<MealSlot>) {
+        _plan.value = _plan.value.filterNot { it.date in dates && it.slot in slots && !it.done } + meals
+        persistPlan()
+    }
+
     @Synchronized
     fun updatePlanned(m: PlannedMeal) {
         _plan.value = _plan.value.map { if (it.id == m.id) m else it }
@@ -280,6 +348,108 @@ object Repo {
         _plan.value = kept
         put(K_PLAN, JSONArray().apply { kept.forEach { put(it.toJson()) } }.toString())
     }
+
+    // ---------- Pas ----------
+    @Synchronized
+    fun updateSteps(transform: (StepsData) -> StepsData) {
+        val limit = localDay(-400)
+        val d = transform(_steps.value).let { it.copy(days = it.days.filterKeys { k -> k >= limit }) }
+        if (d == _steps.value) return
+        _steps.value = d
+        put(K_STEPS, d.toJson().toString())
+    }
+
+    // ---------- Nutridex ----------
+    /** Débloque des entrées ; la photo (petite, JPEG) est gardée chiffrée pour les nouvelles. Renvoie les nouvelles. */
+    @Synchronized
+    fun unlockDex(ids: List<String>, photoJpeg: ByteArray?): List<String> {
+        val fresh = ids.distinct().filter { com.goodlife.app.dex.Nutridex.byId(it) != null && it !in _dex.value.unlocked }
+        if (fresh.isEmpty()) return emptyList()
+        val now = System.currentTimeMillis()
+        _dex.value = DexState(_dex.value.unlocked + fresh.associateWith { now })
+        put(K_DEX, _dex.value.toJson().toString())
+        if (photoJpeg != null) fresh.forEach { store.putBytes("dex_${it.replace('-', '_')}", photoJpeg) }
+        return fresh
+    }
+
+    fun dexPhoto(id: String): ByteArray? = store.getBytes("dex_${id.replace('-', '_')}")
+
+    // ---------- Amis (Tap to Sync, QR code, StreetPass) ----------
+    enum class Received { NEW_FRIEND, UPDATED, NEW_ENCOUNTER, SEEN_AGAIN, IGNORED }
+
+    @Synchronized
+    private fun saveSocial(transform: (SocialState) -> SocialState) {
+        val s = transform(_social.value)
+        // Garde-fous : au plus 200 amis et 300 rencontres (les plus anciennes rencontres partent d'abord)
+        val friends = s.people.filter { it.friend }.sortedByDescending { it.seenAt }.take(200)
+        val others = s.people.filter { !it.friend }.sortedByDescending { it.seenAt }.take(300)
+        val capped = s.copy(
+            people = friends + others,
+            cheersIn = s.cheersIn.sortedByDescending { it.at }.take(100),
+            cheersOut = s.cheersOut.filter { it.at > System.currentTimeMillis() - 30L * 86_400_000 }.take(100)
+        )
+        _social.value = capped
+        put(K_SOCIAL, capped.toJson().toString())
+    }
+
+    /**
+     * Enregistre une carte reçue (déjà vérifiée par sa signature). Par Tap to Sync ou QR code, la personne
+     * devient une amie ; par StreetPass, c'est une rencontre (ou une mise à jour si c'est déjà un ami).
+     */
+    @Synchronized
+    fun receiveCard(card: com.goodlife.app.social.PlayerCard, via: String, myId: String): Received {
+        val id = card.id
+        if (id == myId || id in _social.value.blocked) return Received.IGNORED
+        val now = System.currentTimeMillis()
+        val old = _social.value.people.firstOrNull { it.id == id }
+        val fresh = old == null || card.timestamp > old.cardTime
+        val base = old ?: Person(id, android.util.Base64.encodeToString(card.publicKey, android.util.Base64.NO_WRAP), card.pseudo, via = via)
+        val updated = (if (fresh) base.copy(
+            pseudo = card.pseudo, level = card.level, streak = card.streak, bestStreak = card.bestStreak,
+            dex = card.dex, cardTime = card.timestamp
+        ) else base).copy(
+            seenAt = now,
+            friend = base.friend || via != "street",
+            encounters = if (old != null && via == "street" && now - old.seenAt > 3_600_000L) old.encounters + 1 else base.encounters,
+            via = if (old == null) via else base.via
+        )
+        // Encouragements qui me sont adressés (dédoublonnés)
+        val newCheers = card.cheers.filter { it.target == myId }.map { CheerRecord(id, myId, it.message, it.day, now) }
+            .filter { c -> _social.value.cheersIn.none { it.from == c.from && it.message == c.message && it.day == c.day } }
+        saveSocial { st ->
+            st.copy(people = st.people.filterNot { it.id == id } + updated, cheersIn = st.cheersIn + newCheers)
+        }
+        return when {
+            old == null && via == "street" -> Received.NEW_ENCOUNTER
+            old == null || (!old.friend && via != "street") -> Received.NEW_FRIEND
+            via == "street" && !fresh -> Received.SEEN_AGAIN
+            else -> Received.UPDATED
+        }
+    }
+
+    fun setFriend(id: String, friend: Boolean) = saveSocial { st ->
+        st.copy(people = st.people.map { if (it.id == id) it.copy(friend = friend) else it })
+    }
+
+    /** Bloque : la personne disparaît et ses cartes seront ignorées. */
+    fun blockPerson(id: String) = saveSocial { st ->
+        st.copy(people = st.people.filterNot { it.id == id }, blocked = st.blocked + id,
+            cheersIn = st.cheersIn.filterNot { it.from == id })
+    }
+
+    fun unblockAll() = saveSocial { it.copy(blocked = emptySet()) }
+
+    fun removePerson(id: String) = saveSocial { st -> st.copy(people = st.people.filterNot { it.id == id }) }
+
+    /** Un encouragement par ami et par jour ; il partira avec ta carte à la prochaine synchro. */
+    fun sendCheer(to: String, message: Int, myId: String): Boolean {
+        val day = (System.currentTimeMillis() / 86_400_000L).toInt()
+        if (_social.value.cheersOut.any { it.to == to && it.day == day }) return false
+        saveSocial { it.copy(cheersOut = it.cheersOut + CheerRecord(myId, to, message, day, System.currentTimeMillis())) }
+        return true
+    }
+
+    fun markCheersSeen() = saveSocial { st -> st.copy(cheersIn = st.cheersIn.map { it.copy(seen = true) }) }
 
     // ---------- Réglages ----------
     @Synchronized
@@ -313,12 +483,23 @@ object Repo {
             .put("sleep", JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } })
             .put("game", _game.value.toJson())
             .put("avatar", _avatar.value?.let { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) } ?: JSONObject.NULL)
+            .put("steps", JSONObject().put("days", _steps.value.toJson().getJSONObject("days")))
+            .put("dex", _dex.value.toJson())
+            .put("social", _social.value.toJson())
+            .put("dexPhotos", JSONObject().apply {
+                _dex.value.unlocked.keys.forEach { id ->
+                    dexPhoto(id)?.let { put(id, android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP)) }
+                }
+            })
             .put("settings", JSONObject()
                 .put("themeMode", s.themeMode)
                 .put("themeColor", s.themeColor)
                 .put("sounds", s.sounds)
                 .put("checkUpdates", s.checkUpdates)
-                .put("privacyAcceptedAt", s.privacyAcceptedAt))
+                .put("privacyAcceptedAt", s.privacyAcceptedAt)
+                .put("stepsGoalMode", s.stepsGoalMode)
+                .put("stepsGoalManual", s.stepsGoalManual)
+                .put("pseudo", s.pseudo))
             .toString()
     }
 
@@ -349,6 +530,23 @@ object Repo {
         val avatar = o.optString("avatar").takeIf { it.isNotBlank() && it != "null" }
         _avatar.value = avatar?.let { runCatching { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }.getOrNull() }
         put(K_AVATAR, avatar)
+        // Pas : l'historique est restauré ; le compteur du capteur, propre au téléphone, repart de zéro
+        val stepDays = o.optJSONObject("steps")?.let { StepsData.fromJson(it).days } ?: emptyMap()
+        _steps.value = StepsData(days = stepDays)
+        put(K_STEPS, _steps.value.toJson().toString())
+        val social = o.optJSONObject("social")?.let { runCatching { SocialState.fromJson(it) }.getOrNull() } ?: SocialState()
+        _social.value = social
+        put(K_SOCIAL, social.toJson().toString())
+        val dex = o.optJSONObject("dex")?.let { DexState.fromJson(it) }
+            ?.let { d -> DexState(d.unlocked.filterKeys { com.goodlife.app.dex.Nutridex.byId(it) != null }) } ?: DexState()
+        _dex.value = dex
+        put(K_DEX, dex.toJson().toString())
+        val photos = o.optJSONObject("dexPhotos")
+        dex.unlocked.keys.forEach { id ->
+            val b64 = photos?.optString(id).orEmpty()
+            val bytes = if (b64.isBlank()) null else runCatching { android.util.Base64.decode(b64, android.util.Base64.NO_WRAP) }.getOrNull()
+            store.putBytes("dex_${id.replace('-', '_')}", bytes?.takeIf { it.size < 200_000 })
+        }
         val st = o.optJSONObject("settings")
         updateSettings { cur ->
             cur.copy(
@@ -356,7 +554,10 @@ object Repo {
                 themeColor = st?.optString("themeColor")?.ifBlank { null } ?: cur.themeColor,
                 sounds = st?.optBoolean("sounds", cur.sounds) ?: cur.sounds,
                 checkUpdates = st?.optBoolean("checkUpdates", cur.checkUpdates) ?: cur.checkUpdates,
-                privacyAcceptedAt = st?.optLong("privacyAcceptedAt", 0L)?.takeIf { it > 0 } ?: cur.privacyAcceptedAt
+                privacyAcceptedAt = st?.optLong("privacyAcceptedAt", 0L)?.takeIf { it > 0 } ?: cur.privacyAcceptedAt,
+                pseudo = st?.optString("pseudo")?.ifBlank { null } ?: cur.pseudo,
+                stepsGoalMode = st?.optString("stepsGoalMode")?.ifBlank { null } ?: cur.stepsGoalMode,
+                stepsGoalManual = st?.optInt("stepsGoalManual", cur.stepsGoalManual) ?: cur.stepsGoalManual
             )
         }
     }
@@ -370,6 +571,10 @@ object Repo {
         _plan.value = emptyList()
         _game.value = GameState()
         _avatar.value = null
+        _steps.value = StepsData()
+        _dex.value = DexState()
+        _social.value = SocialState()
+        com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
     }
 
@@ -394,6 +599,9 @@ object Repo {
     private const val K_PLAN = "plan"
     private const val K_GAME = "game"
     private const val K_AVATAR = "avatar"
+    private const val K_STEPS = "steps"
+    private const val K_DEX = "dex"
+    private const val K_SOCIAL = "social"
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -409,6 +617,9 @@ object Repo {
             .put("mealPlan", JSONArray().apply { _plan.value.forEach { put(it.toJson()) } })
             .put("sleep", JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } })
             .put("game", _game.value.toJson())
+            .put("steps", _steps.value.toJson().getJSONObject("days"))
+            .put("nutridex", _dex.value.toJson())
+            .put("amis", _social.value.toJson())
             .put("settings", JSONObject()
                 .put("aiEnabled", s.aiEnabled)
                 .put("aiConsentAt", s.aiConsentAt)

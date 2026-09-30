@@ -19,6 +19,7 @@ import javax.crypto.spec.GCMParameterSpec
 class SecureStore(context: Context) {
 
     private val prefs = context.getSharedPreferences("goodlife_secure", Context.MODE_PRIVATE)
+    private val filesDir = java.io.File(context.filesDir, "secure").apply { mkdirs() }
 
     @Synchronized
     private fun key(): SecretKey {
@@ -62,9 +63,39 @@ class SecureStore(context: Context) {
         }.getOrNull()
     }
 
+    /** Fichier binaire chiffré (ex. photos du Nutridex), même clé Keystore. [name] : lettres, chiffres, - et _. */
+    @Synchronized
+    fun putBytes(name: String, value: ByteArray?) {
+        val f = fileFor(name)
+        if (value == null) { f.delete(); return }
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, key())
+        val tmp = java.io.File(f.path + ".tmp")
+        tmp.writeBytes(cipher.iv + cipher.doFinal(value))
+        tmp.renameTo(f)
+    }
+
+    @Synchronized
+    fun getBytes(name: String): ByteArray? {
+        val f = fileFor(name)
+        if (!f.exists()) return null
+        return runCatching {
+            val bytes = f.readBytes()
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes, 0, IV_SIZE))
+            cipher.doFinal(bytes, IV_SIZE, bytes.size - IV_SIZE)
+        }.getOrNull()
+    }
+
+    private fun fileFor(name: String): java.io.File {
+        require(name.matches(Regex("[a-zA-Z0-9_-]{1,80}"))) { "Nom de fichier invalide" }
+        return java.io.File(filesDir, "$name.bin")
+    }
+
     @Synchronized
     fun clear() {
         prefs.edit().clear().apply()
+        filesDir.listFiles()?.forEach { it.delete() }
     }
 
     private companion object {

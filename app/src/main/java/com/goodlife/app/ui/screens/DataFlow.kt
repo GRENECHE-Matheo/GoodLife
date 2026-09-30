@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -59,6 +60,10 @@ fun DataFlowSummary(showAi: Boolean = true) {
         if (BuildConfig.SELF_UPDATE) FlowLine(
             Icons.Filled.SystemUpdate, "Mises à jour → GitHub",
             "Ton adresse IP, comme pour n'importe quel site, pour savoir s'il existe une nouvelle version."
+        )
+        FlowLine(
+            Icons.Filled.Group, "Amis (si ton profil est public) → le téléphone de tes amis",
+            "Seulement ton pseudo et ce que tu choisis (niveau, série, Nutridex), directement de téléphone à téléphone, sans serveur."
         )
         FlowLine(
             Icons.Filled.Backup, "Sauvegarde (si tu l'actives) → l'endroit que tu choisis",

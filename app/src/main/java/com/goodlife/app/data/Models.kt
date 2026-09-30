@@ -182,11 +182,12 @@ data class PlannedMeal(
     val kcal: Int,
     val description: String = "",
     val recipe: Recipe? = null,
-    val done: Boolean = false
+    val done: Boolean = false,
+    val costEur: Double = 0.0      // coût estimé par l'IA (0 = inconnu)
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("date", date).put("slot", slot.name).put("name", name).put("kcal", kcal)
-        .put("description", description).put("done", done)
+        .put("description", description).put("done", done).put("costEur", costEur)
         .apply { if (recipe != null) put("recipe", recipe.toJson()) }
 
     companion object {
@@ -198,7 +199,8 @@ data class PlannedMeal(
             kcal = o.optInt("kcal"),
             description = o.optString("description"),
             recipe = o.optJSONObject("recipe")?.let { Recipe.fromJson(it) },
-            done = o.optBoolean("done", false)
+            done = o.optBoolean("done", false),
+            costEur = o.optDouble("costEur", 0.0).takeUnless { it.isNaN() }?.coerceIn(0.0, 500.0) ?: 0.0
         )
     }
 }
@@ -212,7 +214,8 @@ data class FoodAnalysis(
     val items: List<String>,
     val allergens: List<String>,
     val confidence: Double,
-    val advice: String
+    val advice: String,
+    val dexIds: List<String> = emptyList()   // entrées du Nutridex reconnues sur la photo
 )
 
 internal fun <T> JSONArray.mapObjects(block: (JSONObject) -> T): List<T> =
@@ -242,5 +245,115 @@ data class GameState(
                 weights = o.optJSONArray("weights")?.mapObjects { it.optString("date") to it.optDouble("kg") } ?: emptyList()
             )
         }
+    }
+}
+
+/** Pas d'une journée et objectif valable ce jour-là (pour que changer d'objectif ne réécrive pas le passé). */
+data class StepDay(val steps: Int, val goal: Int)
+
+/** Historique des pas (jour AAAA-MM-JJ → pas) et dernier relevé du capteur (compteur depuis le démarrage). */
+data class StepsData(
+    val days: Map<String, StepDay> = emptyMap(),
+    val lastCounter: Long = -1L
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("days", JSONObject().apply { days.forEach { (d, s) -> put(d, JSONObject().put("steps", s.steps).put("goal", s.goal)) } })
+        .put("lastCounter", lastCounter)
+
+    companion object {
+        fun fromJson(o: JSONObject): StepsData {
+            val d = o.optJSONObject("days")
+            return StepsData(
+                days = d?.keys()?.asSequence()?.mapNotNull { k ->
+                    d.optJSONObject(k)?.let { k to StepDay(it.optInt("steps").coerceIn(0, 200_000), it.optInt("goal")) }
+                }?.toMap() ?: emptyMap(),
+                lastCounter = o.optLong("lastCounter", -1L)
+            )
+        }
+    }
+}
+
+/** Nutridex : entrées débloquées (id → date du déblocage, en ms). Les photos sont stockées à part, chiffrées. */
+data class DexState(val unlocked: Map<String, Long> = emptyMap()) {
+    fun toJson(): JSONObject = JSONObject().apply { unlocked.forEach { (k, v) -> put(k, v) } }
+
+    companion object {
+        fun fromJson(o: JSONObject) = DexState(o.keys().asSequence().associateWith { o.optLong(it) })
+    }
+}
+
+/**
+ * Personne connue via Tap to Sync, QR code ou StreetPass. [friend] = ajoutée en ami ;
+ * sinon simple rencontre StreetPass. Les données viennent uniquement de sa carte signée.
+ */
+data class Person(
+    val id: String,
+    val publicKey: String,          // base64
+    val pseudo: String,
+    val level: Int? = null,
+    val streak: Int? = null,
+    val bestStreak: Int? = null,
+    val dex: Set<String>? = null,
+    val cardTime: Long = 0L,        // horodatage de sa dernière carte reçue
+    val seenAt: Long = 0L,
+    val via: String = "qr",         // tap | qr | street
+    val friend: Boolean = false,
+    val encounters: Int = 1
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("id", id).put("pk", publicKey).put("pseudo", pseudo)
+        .put("level", level ?: -1).put("streak", streak ?: -1).put("best", bestStreak ?: -1)
+        .put("dex", dex?.let { JSONArray(it.toList()) } ?: JSONObject.NULL)
+        .put("cardTime", cardTime).put("seenAt", seenAt).put("via", via)
+        .put("friend", friend).put("encounters", encounters)
+
+    companion object {
+        fun fromJson(o: JSONObject) = Person(
+            id = o.optString("id"),
+            publicKey = o.optString("pk"),
+            pseudo = o.optString("pseudo"),
+            level = o.optInt("level", -1).takeIf { it >= 0 },
+            streak = o.optInt("streak", -1).takeIf { it >= 0 },
+            bestStreak = o.optInt("best", -1).takeIf { it >= 0 },
+            dex = o.optJSONArray("dex")?.strings()?.toSet(),
+            cardTime = o.optLong("cardTime"),
+            seenAt = o.optLong("seenAt"),
+            via = o.optString("via", "qr"),
+            friend = o.optBoolean("friend", false),
+            encounters = o.optInt("encounters", 1)
+        )
+    }
+}
+
+/** Encouragement reçu (de [from], id d'ami) ou envoyé (à [to]). */
+data class CheerRecord(val from: String, val to: String, val message: Int, val day: Int, val at: Long, val seen: Boolean = false) {
+    fun toJson(): JSONObject = JSONObject().put("from", from).put("to", to).put("m", message).put("d", day).put("at", at).put("seen", seen)
+
+    companion object {
+        fun fromJson(o: JSONObject) = CheerRecord(
+            o.optString("from"), o.optString("to"), o.optInt("m"), o.optInt("d"), o.optLong("at"), o.optBoolean("seen")
+        )
+    }
+}
+
+data class SocialState(
+    val people: List<Person> = emptyList(),
+    val blocked: Set<String> = emptySet(),
+    val cheersOut: List<CheerRecord> = emptyList(),
+    val cheersIn: List<CheerRecord> = emptyList()
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("people", JSONArray().apply { people.forEach { put(it.toJson()) } })
+        .put("blocked", JSONArray(blocked.toList()))
+        .put("cheersOut", JSONArray().apply { cheersOut.forEach { put(it.toJson()) } })
+        .put("cheersIn", JSONArray().apply { cheersIn.forEach { put(it.toJson()) } })
+
+    companion object {
+        fun fromJson(o: JSONObject) = SocialState(
+            people = o.optJSONArray("people")?.mapObjects { Person.fromJson(it) } ?: emptyList(),
+            blocked = o.optJSONArray("blocked")?.strings()?.toSet() ?: emptySet(),
+            cheersOut = o.optJSONArray("cheersOut")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList(),
+            cheersIn = o.optJSONArray("cheersIn")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList()
+        )
     }
 }

@@ -30,6 +30,16 @@ Material You inspirée des applications Google.
   présentées par le petit cuisto ; 4/5 le lendemain d'une série cassée permettent de la sauver.
   Petits sons (synthétisés dans l'app, désactivables) et vibrations sur les réponses ; en fin de quiz,
   la barre d'XP se remplit en ralentissant sur la fin, avec étincelles et confettis (animation spéciale au passage de niveau).
+- **Pas** : capteur du téléphone ou Health Connect, double anneau calories/pas à l'accueil, objectif automatique
+  (+10 % de la moyenne), fixé par l'utilisateur ou proposé par l'IA. Score du jour = 60 % alimentation + 40 % pas,
+  série validée dès 80/100.
+- **Nutridex** : 161 aliments et plats plutôt sains, débloqués quand l'IA les reconnaît sur une photo (vignette chiffrée),
+  silhouettes pour ceux à découvrir, tri par catégorie.
+- **Amis sans serveur** : profil privé par défaut ; cartes signées échangées par **Tap to Sync** (NFC, en collant les
+  téléphones), **QR code** ou **StreetPass** (Bluetooth basse consommation, Android 12+, 18+) ; classement entre amis,
+  Nutridex des amis, encouragements tout prêts, blocage.
+- **Actus du jour** : une anecdote insolite et deux découvertes par jour (banque intégrée, sans réseau ni IA).
+- **Planning** : semaine lisible sur une ligne, génération de la semaine par l'IA avec budget et coût estimé par repas.
 - **Sauvegarde chiffrée** (optionnelle) : copie de toutes les données dans le fichier de ton choix (Drive, Téléchargements…),
   chiffrée AES-256-GCM avec une clé tirée d'un mot de passe (PBKDF2, 310 000 itérations), mise à jour automatiquement
   quand on quitte l'app après un changement ; restauration dès le premier écran sur un nouveau téléphone.

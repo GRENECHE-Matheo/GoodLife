@@ -4,6 +4,7 @@ import com.goodlife.app.data.GameState
 import com.goodlife.app.data.Goal
 import com.goodlife.app.data.Meal
 import com.goodlife.app.data.Profile
+import com.goodlife.app.data.StepDay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -15,10 +16,13 @@ enum class DayStatus { REUSSI, RATE, RATTRAPE, VIDE }
 data class DayResult(
     val date: String,
     val kcal: Int,
-    val score: Int,        // 0..100 : proximité avec l'objectif
+    val score: Int,        // 0..100 : score du jour (alimentation + pas)
     val status: DayStatus,
     val xp: Int,
-    val streakAfter: Int
+    val streakAfter: Int,
+    val foodScore: Int = score,
+    val steps: Int = 0,
+    val stepGoal: Int = 0  // 0 = pas de suivi des pas ce jour-là
 )
 
 data class LevelInfo(val level: Int, val title: String, val xpInLevel: Int, val xpForNext: Int, val totalXp: Int) {
@@ -37,42 +41,72 @@ data class GameSummary(
 )
 
 /**
- * Règles (pensées pour la santé) :
- * - Perte de poids : réussi entre 70 % et 100 % de l'objectif. Dépasser casse la série, mais manger
- *   beaucoup trop peu ne compte pas non plus comme une réussite.
- * - Prise de poids : réussi entre 100 % et 130 % de l'objectif ; pas assez casse la série.
- * - Maintien : réussi entre 90 % et 110 %.
+ * Règles (pensées pour la santé, et pour rester motivant) :
+ * - Score alimentation 0..100 : 100 dans la zone idéale de l'objectif calorique, puis il baisse
+ *   quand on s'en éloigne (trop OU trop peu : manger trop peu n'est jamais récompensé).
+ * - Score pas 0..100 : part de l'objectif de pas atteinte.
+ * - Score du jour = 60 % alimentation + 40 % pas (alimentation seule si le suivi des pas est coupé).
+ * - Série validée dès 80/100 : pas besoin d'être parfait, mais il faut faire les deux.
  * - Un jour sans aucun repas enregistré n'est pas réussi.
  */
 object Game {
     private val fmt get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
-    private data class Bands(val okMin: Double, val okMax: Double, val idealMin: Double, val idealMax: Double)
+    /** Score du jour à partir duquel la série continue. */
+    const val STREAK_SCORE = 80
 
-    private fun bands(goal: Goal) = when (goal) {
-        Goal.PERTE -> Bands(0.70, 1.00, 0.90, 1.00)
-        Goal.MAINTIEN -> Bands(0.90, 1.10, 0.95, 1.05)
-        Goal.PRISE -> Bands(1.00, 1.30, 1.00, 1.10)
+    private data class Ideal(val min: Double, val max: Double)
+
+    private fun ideal(goal: Goal) = when (goal) {
+        Goal.PERTE -> Ideal(0.90, 1.00)
+        Goal.MAINTIEN -> Ideal(0.95, 1.05)
+        Goal.PRISE -> Ideal(1.00, 1.10)
     }
 
-    fun rulesText(goal: Goal): String = when (goal) {
-        Goal.PERTE -> "Objectif perte : reste sous ton objectif calorique, sans descendre sous 70 % (manger trop peu ne compte pas)."
-        Goal.MAINTIEN -> "Objectif maintien : reste à ±10 % de ton objectif calorique."
-        Goal.PRISE -> "Objectif prise : atteins au moins ton objectif calorique (jusqu'à +30 %)."
+    fun rulesText(goal: Goal): String {
+        val food = when (goal) {
+            Goal.PERTE -> "reste juste sous ton objectif calorique (manger trop peu fait aussi baisser le score)"
+            Goal.MAINTIEN -> "reste proche de ton objectif calorique"
+            Goal.PRISE -> "atteins ton objectif calorique, sans trop le dépasser"
+        }
+        return "Score du jour = 60 % alimentation ($food) + 40 % pas si tu suis tes pas. " +
+            "Ta série continue dès $STREAK_SCORE/100."
     }
 
-    /** Score 0..100 et réussite pour une journée. */
-    fun evaluate(kcal: Int, target: Int, goal: Goal): Pair<Int, Boolean> {
-        if (kcal <= 0 || target <= 0) return 0 to false
+    /** Score alimentation 0..100 pour une journée. */
+    fun foodScore(kcal: Int, target: Int, goal: Goal): Int {
+        if (kcal <= 0 || target <= 0) return 0
         val r = kcal.toDouble() / target
-        val b = bands(goal)
+        val b = ideal(goal)
         val distance = when {
-            r < b.idealMin -> b.idealMin - r
-            r > b.idealMax -> r - b.idealMax
+            r < b.min -> b.min - r
+            r > b.max -> r - b.max
             else -> 0.0
         }
-        val score = (100 - distance * 250).roundToInt().coerceIn(0, 100)
-        return score to (r >= b.okMin - 1e-9 && r <= b.okMax + 1e-9)
+        return (100 - distance * 250).roundToInt().coerceIn(0, 100)
+    }
+
+    fun stepScore(steps: Int, goal: Int): Int =
+        if (goal <= 0) 0 else (steps * 100.0 / goal).roundToInt().coerceIn(0, 100)
+
+    /** Anciennes règles (avant la v0.7), gardées pour ne pas casser rétroactivement les séries existantes. */
+    private fun legacyOk(kcal: Int, target: Int, goal: Goal): Boolean {
+        if (kcal <= 0 || target <= 0) return false
+        val r = kcal.toDouble() / target
+        val (min, max) = when (goal) {
+            Goal.PERTE -> 0.70 to 1.00
+            Goal.MAINTIEN -> 0.90 to 1.10
+            Goal.PRISE -> 1.00 to 1.30
+        }
+        return r >= min - 1e-9 && r <= max + 1e-9
+    }
+
+    /** Score du jour (0..100) et réussite. [step] = null si les pas n'étaient pas suivis ce jour-là. */
+    fun evaluate(kcal: Int, target: Int, goal: Goal, step: StepDay?): Pair<Int, Boolean> {
+        val food = foodScore(kcal, target, goal)
+        val score = if (step == null || step.goal <= 0) food
+                    else (food * 0.6 + stepScore(step.steps, step.goal) * 0.4).roundToInt()
+        return score to (kcal > 0 && score >= STREAK_SCORE)
     }
 
     fun levelFor(totalXp: Int): LevelInfo {
@@ -100,7 +134,14 @@ object Game {
 
     fun quizXp(correct: Int): Int = correct * 5
 
-    fun summarize(meals: List<Meal>, profile: Profile, game: GameState, now: Calendar = Calendar.getInstance()): GameSummary {
+    fun summarize(
+        meals: List<Meal>,
+        profile: Profile,
+        game: GameState,
+        steps: Map<String, StepDay> = emptyMap(),
+        now: Calendar = Calendar.getInstance(),
+        newRulesFrom: String = ""   // AAAA-MM-JJ : avant ce jour, anciennes règles de validation
+    ): GameSummary {
         val byDay = meals.groupBy { fmt.format(java.util.Date(it.timestamp)) }.mapValues { e -> e.value.sumOf { it.kcal } }
         val todayKey = fmt.format(now.time)
         val firstDay = byDay.keys.minOrNull()
@@ -116,7 +157,9 @@ object Game {
                 val key = fmt.format(c.time)
                 if (key >= todayKey) break
                 val kcal = byDay[key] ?: 0
-                val (score, ok) = evaluate(kcal, profile.targetKcal, profile.goal)
+                val step = steps[key]
+                val (score, newOk) = evaluate(kcal, profile.targetKcal, profile.goal, step)
+                val ok = if (newRulesFrom.isNotEmpty() && key < newRulesFrom) legacyOk(kcal, profile.targetKcal, profile.goal) else newOk
                 val status = when {
                     ok -> DayStatus.REUSSI
                     key in game.recoveredDays -> DayStatus.RATTRAPE
@@ -132,17 +175,22 @@ object Game {
                     DayStatus.RATE -> score / 4
                     DayStatus.VIDE -> 0
                 }
-                history += DayResult(key, kcal, score, status, xp, streak)
+                history += DayResult(
+                    key, kcal, score, status, xp, streak,
+                    foodScore(kcal, profile.targetKcal, profile.goal), step?.steps ?: 0, step?.goal ?: 0
+                )
                 c.add(Calendar.DAY_OF_YEAR, 1)
             }
         }
 
         val todayKcal = byDay[todayKey] ?: 0
-        val (todayScore, todayOk) = evaluate(todayKcal, profile.targetKcal, profile.goal)
+        val todayStep = steps[todayKey]
+        val (todayScore, todayOk) = evaluate(todayKcal, profile.targetKcal, profile.goal, todayStep)
         val today = DayResult(
             todayKey, todayKcal, todayScore,
             if (todayOk) DayStatus.REUSSI else if (todayKcal == 0) DayStatus.VIDE else DayStatus.RATE,
-            0, streak
+            0, streak,
+            foodScore(todayKcal, profile.targetKcal, profile.goal), todayStep?.steps ?: 0, todayStep?.goal ?: 0
         )
 
         // Série cassée hier et récupérable aujourd'hui (une seule tentative de quiz par jour)

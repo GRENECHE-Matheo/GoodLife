@@ -76,6 +76,12 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 - **Sauvegarde chiffrée** : fichier écrit par l'utilisateur à l'endroit qu'il choisit, chiffré avec son mot de
   passe ; le développeur n'y a pas accès.
 - **Signalement IA** : e-mail rédigé et envoyé par l'utilisateur lui-même depuis sa messagerie.
+- **Amis (Tap to Sync, QR, StreetPass)** : si le profil est public, le pseudo et ce que l'utilisateur coche (niveau, série,
+  liste du Nutridex) partent **directement vers le téléphone d'un autre utilisateur**, sans serveur. Par prudence, déclarer
+  comme données **partagées, facultatives, à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) »
+  et « Activité dans l'appli › Autres actions (niveau, série, aliments découverts) ».
+- **Pas** : lus sur le téléphone (capteur ou Health Connect), jamais transmis → pas « collectés » ; seule la moyenne peut partir
+  vers Gemini si l'utilisateur demande un objectif à l'IA (déjà couvert par « Santé et remise en forme »).
 - Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.
 
 ## 6. Autorisations sensibles
@@ -83,11 +89,21 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 | Permission | Justification |
 |---|---|
 | `CAMERA` | Photo du repas et scan de code-barres (dans l'app) |
-| `ACTIVITY_RECOGNITION` | Détection automatique du sommeil (Sleep API), seulement si activée |
-| `RECEIVE_BOOT_COMPLETED` | Réactiver la détection du sommeil après un redémarrage |
+| `ACTIVITY_RECOGNITION` | Détection du sommeil (Sleep API) et compteur de pas, seulement si activés |
+| `health.READ_STEPS` | Lecture seule des pas dans Health Connect, si l'utilisateur choisit cette source |
+| `RECEIVE_BOOT_COMPLETED` | Réactiver sommeil et StreetPass après un redémarrage |
 | `INTERNET` | IA (si activée), Open Food Facts |
+| `NFC` | Tap to Sync : échange de cartes entre amis en collant les téléphones |
+| `BLUETOOTH_SCAN` (neverForLocation), `BLUETOOTH_ADVERTISE`, `BLUETOOTH_CONNECT` | StreetPass (Android 12+, 18+, désactivé par défaut) |
+| `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `POST_NOTIFICATIONS` | Service StreetPass avec sa notification |
 
 Aucune permission de localisation, de contacts, de SMS ni de stockage.
+
+**Déclarations supplémentaires dans la Play Console :**
+- **Health Connect** : formulaire d'accès aux données Health Connect pour `READ_STEPS` — usage : afficher les pas du jour,
+  l'objectif de pas et le score quotidien ; lecture seule ; données jamais transmises.
+- **Service de premier plan** (`connectedDevice`) : StreetPass, échange Bluetooth entre appareils GoodLife proches, démarré
+  par l'utilisateur, notification permanente. Google demande une courte **vidéo** montrant l'activation.
 
 ## 7. Déjà en place dans l'app
 
@@ -97,3 +113,5 @@ Aucune permission de localisation, de contacts, de SMS ni de stockage.
 - Politique de confidentialité dans l'app + contact.
 - Export (portabilité), effacement, retrait du consentement IA.
 - Mention « Généré par l'IA » + bouton « Signaler » sur chaque contenu d'IA.
+- Amis : profil privé par défaut, partage choisi champ par champ, cartes signées, blocage, encouragements sans texte libre,
+  StreetPass réservé aux 18+.

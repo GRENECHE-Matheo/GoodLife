@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -183,6 +184,26 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                 )
             }
 
+            // ---- Pas ----
+            val stepsData by Repo.steps.collectAsState()
+            if (stepsData.days.isNotEmpty()) {
+                SectionCard(title = "Pas", icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
+                    val stepDays = last14.map { stepsData.days[it.date] }
+                    LineChart(
+                        values = stepDays.map { it?.steps?.toFloat() },
+                        labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
+                        color = MaterialTheme.colorScheme.tertiary,
+                        minY = 0f,
+                        reference = com.goodlife.app.steps.Steps.goal().toFloat()
+                    )
+                    Text(
+                        "Pointillés : ton objectif du jour (${formatSteps(com.goodlife.app.steps.Steps.goal())} pas).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             // ---- Poids ----
             SectionCard(title = "Poids", icon = Icons.Filled.FitnessCenter) {
                 val w = game.weights.takeLast(20)
@@ -220,7 +241,8 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                         Column(Modifier.weight(1f)) {
                             Text(dayLabel(d.date).replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Medium)
                             Text(
-                                "${d.kcal} kcal · score ${d.score} · +${d.xp} XP",
+                                "${d.kcal} kcal" + (if (d.stepGoal > 0) " · ${formatSteps(d.steps)} pas" else "") +
+                                    " · score ${d.score} · +${d.xp} XP",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

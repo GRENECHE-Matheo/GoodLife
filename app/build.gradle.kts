@@ -14,8 +14,8 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.6"
+        versionCode = 9
+        versionName = "0.7"
 
         // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
         buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")
@@ -115,4 +115,14 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Pas : Health Connect (lecture seule) et relevé périodique du capteur
+    implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
+    // Déjà apportée par Health Connect ; déclarée pour que CameraX voie ListenableFuture à la compilation
+    implementation("com.google.guava:guava:31.1-android")
+
+    // Amis : QR code (génération hors ligne, et scanner de Google sans permission caméra)
+    implementation("com.google.zxing:core:3.5.4")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 }

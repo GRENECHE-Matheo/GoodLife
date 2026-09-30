@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/tapsync_desc"
+    android:requireDeviceUnlock="true">
+    <aid-group
+        android:category="other"
+        android:description="@string/tapsync_desc">
+        <!-- F0 + « GOODLIFE » en ASCII -->
+        <aid-filter android:name="F0474F4F444C494645" />
+    </aid-group>
+</host-apdu-service>

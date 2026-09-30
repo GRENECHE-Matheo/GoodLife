@@ -64,6 +64,8 @@ import com.goodlife.app.ui.screens.PlanningScreen
 import com.goodlife.app.ui.screens.LockScreen
 import com.goodlife.app.ui.screens.OnboardingScreen
 import com.goodlife.app.ui.screens.ProfileScreen
+import com.goodlife.app.ui.screens.PrivacyScreen
+import androidx.compose.foundation.layout.safeDrawingPadding
 import com.goodlife.app.ui.screens.ScanScreen
 import com.goodlife.app.ui.screens.SleepScreen
 import com.goodlife.app.ui.theme.GoodLifeTheme
@@ -78,6 +80,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         Repo.init(this)
         UpdateInstaller.cleanup(this, onlyInstalled = true)
+        com.goodlife.app.steps.Steps.schedule(this)
+        com.goodlife.app.social.StreetPass.sync(this)
         val s = Repo.settings.value
         applyScreenshotBlock(s.blockScreenshots)
         // Rotation / changement de thème : pas de re-verrouillage ; retour après plus d'1 min : verrouillage.
@@ -87,6 +91,10 @@ class MainActivity : FragmentActivity() {
                 SystemClock.elapsedRealtime() - savedInstanceState.getLong(KEY_SAVED_AT, 0L) > AppLock.GRACE_MS
             )
         enableEdgeToEdge()
+        // Ouverte par Health Connect pour expliquer l'usage des données : on montre la politique de confidentialité
+        val rationale = intent?.action in setOf(
+            "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE", "android.intent.action.VIEW_PERMISSION_USAGE"
+        )
         setContent {
             val settings by Repo.settings.collectAsState()
             val dark = isAppInDarkTheme(settings.themeMode)
@@ -98,7 +106,11 @@ class MainActivity : FragmentActivity() {
             }
             LaunchedEffect(settings.blockScreenshots) { applyScreenshotBlock(settings.blockScreenshots) }
             GoodLifeTheme(themeMode = settings.themeMode, themeColor = settings.themeColor) {
-                if (locked.value && settings.appLock) {
+                if (rationale) {
+                    androidx.compose.foundation.layout.Box(Modifier.safeDrawingPadding()) {
+                        PrivacyScreen(onBack = { finish() })
+                    }
+                } else if (locked.value && settings.appLock) {
                     LockScreen(onUnlocked = { locked.value = false })
                 } else {
                     GoodLifeApp()

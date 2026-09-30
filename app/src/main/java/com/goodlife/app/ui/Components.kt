@@ -101,12 +101,21 @@ fun SectionCard(
     }
 }
 
+/**
+ * Anneau des calories ; si [stepsProgress] est donné, un second anneau intérieur montre les pas
+ * (même écran, pas de carte en plus).
+ */
 @Composable
-fun CalorieRing(consumed: Int, target: Int, size: Dp = 180.dp) {
+fun CalorieRing(consumed: Int, target: Int, size: Dp = 180.dp, stepsProgress: Float? = null) {
     val progress by animateFloatAsState(
         if (target > 0) consumed.toFloat() / target else 0f,
         animationSpec = tween(900, easing = FastOutSlowInEasing), label = "ring"
     )
+    val stepsAnim by animateFloatAsState(
+        (stepsProgress ?: 0f).coerceIn(0f, 1f),
+        animationSpec = tween(900, easing = FastOutSlowInEasing), label = "stepsRing"
+    )
+    val stepsColor = MaterialTheme.colorScheme.tertiary
     val shown by animateIntAsState(consumed, animationSpec = tween(900, easing = FastOutSlowInEasing), label = "kcal")
     val over = progress > 1f
     val track = MaterialTheme.colorScheme.surfaceVariant
@@ -123,6 +132,17 @@ fun CalorieRing(consumed: Int, target: Int, size: Dp = 180.dp) {
                 color, 135f, 270f * progress.coerceIn(0f, 1f), false, Offset(inset, inset), arcSize,
                 style = Stroke(stroke, cap = StrokeCap.Round)
             )
+            if (stepsProgress != null) {
+                val s2 = 10.dp.toPx()
+                val gap = stroke + 6.dp.toPx()
+                val o2 = gap + s2 / 2
+                val size2 = Size(this.size.width - 2 * o2, this.size.height - 2 * o2)
+                drawArc(track, 135f, 270f, false, Offset(o2, o2), size2, style = Stroke(s2, cap = StrokeCap.Round))
+                if (stepsAnim > 0f) drawArc(
+                    stepsColor, 135f, 270f * stepsAnim, false, Offset(o2, o2), size2,
+                    style = Stroke(s2, cap = StrokeCap.Round)
+                )
+            }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("$shown", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)

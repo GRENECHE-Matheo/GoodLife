@@ -38,10 +38,12 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
     "Qui peut utiliser GoodLife ?" to
         "L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on peut consentir seul au traitement " +
         "de ses données en France). Les fonctions IA sont réservées aux 18 ans et plus. L'objectif « Perdre du poids » " +
-        "n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5.",
+        "n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5. StreetPass (rencontres avec des " +
+        "inconnus) est réservé aux 18 ans et plus.",
     "Ce qui reste sur ton téléphone" to
         "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, " +
-        "ton emploi du temps de repas, ton sommeil, tes pesées, ta progression (séries, niveaux, quiz) et tes réglages. " +
+        "ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton " +
+        "Nutridex et ses photos, la liste de tes amis et rencontres, et tes réglages. " +
         "Certaines de ces informations sont des données de santé. " +
         "Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. " +
         "Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement " +
@@ -54,6 +56,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "• Objectif calorique : âge, sexe, poids, taille, activité, objectif, habitudes, allergies.\n" +
         "• Idées de repas : ton objectif, les repas du jour, tes habitudes et allergies.\n" +
         "• Recette : le nom du plat, tes habitudes et allergies.\n" +
+        "• Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.\n" +
+        "• Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.\n" +
         "Ne sont jamais envoyés : ton prénom, ton sommeil, ton historique complet. " +
         "Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.",
     "À qui ces données sont envoyées" to
@@ -73,6 +77,26 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Le code-barres est lu sur le téléphone avec ML Kit (modèle intégré, aucune image envoyée). Seul le numéro du " +
         "code-barres est envoyé à Open Food Facts (association française, base de données ouverte) pour obtenir les " +
         "valeurs nutritionnelles. Open Food Facts voit ton adresse IP, comme n'importe quel site web.",
+    "Les pas" to
+        "Si tu actives le suivi des pas, ils sont comptés sur le téléphone : par le capteur de pas (relevé toutes les " +
+        "15 minutes, lecture d'un simple compteur) ou, si tu le choisis, en lecture seule dans Health Connect (pas enregistrés " +
+        "par Samsung Health, Google Fit, une montre…). GoodLife ne lit que le nombre de pas, rien d'autre, et ne les envoie " +
+        "nulle part, sauf ta moyenne de pas si tu demandes un objectif à l'IA. Tu peux couper le suivi dans Paramètres › Pas.",
+    "Le Nutridex" to
+        "Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. " +
+        "Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, " +
+        "que la liste des aliments découverts.",
+    "Amis : Tap to Sync, QR code et StreetPass" to
+        "Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, " +
+        "liste du Nutridex). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre " +
+        "téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, ou avec StreetPass. " +
+        "Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.\n" +
+        "• StreetPass (désactivé par défaut, 18 ans et plus, Android 12+) : tant qu'il est actif, une notification l'indique " +
+        "et les téléphones GoodLife à quelques mètres peuvent lire ta carte en Bluetooth. L'app ne demande pas la localisation. " +
+        "Tu peux masquer et bloquer une personne.\n" +
+        "• Les cartes que tu reçois sont gardées chiffrées sur ton téléphone ; retire ou bloque une personne pour effacer la sienne.\n" +
+        "• Les encouragements sont des messages tout prêts, sans texte libre.\n" +
+        "Base légale : ton consentement (activation du profil public). Tu peux le retirer à tout moment en le rendant privé.",
     PRIVACY_GITHUB_ONLY to
         "Dans la version téléchargée depuis GitHub, si l'option est activée (Paramètres › Mises à jour), l'app demande à " +
         "GitHub, au plus toutes les 30 minutes, quelle est la dernière version publiée ; si tu appuies sur « Installer », " +
@@ -105,7 +129,7 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Accès et portabilité : Paramètres › Exporter mes données. Rectification : Profil › Modifier mes infos. " +
         "Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé " +
         "est à supprimer toi-même là où tu l'as rangé. " +
-        "Retrait du consentement : interrupteur IA. Comme GoodLife n'a pas de serveur, toutes tes données sont sur ton téléphone " +
+        "Retrait du consentement : interrupteur IA, profil privé (Amis). Comme GoodLife n'a pas de serveur, toutes tes données sont sur ton téléphone " +
         "(et dans ta sauvegarde chiffrée, si tu en as créé une). Pour toute question : matheo.greneche0@gmail.com. " +
         "Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).",
     "Ce que GoodLife ne fait pas" to
@@ -125,7 +149,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.6 · mise à jour le 30 septembre 2026",
+                "Version 0.7 · mise à jour le 30 septembre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

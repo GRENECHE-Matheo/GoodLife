@@ -92,5 +92,6 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         Repo.init(context)
         if (Repo.settings.value.sleepAuto) SleepTracker.subscribe(context)
+        com.goodlife.app.social.StreetPass.sync(context)
     }
 }

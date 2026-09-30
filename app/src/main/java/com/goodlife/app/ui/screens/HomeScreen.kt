@@ -52,6 +52,9 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -111,15 +114,17 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     val meals by Repo.meals.collectAsState()
     val game by Repo.game.collectAsState()
     val p = profile ?: return
-    val summary = remember(meals, p, game) { Game.summarize(meals, p, game) }
+    val steps by Repo.steps.collectAsState()
+    val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom) }
     var overlay by rememberSaveable { mutableStateOf("") }
-    SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress" -> 1; else -> 2 } }) { screen ->
+    SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress", "news" -> 1; else -> 2 } }) { screen ->
         when (screen) {
+            "news" -> NewsScreen(onBack = { overlay = "" })
             "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
             "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" })
             else -> HomeContent(
                 onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" },
-                onOpenProfile = onOpenProfile
+                onOpenProfile = onOpenProfile, onNews = { overlay = "news" }
             )
         }
     }
@@ -131,7 +136,8 @@ private fun HomeContent(
     summary: GameSummary,
     onProgress: () -> Unit,
     onQuiz: () -> Unit,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    onNews: () -> Unit
 ) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
@@ -149,6 +155,7 @@ private fun HomeContent(
     var sugLoading by remember { mutableStateOf(false) }
     var sugError by remember { mutableStateOf<String?>(null) }
     var expandedIdx by remember { mutableIntStateOf(-1) }
+    var sugSlot by remember { mutableStateOf<MealSlot?>(null) }
     var planFor by remember { mutableStateOf<MealSuggestion?>(null) }
     var recipeFor by remember { mutableStateOf<MealSuggestion?>(null) }
     val recipes = remember { mutableStateMapOf<String, Recipe>() }
@@ -205,6 +212,8 @@ private fun HomeContent(
             }
         }
 
+        NewsTeaser(onOpen = onNews)
+
         // Série cassée hier : le cuisto propose de la sauver
         if (summary.recoverableStreak > 0) {
             SectionCard(container = FLAME.copy(alpha = 0.12f)) {
@@ -258,9 +267,18 @@ private fun HomeContent(
             }
         }
 
+        StepsAutoRefresh()
         SectionCard {
+            val stepsData by Repo.steps.collectAsState()
+            val stepsProgress = if (settings.stepsEnabled) {
+                (stepsData.days[com.goodlife.app.data.localDay(0)]?.steps ?: 0).toFloat() / com.goodlife.app.steps.Steps.goal()
+            } else null
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CalorieRing(consumed = eaten, target = p.targetKcal)
+                CalorieRing(
+                    consumed = eaten, target = p.targetKcal,
+                    size = if (stepsProgress != null) 200.dp else 180.dp,
+                    stepsProgress = stepsProgress
+                )
             }
             Text(
                 if (remaining >= 0) "Il te reste $remaining kcal aujourd'hui"
@@ -268,6 +286,7 @@ private fun HomeContent(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+            StepsLine()
             MacroBar("Protéines", today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
             MacroBar("Glucides", today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
             MacroBar("Lipides", today.sumOf { it.fatG }, p.fatG, GoogleGreen)
@@ -312,6 +331,13 @@ private fun HomeContent(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // Pour quel repas ?
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = sugSlot == null, onClick = { sugSlot = null }, label = { Text("Toute la journée") })
+                    MealSlot.entries.forEach { slot ->
+                        FilterChip(selected = sugSlot == slot, onClick = { sugSlot = slot }, label = { Text(slot.label) })
+                    }
+                }
                 suggestions.forEachIndexed { i, s ->
                     if (i > 0) HorizontalDivider()
                     SuggestionRow(
@@ -323,27 +349,36 @@ private fun HomeContent(
                     )
                 }
                 if (sugError != null) Text(sugError!!, color = MaterialTheme.colorScheme.error)
-                FilledTonalButton(
-                    enabled = !sugLoading,
-                    onClick = {
-                        sugLoading = true; sugError = null
-                        scope.launch {
-                            try {
-                                suggestions = Gemini(settings.apiKey, settings.model).suggestMeals(p, today)
-                                expandedIdx = -1
-                                recipes.clear()
-                            } catch (e: Exception) {
-                                sugError = e.message
-                            } finally {
-                                sugLoading = false
-                            }
+                // « Régénérer » remplace la liste ; « Plus d'idées » en ajoute d'autres, différentes
+                fun ask(append: Boolean) {
+                    sugLoading = true; sugError = null
+                    scope.launch {
+                        try {
+                            val fresh = Gemini(settings.apiKey, settings.model)
+                                .suggestMeals(p, today, sugSlot, avoid = suggestions.map { it.name })
+                            suggestions = if (append) suggestions + fresh else fresh
+                            if (!append) { expandedIdx = -1; recipes.clear() }
+                        } catch (e: Exception) {
+                            sugError = e.message
+                        } finally {
+                            sugLoading = false
                         }
                     }
-                ) {
-                    if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(if (suggestions.isEmpty()) "Proposer des repas" else "Autres idées")
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalButton(enabled = !sugLoading, onClick = { ask(append = false) }) {
+                        if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Icon(if (suggestions.isEmpty()) Icons.Filled.AutoAwesome else Icons.Filled.Refresh, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (suggestions.isEmpty()) "Proposer des repas" else "Régénérer")
+                    }
+                    if (suggestions.isNotEmpty()) {
+                        TextButton(enabled = !sugLoading, onClick = { ask(append = true) }) {
+                            Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Plus d'idées")
+                        }
+                    }
                 }
             }
         }

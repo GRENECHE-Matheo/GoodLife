@@ -5,6 +5,8 @@ import com.goodlife.app.data.Repo
 import com.goodlife.app.data.FoodAnalysis
 import com.goodlife.app.data.Meal
 import com.goodlife.app.data.MealSuggestion
+import com.goodlife.app.data.MealSlot
+import com.goodlife.app.data.PlannedMeal
 import com.goodlife.app.data.Profile
 import com.goodlife.app.data.Recipe
 import com.goodlife.app.data.mapObjects
@@ -132,12 +134,16 @@ class Gemini(private val apiKey: String, private val model: String) {
             Identifie chaque aliment, estime les portions visibles (en grammes) et les calories.
             Allergies de l'utilisateur : $allergies. Signale tout aliment qui pourrait en contenir.
             Si l'image ne contient pas de nourriture, mets "kcal": 0 et "plat": "Aucun aliment détecté".
+            Catalogue Nutridex (id=nom) : ${com.goodlife.app.dex.Nutridex.promptList()}
+            Dans "dex", liste au plus 4 id du catalogue CLAIREMENT visibles sur la photo (le plat lui-même s'il y est,
+            et ses ingrédients bien reconnaissables). Liste vide si rien ne correspond ou si ce n'est pas une vraie photo de nourriture.
             Réponds UNIQUEMENT en JSON, en français, avec exactement ce format :
             {"plat": "nom court du plat",
              "aliments": [{"nom": "...", "quantite_g": 0, "kcal": 0}],
              "kcal": 0, "proteines_g": 0, "glucides_g": 0, "lipides_g": 0,
              "allergenes_detectes": ["..."], "confiance": 0.0,
-             "conseil": "une phrase courte et bienveillante"}
+             "conseil": "une phrase courte et bienveillante",
+             "dex": ["id"]}
         """.trimIndent()
         val o = call(prompt, jpeg)
         val items = o.optJSONArray("aliments")?.mapObjects { a ->
@@ -154,11 +160,12 @@ class Gemini(private val apiKey: String, private val model: String) {
             items = items,
             allergens = o.optJSONArray("allergenes_detectes")?.strings() ?: emptyList(),
             confidence = o.optDouble("confiance", 0.0),
-            advice = o.optString("conseil")
+            advice = o.optString("conseil"),
+            dexIds = o.optJSONArray("dex")?.strings()?.filter { com.goodlife.app.dex.Nutridex.byId(it) != null }?.take(4) ?: emptyList()
         )
     }
 
-    suspend fun recommendTarget(profile: Profile): Profile {
+    suspend fun recommendTarget(profile: Profile, stepsAverage: Int = 0): Profile {
         // Même garde-fou santé que le calcul hors-ligne (pas de perte de poids pour mineurs / IMC < 18,5)
         val base = Nutrition.formulaTarget(profile)
         val p = profile.copy(goal = base.goal)
@@ -171,6 +178,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             Activité : ${p.activity.label} · Objectif : ${p.goal.label}
             Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}
             Allergies : ${p.allergies.ifBlank { "aucune" }}
+            Pas par jour (moyenne 7 jours) : ${stepsAverage.takeIf { it > 0 }?.toString() ?: "inconnue"}
             Référence calculée (Mifflin-St Jeor) : ${base.targetKcal} kcal.
             Réponds UNIQUEMENT en JSON :
             {"kcal": 0, "proteines_g": 0, "glucides_g": 0, "lipides_g": 0,
@@ -188,12 +196,85 @@ class Gemini(private val apiKey: String, private val model: String) {
         )
     }
 
-    suspend fun suggestMeals(p: Profile, today: List<Meal>): List<MealSuggestion> {
+    /**
+     * Idées de repas. [slot] : un repas précis (null = n'importe quel moment de la journée).
+     * [avoid] : plats déjà proposés, pour que « Régénérer » donne vraiment d'autres idées.
+     */
+    /**
+     * Planning de la semaine avec budget. Les prix sont des estimations (prix moyens en supermarché en France),
+     * pas des prix relevés en direct. Renvoie les repas (jour 0 = premier jour) et un court conseil.
+     */
+    suspend fun planWeek(
+        p: Profile,
+        startDate: String,
+        budgetEur: Int,
+        people: Int,
+        slots: List<MealSlot>
+    ): Pair<List<PlannedMeal>, String> {
+        val slotNames = slots.joinToString(", ") { it.label.lowercase() }
+        val prompt = """
+            Tu es un coach nutrition qui fait les courses en France. Prépare un planning de repas sur 7 jours
+            à partir du $startDate (jour 0) pour $people personne(s).
+            Repas à prévoir chaque jour : $slotNames.
+            Budget total de la semaine pour ces repas : $budgetEur € pour tout le foyer. Rapproche-toi le plus
+            possible de ce budget sans le dépasser (ni beaucoup moins : utilise-le intelligemment).
+            Estime le coût de chaque repas pour tout le foyer avec les prix moyens actuels en supermarché en France
+            (marques distributeur, produits de saison), et reste réaliste.
+            Objectif de la personne : ${p.goal.label}, environ ${p.targetKcal} kcal par jour pour elle.
+            Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}
+            ALLERGIES (à exclure absolument) : ${p.allergies.ifBlank { "aucune" }}
+            Varie les plats, réutilise les restes et les mêmes ingrédients dans la semaine pour limiter le coût.
+            Réponds UNIQUEMENT en JSON :
+            {"repas": [{"jour": 0, "moment": "déjeuner", "nom": "nom court (max 5 mots)",
+                        "kcal": 0, "cout_eur": 0.0, "description": "ingrédients principaux en 1 phrase"}],
+             "total_eur": 0.0, "conseil": "1 phrase pour les courses"}
+            "kcal" = pour une portion (une personne). "cout_eur" = pour tout le foyer.
+        """.trimIndent()
+        val o = call(prompt, null)
+        val start = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(startDate)!!
+        val meals = o.optJSONArray("repas")?.mapObjects { m ->
+            val day = m.optInt("jour", -1)
+            if (day !in 0..6) return@mapObjects null
+            val date = java.util.Calendar.getInstance().apply { time = start; add(java.util.Calendar.DAY_OF_YEAR, day) }
+            PlannedMeal(
+                id = System.nanoTime(),
+                date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(date.time),
+                slot = MealSlot.guess(m.optString("moment")),
+                name = m.optString("nom").take(60).ifBlank { return@mapObjects null },
+                kcal = m.optDouble("kcal", 0.0).roundToInt().coerceIn(0, Repo.MAX_MEAL_KCAL),
+                description = m.optString("description").take(300),
+                costEur = m.optDouble("cout_eur", 0.0).takeUnless { it.isNaN() }?.coerceIn(0.0, 500.0) ?: 0.0
+            )
+        }?.filterNotNull() ?: emptyList()
+        if (meals.isEmpty()) throw AiException("L'IA n'a pas proposé de planning. Réessaie.")
+        return meals to o.optString("conseil")
+    }
+
+    /** Objectif de pas quotidien progressif et atteignable (bien-être, pas d'avis médical). */
+    suspend fun recommendSteps(p: Profile, average: Int): Pair<Int, String> {
+        val prompt = """
+            Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose un objectif
+            de pas quotidien motivant mais atteignable, qui fait progresser doucement (environ +10 % par rapport
+            à l'habitude actuelle, jamais un saut brutal).
+            Âge : ${p.age} ans · Sexe : ${p.sex.label} · Activité : ${p.activity.label} · Objectif : ${p.goal.label}
+            Moyenne actuelle : ${if (average > 0) "$average pas/jour" else "inconnue"}
+            Réponds UNIQUEMENT en JSON : {"pas": 0, "explication": "1 à 2 phrases simples en français"}
+        """.trimIndent()
+        val o = call(prompt, null)
+        val steps = o.optDouble("pas", 0.0).roundToInt().coerceIn(3000, 15_000)
+        return steps to o.optString("explication")
+    }
+
+    suspend fun suggestMeals(p: Profile, today: List<Meal>, slot: MealSlot? = null, avoid: List<String> = emptyList()): List<MealSuggestion> {
         val eaten = today.sumOf { it.kcal }
         val remaining = (p.targetKcal - eaten).coerceAtLeast(0)
         val list = today.joinToString("; ") { "${it.name} (${it.kcal} kcal)" }.ifBlank { "rien encore" }
+        val what = if (slot == null) "4 idées de repas simples pour la suite de la journée ou demain"
+                   else "4 idées de ${slot.label.lowercase()} simples (toutes pour ce repas, « moment » = « ${slot.label.lowercase()} »)"
+        val avoidLine = if (avoid.isEmpty()) "" else "Ne propose PAS ces plats déjà suggérés : ${avoid.joinToString(", ")}. Varie vraiment."
         val prompt = """
-            Tu es un coach nutrition. Propose 4 idées de repas simples pour la suite de la journée ou demain.
+            Tu es un coach nutrition. Propose $what.
+            $avoidLine
             Objectif : ${p.goal.label}, cible ${p.targetKcal} kcal/jour, déjà consommé $eaten kcal, reste $remaining kcal.
             Mangé aujourd'hui : $list
             Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}

@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -127,8 +128,10 @@ fun ScanScreen(onDone: () -> Unit) {
     var product by remember { mutableStateOf<FoodProduct?>(null) }
     var askConsent by remember { mutableStateOf(false) }
     var keyDraft by remember { mutableStateOf("") }
+    var newDex by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showDex by remember { mutableStateOf(false) }
 
-    fun reset() { photo = null; result = null; product = null; error = null; loading = null }
+    fun reset() { photo = null; result = null; product = null; error = null; loading = null; newDex = emptyList() }
 
     fun analyze(bmp: Bitmap) {
         photo = bmp; result = null; product = null; error = null
@@ -137,7 +140,13 @@ fun ScanScreen(onDone: () -> Unit) {
                 if (mode == "photo") {
                     loading = "Analyse du repas par l'IA…"
                     val jpeg = withContext(Dispatchers.Default) { bmp.toJpeg() }
-                    result = Gemini(settings.apiKey, settings.model).analyzeFood(jpeg, profile)
+                    val r = Gemini(settings.apiKey, settings.model).analyzeFood(jpeg, profile)
+                    result = r
+                    // Nutridex : les aliments reconnus se débloquent avec une petite vignette de la photo
+                    if (r.dexIds.isNotEmpty()) {
+                        val thumb = withContext(Dispatchers.Default) { bmp.dexThumbnail() }
+                        newDex = Repo.unlockDex(r.dexIds, thumb)
+                    }
                 } else {
                     loading = "Lecture du code-barres…"
                     val code = detectFoodBarcode(bmp)
@@ -164,9 +173,8 @@ fun ScanScreen(onDone: () -> Unit) {
         }
     }
 
-    ScreenColumn {
+    val header: @Composable () -> Unit = {
         ScreenTitle("Scanner", if (mode == "photo") "Photo du repas : l'IA estime les calories" else "Code-barres d'un produit emballé")
-
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = mode == "photo", onClick = { mode = "photo"; reset() },
@@ -179,8 +187,72 @@ fun ScanScreen(onDone: () -> Unit) {
                 leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp)) }
             )
         }
+    }
 
-        val current = photo
+    val current = photo
+    val cameraReady = current == null && hasCamera &&
+        !(mode == "photo" && (!settings.aiEnabled || settings.apiKey.isBlank()))
+
+    if (showDex) {
+        NutridexScreen(onBack = { showDex = false })
+        return
+    }
+
+    if (cameraReady) {
+        // Écran caméra sans défilement : l'aperçu prend la place restante, le déclencheur reste
+        // toujours visible au-dessus de la barre de navigation, quelle que soit la taille du téléphone.
+        var capture by remember { mutableStateOf<ImageCapture?>(null) }
+        Column(
+            Modifier.fillMaxSize().widthIn(max = 640.dp).padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            header()
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.aspectRatio(3f / 4f, matchHeightConstraintsFirst = true)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.Black)
+                ) {
+                    InAppCamera(onReady = { capture = it })
+                    Box(
+                        Modifier.align(Alignment.Center)
+                            .fillMaxWidth(if (mode == "barcode") 0.85f else 0.75f)
+                            .aspectRatio(if (mode == "barcode") 2f else 1f)
+                            .border(BorderStroke(2.dp, Color.White.copy(alpha = 0.7f)), RoundedCornerShape(24.dp))
+                    )
+                }
+            }
+            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilledTonalIconButton(
+                    onClick = {
+                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    modifier = Modifier.size(56.dp)
+                ) { Icon(Icons.Filled.PhotoLibrary, "Galerie") }
+                FilledIconButton(
+                    onClick = {
+                        capture?.let { ic ->
+                            takePhoto(context, ic, onPhoto = { analyze(it) }, onFail = { error = it })
+                        }
+                    },
+                    modifier = Modifier.size(76.dp),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors()
+                ) { Icon(Icons.Filled.PhotoCamera, "Prendre la photo", Modifier.size(34.dp)) }
+                Spacer(Modifier.size(56.dp))
+            }
+        }
+        if (askConsent) AiConsentDialog(onDismiss = { askConsent = false })
+        return
+    }
+
+    ScreenColumn {
+        header()
         when {
             mode == "photo" && !settings.aiEnabled -> SectionCard(title = "IA désactivée") {
                 Text(
@@ -212,47 +284,7 @@ fun ScanScreen(onDone: () -> Unit) {
                 Text("GoodLife a besoin de la caméra pour photographier directement dans l'app.")
                 Button(onClick = { askCamera.launch(Manifest.permission.CAMERA) }) { Text("Autoriser la caméra") }
             }
-            current == null -> {
-                var capture by remember { mutableStateOf<ImageCapture?>(null) }
-                Box(
-                    Modifier.fillMaxWidth().aspectRatio(3f / 4f)
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(Color.Black)
-                ) {
-                    InAppCamera(onReady = { capture = it })
-                    Box(
-                        Modifier.align(Alignment.Center)
-                            .fillMaxWidth(if (mode == "barcode") 0.85f else 0.75f)
-                            .aspectRatio(if (mode == "barcode") 2f else 1f)
-                            .border(BorderStroke(2.dp, Color.White.copy(alpha = 0.7f)), RoundedCornerShape(24.dp))
-                    )
-                }
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                        modifier = Modifier.size(56.dp)
-                    ) { Icon(Icons.Filled.PhotoLibrary, "Galerie") }
-                    FilledIconButton(
-                        onClick = {
-                            capture?.let { ic ->
-                                takePhoto(context, ic, onPhoto = { analyze(it) }, onFail = { error = it })
-                            }
-                        },
-                        modifier = Modifier.size(80.dp),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledIconButtonColors()
-                    ) { Icon(Icons.Filled.PhotoCamera, "Prendre la photo", Modifier.size(36.dp)) }
-                    Spacer(Modifier.size(56.dp))
-                }
-                if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
-            }
-            else -> {
+            current != null -> {
                 Image(
                     bitmap = current.asImageBitmap(),
                     contentDescription = "Photo",
@@ -272,11 +304,14 @@ fun ScanScreen(onDone: () -> Unit) {
                             OutlinedButton(onClick = { reset() }) { Text("Nouvelle photo") }
                         }
                     }
-                    result != null -> ResultCard(
+                    result != null -> {
+                        DexUnlockedBanner(newDex, onOpen = { showDex = true })
+                        ResultCard(
                         r = result!!,
                         onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
                         onRetake = { reset() }
                     )
+                    }
                     product != null -> ProductCard(
                         p = product!!,
                         onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
@@ -497,6 +532,17 @@ private fun Bitmap.toJpeg(maxSide: Int = 1024): ByteArray {
     val b = scaledTo(maxSide)
     return ByteArrayOutputStream().use { out ->
         b.compress(Bitmap.CompressFormat.JPEG, 85, out)
+        out.toByteArray()
+    }
+}
+
+/** Petite vignette carrée (256 px, JPEG) pour le Nutridex. */
+private fun Bitmap.dexThumbnail(): ByteArray {
+    val side = minOf(width, height)
+    val square = Bitmap.createBitmap(this, (width - side) / 2, (height - side) / 2, side, side)
+    val small = Bitmap.createScaledBitmap(square, 256, 256, true)
+    return ByteArrayOutputStream().use { out ->
+        small.compress(Bitmap.CompressFormat.JPEG, 82, out)
         out.toByteArray()
     }
 }
