@@ -13,7 +13,8 @@ import javax.crypto.spec.GCMParameterSpec
 /**
  * Stockage local chiffré : AES-256-GCM avec une clé générée et gardée
  * dans l'Android Keystore (la clé ne quitte jamais le téléphone).
- * Rien n'est sauvegardé dans le cloud (backup désactivé dans le manifest).
+ * Pas de sauvegarde Android automatique (désactivée dans le manifest) : la seule copie possible est la
+ * sauvegarde chiffrée par mot de passe, activée par l'utilisateur (voir Backup).
  */
 class SecureStore(context: Context) {
 

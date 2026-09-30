@@ -8,17 +8,34 @@ val keystorePath: String? = System.getenv("GOODLIFE_KEYSTORE")
 
 android {
     namespace = "com.goodlife.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.goodlife.app"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 7
-        versionName = "0.5"
+        targetSdk = 36
+        versionCode = 8
+        versionName = "0.6"
 
         // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
         buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")
+        // Contact public (RGPD art. 13, fiche Play Store, signalement des contenus IA)
+        buildConfigField("String", "CONTACT_EMAIL", "\"matheo.greneche0@gmail.com\"")
+    }
+
+    // Deux distributions du même code :
+    // - github : APK publié sur GitHub, avec mise à jour intégrée vérifiée ;
+    // - play   : Google Play, sans mise à jour intégrée (interdite par le règlement Play).
+    flavorDimensions += "store"
+    productFlavors {
+        create("github") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
     }
 
     signingConfigs {
@@ -33,6 +50,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Version de test installable à côté de la version officielle (autre signature)
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = false
             signingConfig = if (keystorePath != null) signingConfigs.getByName("release")

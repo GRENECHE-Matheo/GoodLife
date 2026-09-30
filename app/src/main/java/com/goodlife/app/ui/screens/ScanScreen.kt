@@ -97,6 +97,7 @@ import com.goodlife.app.ui.ScreenTitle
 import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.toNumber
+import com.goodlife.app.ui.AiContentFooter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -191,11 +192,11 @@ fun ScanScreen(onDone: () -> Unit) {
             }
             mode == "photo" && settings.apiKey.isBlank() -> SectionCard(title = "Ajoute ta clé Gemini") {
                 Text(
-                    "Chaque utilisateur utilise sa propre clé, gratuite. Elle reste chiffrée sur ce téléphone " +
+                    "Chaque utilisateur utilise sa propre clé, créée chez Google. Elle reste chiffrée sur ce téléphone " +
                         "et n'est envoyée qu'à Google.",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text("Créer une clé gratuite") }
+                TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text("Créer ma clé chez Google") }
                 OutlinedTextField(
                     value = keyDraft, onValueChange = { keyDraft = it.trim() },
                     label = { Text("Clé API Gemini") }, singleLine = true,
@@ -370,6 +371,9 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> U
         if (r.advice.isNotBlank()) {
             Text(r.advice, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         }
+        AiContentFooter(
+            "Analyse photo : ${r.dish}, ${r.kcal} kcal\n${r.items.joinToString("\n")}\n${r.advice}"
+        )
         OutlinedTextField(
             value = name, onValueChange = { name = it },
             label = { Text("Nom du repas") }, singleLine = true, modifier = Modifier.fillMaxWidth()

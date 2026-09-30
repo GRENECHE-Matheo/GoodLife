@@ -20,7 +20,7 @@ import kotlin.math.roundToInt
 class AiException(message: String) : Exception(message)
 
 /**
- * Client minimal de l'API Gemini (Google AI Studio, offre gratuite).
+ * Client minimal de l'API Gemini (Google AI Studio), avec la clé personnelle de chaque utilisateur.
  * La clé est fournie par l'utilisateur et stockée chiffrée sur le téléphone.
  * Seules la photo du repas et les infos nécessaires sont envoyées, rien d'autre.
  */
@@ -36,7 +36,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             throw AiException("Les fonctions IA (Google Gemini) sont réservées aux personnes de 18 ans et plus.")
         }
         if (apiKey.isBlank()) {
-            throw AiException("Ajoute ta clé API Gemini (gratuite) dans Paramètres › Intelligence artificielle.")
+            throw AiException("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle.")
         }
         callDirect(prompt, jpeg)
     }
@@ -128,7 +128,7 @@ class Gemini(private val apiKey: String, private val model: String) {
     suspend fun analyzeFood(jpeg: ByteArray, profile: Profile?): FoodAnalysis {
         val allergies = profile?.allergies?.takeIf { it.isNotBlank() } ?: "aucune connue"
         val prompt = """
-            Tu es un nutritionniste expert. Analyse la photo de nourriture.
+            Tu aides à estimer les calories d'un repas (usage bien-être, pas d'avis médical). Analyse la photo de nourriture.
             Identifie chaque aliment, estime les portions visibles (en grammes) et les calories.
             Allergies de l'utilisateur : $allergies. Signale tout aliment qui pourrait en contenir.
             Si l'image ne contient pas de nourriture, mets "kcal": 0 et "plat": "Aucun aliment détecté".
@@ -147,10 +147,10 @@ class Gemini(private val apiKey: String, private val model: String) {
         } ?: emptyList()
         return FoodAnalysis(
             dish = o.optString("plat", "Repas").ifBlank { "Repas" },
-            kcal = o.optDouble("kcal", 0.0).roundToInt().coerceAtLeast(0),
-            proteinG = o.optDouble("proteines_g", 0.0),
-            carbsG = o.optDouble("glucides_g", 0.0),
-            fatG = o.optDouble("lipides_g", 0.0),
+            kcal = o.optDouble("kcal", 0.0).roundToInt().coerceIn(0, Repo.MAX_MEAL_KCAL),
+            proteinG = o.optDouble("proteines_g", 0.0).coerceIn(0.0, 1000.0),
+            carbsG = o.optDouble("glucides_g", 0.0).coerceIn(0.0, 1000.0),
+            fatG = o.optDouble("lipides_g", 0.0).coerceIn(0.0, 1000.0),
             items = items,
             allergens = o.optJSONArray("allergenes_detectes")?.strings() ?: emptyList(),
             confidence = o.optDouble("confiance", 0.0),
@@ -158,11 +158,15 @@ class Gemini(private val apiKey: String, private val model: String) {
         )
     }
 
-    suspend fun recommendTarget(p: Profile): Profile {
-        val base = Nutrition.formulaTarget(p)
+    suspend fun recommendTarget(profile: Profile): Profile {
+        // Même garde-fou santé que le calcul hors-ligne (pas de perte de poids pour mineurs / IMC < 18,5)
+        val base = Nutrition.formulaTarget(profile)
+        val p = profile.copy(goal = base.goal)
         val prompt = """
-            Tu es un diététicien. Détermine l'apport calorique journalier recommandé et la répartition
-            des macronutriments pour cette personne. Sois prudent et réaliste (perte max ~0,5 kg/semaine).
+            Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose un apport
+            calorique journalier indicatif et la répartition des macronutriments pour cette personne.
+            Sois prudent et réaliste (perte max ~0,5 kg/semaine). Si la situation semble nécessiter un suivi
+            (poids très bas ou très élevé, maladie), dis-le dans l'explication et conseille un médecin.
             Âge : ${p.age} ans · Sexe : ${p.sex.label} · Poids : ${p.weightKg} kg · Taille : ${p.heightCm} cm
             Activité : ${p.activity.label} · Objectif : ${p.goal.label}
             Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}
@@ -176,9 +180,9 @@ class Gemini(private val apiKey: String, private val model: String) {
         val kcal = Nutrition.clampTarget(p, o.optDouble("kcal", base.targetKcal.toDouble()).roundToInt())
         return p.copy(
             targetKcal = kcal,
-            proteinG = o.optDouble("proteines_g", base.proteinG.toDouble()).roundToInt(),
-            carbsG = o.optDouble("glucides_g", base.carbsG.toDouble()).roundToInt(),
-            fatG = o.optDouble("lipides_g", base.fatG.toDouble()).roundToInt(),
+            proteinG = o.optDouble("proteines_g", base.proteinG.toDouble()).roundToInt().coerceIn(0, 500),
+            carbsG = o.optDouble("glucides_g", base.carbsG.toDouble()).roundToInt().coerceIn(0, 900),
+            fatG = o.optDouble("lipides_g", base.fatG.toDouble()).roundToInt().coerceIn(0, 400),
             targetSource = "ia",
             targetExplanation = o.optString("explication").ifBlank { base.targetExplanation }
         )
@@ -247,8 +251,8 @@ class Gemini(private val apiKey: String, private val model: String) {
 
         /** Modèles proposés dans les paramètres : id → description. */
         val KNOWN_MODELS = listOf(
-            "gemini-3.5-flash-lite" to "Rapide, gros quota gratuit (recommandé)",
-            "gemini-3.8-flash" to "Plus précis, quota gratuit plus petit",
+            "gemini-3.5-flash-lite" to "Rapide et économique (recommandé)",
+            "gemini-3.8-flash" to "Plus précis, quota plus petit",
             "gemini-2.5-flash" to "Ancien modèle, en secours"
         )
     }

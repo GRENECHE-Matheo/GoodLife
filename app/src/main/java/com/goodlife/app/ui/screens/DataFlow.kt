@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.goodlife.app.BuildConfig
 
 @Composable
 private fun FlowLine(icon: ImageVector, title: String, body: String) {
@@ -54,9 +56,13 @@ fun DataFlowSummary(showAi: Boolean = true) {
             Icons.Filled.QrCodeScanner, "Scan de code-barres → Open Food Facts",
             "Uniquement le numéro du code-barres. L'image est analysée sur le téléphone."
         )
-        FlowLine(
+        if (BuildConfig.SELF_UPDATE) FlowLine(
             Icons.Filled.SystemUpdate, "Mises à jour → GitHub",
             "Ton adresse IP, comme pour n'importe quel site, pour savoir s'il existe une nouvelle version."
+        )
+        FlowLine(
+            Icons.Filled.Backup, "Sauvegarde (si tu l'actives) → l'endroit que tu choisis",
+            "Un fichier chiffré avec ton mot de passe, illisible sans lui (même pour Google Drive ou le développeur)."
         )
         FlowLine(
             Icons.Filled.Block, "Aucune revente",

@@ -5,13 +5,18 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import com.goodlife.app.ui.Motion
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -24,11 +29,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,6 +57,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,25 +69,36 @@ import com.goodlife.app.game.Game
 import com.goodlife.app.game.QuizBank
 import com.goodlife.app.ui.ChefMascot
 import com.goodlife.app.ui.ChefMood
-
-private val GOOD = Color(0xFF1E8E3E)
-private val BAD = Color(0xFFD93025)
+import com.goodlife.app.ui.SectionCard
+import com.goodlife.app.ui.Sfx
+import com.goodlife.app.ui.Sounds
+import com.goodlife.app.ui.XpGainCard
+import com.goodlife.app.ui.days
+import com.goodlife.app.ui.theme.failColor
+import com.goodlife.app.ui.theme.successColor
+import kotlinx.coroutines.delay
 
 /**
  * Quiz du jour, présenté par le petit cuisto. Le premier essai du jour donne de l'XP ;
  * s'il y a une série cassée hier, 4 bonnes réponses sur 5 la récupèrent.
+ * [totalXp] est l'XP totale actuelle : elle sert à animer la barre d'XP à la fin.
  */
 @Composable
-fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit) {
+fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val questions = remember { QuizBank.forDay() }
     var index by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     var correct by rememberSaveable { mutableIntStateOf(0) }
+    var answers by rememberSaveable { mutableStateOf("") }   // "1" bonne réponse, "0" mauvaise
     var finished by rememberSaveable { mutableStateOf(false) }
     // Valeurs figées au début du quiz (elles changent dès que le résultat est enregistré)
     val startRecoverable = rememberSaveable { recoverableStreak }
     val startDone = rememberSaveable { alreadyDone }
+    val startXp = rememberSaveable { totalXp }
+    val haptics = LocalHapticFeedback.current
+    val good = successColor
+    val bad = failColor
 
     LaunchedEffect(finished) {
         if (finished && !startDone) {
@@ -105,7 +125,7 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
                 LinearProgressIndicator(
                     progress = { quizProgress },
                     modifier = Modifier.weight(1f).height(12.dp),
-                    color = GOOD,
+                    color = good,
                     strokeCap = StrokeCap.Round
                 )
             }
@@ -145,34 +165,27 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
                             }
                         }
                         q.options.forEachIndexed { i, opt ->
-                            val isRight = i == q.correctIndex
-                            val color by animateColorAsState(when {
-                                answered == null -> MaterialTheme.colorScheme.outline
-                                isRight -> GOOD
-                                i == answered -> BAD
-                                else -> MaterialTheme.colorScheme.outlineVariant
-                            }, label = "answerBorder")
-                            val fill by animateColorAsState(
-                                when {
-                                    answered != null && isRight -> GOOD.copy(alpha = 0.12f)
-                                    answered == i -> BAD.copy(alpha = 0.12f)
-                                    else -> Color.Transparent
-                                }, label = "answerFill"
-                            )
-                            OutlinedButton(
+                            AnswerButton(
+                                text = opt,
+                                state = when {
+                                    answered == null -> AnswerState.IDLE
+                                    i == q.correctIndex -> AnswerState.RIGHT
+                                    i == answered -> AnswerState.WRONG
+                                    else -> AnswerState.OTHER
+                                },
                                 onClick = {
                                     if (answered == null) {
                                         selected = i
-                                        if (isRight) correct++
+                                        val ok = i == q.correctIndex
+                                        if (ok) correct++
+                                        answers += if (ok) "1" else "0"
+                                        Sounds.play(if (ok) Sfx.CORRECT else Sfx.WRONG)
+                                        haptics.performHapticFeedback(
+                                            if (ok) HapticFeedbackType.TextHandleMove else HapticFeedbackType.LongPress
+                                        )
                                     }
-                                },
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(2.dp, color),
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = fill),
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                            ) {
-                                Text(opt, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
-                            }
+                                }
+                            )
                         }
                         AnimatedVisibility(
                             visible = answered != null,
@@ -180,15 +193,16 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
                             exit = fadeOut() + shrinkVertically()
                         ) {
                         if (answered != null) Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            val ok = answered == q.correctIndex
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
-                                color = (if (answered == q.correctIndex) GOOD else BAD).copy(alpha = 0.10f)
+                                color = (if (ok) good else bad).copy(alpha = 0.12f)
                             ) {
                                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
-                                        if (answered == q.correctIndex) "Bien joué !" else "Pas tout à fait…",
+                                        if (ok) "Bien joué !" else "Pas tout à fait…",
                                         fontWeight = FontWeight.Bold,
-                                        color = if (answered == q.correctIndex) GOOD else BAD
+                                        color = if (ok) good else bad
                                     )
                                     Text(q.explanation, style = MaterialTheme.typography.bodyMedium)
                                 }
@@ -198,7 +212,6 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
                                     if (index < questions.lastIndex) { index++; selected = null } else finished = true
                                 },
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = GOOD),
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
                             ) { Text(if (index < questions.lastIndex) "Continuer" else "Voir le résultat") }
                         }
@@ -206,36 +219,169 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, onClose: () -> Unit
                     }
                 }
             } else {
-                val passed = correct >= QuizBank.PASS
-                val rescued = startRecoverable > 0 && passed && !startDone
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    ChefMascot(size = 160.dp, mood = if (passed) ChefMood.BRAVO else ChefMood.TRISTE)
-                }
-                Text(
-                    "$correct / ${questions.size} bonnes réponses",
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                QuizResult(
+                    correct = correct,
+                    total = questions.size,
+                    answers = answers,
+                    startDone = startDone,
+                    startRecoverable = startRecoverable,
+                    startXp = startXp,
+                    endXp = if (startDone) startXp else totalXp,
+                    onClose = onClose
                 )
-                Text(
-                    when {
-                        startDone -> "Entraînement terminé ! (L'XP du quiz n'est comptée qu'une fois par jour.)"
-                        rescued -> "Série sauvée ! Tes $startRecoverable jours continuent. +${Game.quizXp(correct)} XP"
-                        startRecoverable > 0 -> "Il fallait ${QuizBank.PASS} bonnes réponses pour sauver ta série. " +
-                            "Elle repart de zéro, mais tu gagnes quand même +${Game.quizXp(correct)} XP. Demain est un nouveau jour !"
-                        else -> "+${Game.quizXp(correct)} XP. Reviens demain pour de nouvelles questions !"
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Button(
-                    onClick = onClose,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GOOD),
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) { Text("Terminer") }
             }
         }
+    }
+}
+
+private enum class AnswerState { IDLE, RIGHT, WRONG, OTHER }
+
+/** Réponse : rebondit si c'est la bonne, tremble si c'est une erreur. */
+@Composable
+private fun AnswerButton(text: String, state: AnswerState, onClick: () -> Unit) {
+    val good = successColor
+    val bad = failColor
+    val border by animateColorAsState(
+        when (state) {
+            AnswerState.IDLE -> MaterialTheme.colorScheme.outline
+            AnswerState.RIGHT -> good
+            AnswerState.WRONG -> bad
+            AnswerState.OTHER -> MaterialTheme.colorScheme.outlineVariant
+        }, label = "answerBorder"
+    )
+    val fill by animateColorAsState(
+        when (state) {
+            AnswerState.RIGHT -> good.copy(alpha = 0.14f)
+            AnswerState.WRONG -> bad.copy(alpha = 0.14f)
+            else -> Color.Transparent
+        }, label = "answerFill"
+    )
+    val scale = remember { Animatable(1f) }
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(state) {
+        when (state) {
+            AnswerState.RIGHT -> {
+                scale.animateTo(1.05f, tween(110))
+                scale.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 400f))
+            }
+            AnswerState.WRONG -> shake.animateTo(0f, keyframes {
+                durationMillis = 420
+                -14f at 60; 12f at 130; -9f at 200; 6f at 270; -3f at 340; 0f at 420
+            })
+            else -> Unit
+        }
+    }
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(2.dp, border),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = fill),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).graphicsLayer {
+            scaleX = scale.value; scaleY = scale.value
+            translationX = shake.value * density
+        }
+    ) {
+        Text(text, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        if (state == AnswerState.RIGHT || state == AnswerState.WRONG) {
+            Icon(
+                if (state == AnswerState.RIGHT) Icons.Filled.Check else Icons.Filled.Close, null,
+                tint = if (state == AnswerState.RIGHT) good else bad
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuizResult(
+    correct: Int,
+    total: Int,
+    answers: String,
+    startDone: Boolean,
+    startRecoverable: Int,
+    startXp: Int,
+    endXp: Int,
+    onClose: () -> Unit
+) {
+    val passed = correct >= QuizBank.PASS
+    val rescued = startRecoverable > 0 && passed && !startDone
+    val good = successColor
+    val bad = failColor
+
+    // Apparition en cascade des éléments du résultat
+    var step by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        repeat(4) { delay(if (it == 0) 80 else 160); step++ }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        AnimatedVisibility(
+            step >= 1,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            enter = scaleIn(spring(dampingRatio = 0.45f, stiffness = 300f)) + fadeIn()
+        ) {
+            ChefMascot(size = 150.dp, mood = if (passed) ChefMood.BRAVO else ChefMood.TRISTE)
+        }
+        AnimatedVisibility(step >= 2, enter = fadeIn() + slideInVertically { it / 2 }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "$correct / $total bonnes réponses",
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(10.dp))
+                // Une pastille par question, qui apparaissent l'une après l'autre
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    answers.forEachIndexed { i, c ->
+                        val pop = remember { Animatable(0f) }
+                        LaunchedEffect(Unit) {
+                            delay(120L * i)
+                            pop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 380f))
+                        }
+                        Surface(
+                            shape = CircleShape,
+                            color = if (c == '1') good else bad,
+                            modifier = Modifier.size(28.dp).graphicsLayer { scaleX = pop.value; scaleY = pop.value }
+                        ) {
+                            Icon(
+                                if (c == '1') Icons.Filled.Check else Icons.Filled.Close, null,
+                                tint = MaterialTheme.colorScheme.surface, modifier = Modifier.padding(5.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        AnimatedVisibility(step >= 3, enter = fadeIn() + slideInVertically { it / 2 }) {
+            Text(
+                when {
+                    startDone -> "Entraînement terminé ! (L'XP du quiz n'est comptée qu'une fois par jour.)"
+                    rescued -> "Série sauvée ! Ta série de ${days(startRecoverable)} continue."
+                    startRecoverable > 0 -> "Il fallait ${QuizBank.PASS} bonnes réponses pour sauver ta série. " +
+                        "Elle repart de zéro, mais tu gagnes quand même de l'XP. Demain est un nouveau jour !"
+                    else -> "Reviens demain pour de nouvelles questions !"
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        AnimatedVisibility(step >= 4, enter = fadeIn() + slideInVertically { it / 2 }) {
+            SectionCard(container = MaterialTheme.colorScheme.primaryContainer) {
+                // La barre part de l'XP d'avant le quiz et monte jusqu'à la nouvelle valeur
+                XpGainCard(startXp = startXp, endXp = maxOf(startXp, endXp))
+                if (!startDone) {
+                    Text(
+                        "Quiz : +${Game.quizXp(correct)} XP" + if (rescued) " · jour d'hier rattrapé" else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        }
+        Button(
+            onClick = onClose,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp)
+        ) { Text("Terminer") }
     }
 }

@@ -35,8 +35,9 @@ fun LockScreen(onUnlocked: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
 
     fun unlock() {
-        // Si le téléphone n'a plus ni empreinte ni code, on ne bloque pas l'utilisateur dehors.
-        if (!AppLock.isAvailable(context)) {
+        // Si le téléphone n'a plus aucun code de verrouillage, on ne bloque pas l'utilisateur dehors.
+        // (Un capteur momentanément indisponible, lui, ne lève pas le verrou : le code du téléphone reste possible.)
+        if (!AppLock.deviceSecure(context)) {
             Repo.updateSettings { it.copy(appLock = false) }
             onUnlocked()
             return

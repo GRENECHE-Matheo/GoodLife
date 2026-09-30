@@ -61,6 +61,7 @@ import com.goodlife.app.data.Repo
 import com.goodlife.app.ui.ScreenTitle
 import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SectionCard
+import com.goodlife.app.ui.AiContentFooter
 import kotlinx.coroutines.launch
 
 @Composable
@@ -141,6 +142,9 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (p.targetSource == "ia") {
+                AiContentFooter("Objectif calorique : ${p.targetKcal} kcal\n${p.targetExplanation}")
+            }
             if (aiError != null) Text(aiError!!, color = MaterialTheme.colorScheme.error)
             FilledTonalButton(
                 enabled = !aiLoading,
@@ -193,7 +197,7 @@ private fun ProfileContent(onOpenSettings: () -> Unit) {
                 Column(Modifier.weight(1f)) {
                     Text("Paramètres", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Thème, couleurs, empreinte, captures d'écran, clé IA",
+                        "Thème, sons, empreinte, sauvegarde chiffrée, clé IA",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

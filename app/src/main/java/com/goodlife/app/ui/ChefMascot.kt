@@ -49,13 +49,13 @@ fun ChefMascot(modifier: Modifier = Modifier, size: Dp = 96.dp, mood: ChefMood =
 
         // Corps et tablier
         val body = p {
-            moveTo(22 * u, 100 * u); quadraticBezierTo(22 * u, 76 * u, 50 * u, 74 * u)
-            quadraticBezierTo(78 * u, 76 * u, 78 * u, 100 * u); close()
+            moveTo(22 * u, 100 * u); quadraticTo(22 * u, 76 * u, 50 * u, 74 * u)
+            quadraticTo(78 * u, 76 * u, 78 * u, 100 * u); close()
         }
         drawPath(body, WHITE)
         drawPath(body, OUTLINE, style = Stroke(1.5f * u))
         drawPath(p {
-            moveTo(38 * u, 100 * u); lineTo(38 * u, 82 * u); quadraticBezierTo(50 * u, 86 * u, 62 * u, 82 * u)
+            moveTo(38 * u, 100 * u); lineTo(38 * u, 82 * u); quadraticTo(50 * u, 86 * u, 62 * u, 82 * u)
             lineTo(62 * u, 100 * u); close()
         }, APRON)
         drawPath(p {
@@ -89,8 +89,8 @@ fun ChefMascot(modifier: Modifier = Modifier, size: Dp = 96.dp, mood: ChefMood =
         val line = Stroke(1.8f * u, cap = StrokeCap.Round)
         when (mood) {
             ChefMood.BRAVO -> {
-                drawPath(p { moveTo(39 * u, 53 * u); quadraticBezierTo(42 * u, 48 * u, 45 * u, 53 * u) }, INK, style = line)
-                drawPath(p { moveTo(55 * u, 53 * u); quadraticBezierTo(58 * u, 48 * u, 61 * u, 53 * u) }, INK, style = line)
+                drawPath(p { moveTo(39 * u, 53 * u); quadraticTo(42 * u, 48 * u, 45 * u, 53 * u) }, INK, style = line)
+                drawPath(p { moveTo(55 * u, 53 * u); quadraticTo(58 * u, 48 * u, 61 * u, 53 * u) }, INK, style = line)
             }
             else -> {
                 drawOval(INK, o(39.4f, 48.6f), Size(5.2f * u, 6.8f * u))
@@ -114,19 +114,19 @@ fun ChefMascot(modifier: Modifier = Modifier, size: Dp = 96.dp, mood: ChefMood =
 
         // Moustache
         drawPath(p {
-            moveTo(50 * u, 61 * u); quadraticBezierTo(44 * u, 57 * u, 38 * u, 60 * u)
-            quadraticBezierTo(41 * u, 64 * u, 50 * u, 62 * u); quadraticBezierTo(59 * u, 64 * u, 62 * u, 60 * u)
-            quadraticBezierTo(56 * u, 57 * u, 50 * u, 61 * u); close()
+            moveTo(50 * u, 61 * u); quadraticTo(44 * u, 57 * u, 38 * u, 60 * u)
+            quadraticTo(41 * u, 64 * u, 50 * u, 62 * u); quadraticTo(59 * u, 64 * u, 62 * u, 60 * u)
+            quadraticTo(56 * u, 57 * u, 50 * u, 61 * u); close()
         }, MUSTACHE)
 
         // Bouche
         when (mood) {
-            ChefMood.CONTENT -> drawPath(p { moveTo(45 * u, 65 * u); quadraticBezierTo(50 * u, 70 * u, 55 * u, 65 * u) }, MOUTH, style = line)
+            ChefMood.CONTENT -> drawPath(p { moveTo(45 * u, 65 * u); quadraticTo(50 * u, 70 * u, 55 * u, 65 * u) }, MOUTH, style = line)
             ChefMood.BRAVO -> drawPath(p {
-                moveTo(44 * u, 64.5f * u); quadraticBezierTo(50 * u, 73 * u, 56 * u, 64.5f * u); close()
+                moveTo(44 * u, 64.5f * u); quadraticTo(50 * u, 73 * u, 56 * u, 64.5f * u); close()
             }, MOUTH)
             ChefMood.QUESTION -> drawOval(MOUTH, o(48f, 64.5f), Size(4 * u, 4 * u))
-            ChefMood.TRISTE -> drawPath(p { moveTo(45 * u, 68 * u); quadraticBezierTo(50 * u, 63.5f * u, 55 * u, 68 * u) }, MOUTH, style = line)
+            ChefMood.TRISTE -> drawPath(p { moveTo(45 * u, 68 * u); quadraticTo(50 * u, 63.5f * u, 55 * u, 68 * u) }, MOUTH, style = line)
         }
     }
 }

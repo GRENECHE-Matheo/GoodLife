@@ -60,7 +60,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.goodlife.app.BuildConfig
 import com.goodlife.app.ai.Gemini
+import com.goodlife.app.data.Backup
 import com.goodlife.app.data.Repo
+import com.goodlife.app.ui.Sfx
+import com.goodlife.app.ui.Sounds
 import com.goodlife.app.net.Updater
 import kotlinx.coroutines.launch
 import com.goodlife.app.security.AppLock
@@ -115,7 +118,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         SubScreenHeader("Paramètres", onBack)
 
         // ---- Apparence ----
-        SectionCard(title = "Apparence", icon = Icons.Filled.Palette) {
+        SectionCard(title = "Apparence et sons", icon = Icons.Filled.Palette) {
             Text("Thème", style = MaterialTheme.typography.labelLarge)
             THEME_MODES.forEach { (id, label) ->
                 Row(
@@ -149,6 +152,15 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            SettingSwitch(
+                title = "Sons",
+                subtitle = "Petits sons pendant le quiz et quand l'XP monte. Suivent le volume multimédia.",
+                checked = settings.sounds,
+                onChange = { v ->
+                    Repo.updateSettings { it.copy(sounds = v) }
+                    if (v) Sounds.play(Sfx.CORRECT)
+                }
+            )
         }
 
         // ---- Sécurité ----
@@ -182,6 +194,9 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             if (lockMessage != null) Text(lockMessage!!, color = MaterialTheme.colorScheme.error)
         }
 
+        // ---- Sauvegarde ----
+        BackupSection()
+
         // ---- IA ----
         SectionCard(title = "Intelligence artificielle", icon = Icons.Filled.VpnKey) {
             SettingSwitch(
@@ -193,12 +208,13 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             )
             if (settings.aiEnabled) {
                 Text(
-                    "Chaque utilisateur utilise sa propre clé Gemini, gratuite. Elle est chiffrée sur ce téléphone, " +
+                    "Chaque utilisateur utilise sa propre clé Gemini, créée chez Google (tu acceptes alors ses conditions ; " +
+                        "l'éventuelle facturation se fait entre toi et Google). Elle est chiffrée sur ce téléphone, " +
                         "conservée lors des mises à jour de l'app, et n'est envoyée qu'à Google avec tes demandes.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
-                    Text("Obtenir une clé gratuite")
+                    Text("Créer ma clé chez Google")
                 }
                 OutlinedTextField(
                     value = keyDraft,
@@ -256,8 +272,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             }
         }
 
-        // ---- Mises à jour ----
-        SectionCard(title = "Mises à jour", icon = Icons.Filled.SystemUpdate) {
+        // ---- Mises à jour (version GitHub uniquement ; sur Google Play, c'est le Play Store) ----
+        if (BuildConfig.SELF_UPDATE) SectionCard(title = "Mises à jour", icon = Icons.Filled.SystemUpdate) {
             SettingSwitch(
                 title = "Me prévenir des nouvelles versions",
                 subtitle = "À chaque ouverture de l'app (au plus toutes les 30 min), vérifie les versions publiées sur GitHub.",
@@ -311,10 +327,15 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             Text("GoodLife v${BuildConfig.VERSION_NAME}", fontWeight = FontWeight.Medium)
             Text(
                 "Projet développé avec l'assistance d'une IA (Claude, Anthropic). " +
-                    "Les estimations caloriques sont indicatives et ne remplacent pas l'avis d'un professionnel de santé.",
+                    "GoodLife est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite " +
+                    "ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis " +
+                    "d'un professionnel de santé.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            TextButton(onClick = { uri.openUri("mailto:${BuildConfig.CONTACT_EMAIL}") }) {
+                Text("Contact : ${BuildConfig.CONTACT_EMAIL}")
+            }
         }
     }
 
@@ -324,10 +345,11 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirmWipe = false },
             title = { Text("Tout effacer ?") },
-            text = { Text("Profil, repas, sommeil, clé API et réglages seront supprimés définitivement de ce téléphone.") },
+            text = { Text("Profil, repas, sommeil, clé API et réglages seront supprimés définitivement de ce téléphone. Un fichier de sauvegarde déjà enregistré ailleurs n'est pas effacé.") },
             confirmButton = {
                 TextButton(onClick = {
                     SleepTracker.unsubscribe(context)
+                    if (settings.backupUri.isNotBlank()) Backup.releaseAccess(context, android.net.Uri.parse(settings.backupUri))
                     Repo.wipeAll()
                     confirmWipe = false
                     onBack()

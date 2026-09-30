@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,11 +62,32 @@ private fun OnboardingContent(onOpenPolicy: () -> Unit) {
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Text(
+                    "Réservé aux ${Nutrition.MIN_AGE} ans et plus. GoodLife est une app de bien-être, pas un dispositif " +
+                        "médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Demande l'avis d'un " +
+                        "professionnel de santé avant de changer ton alimentation.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 SectionCard(title = "Tes données", icon = Icons.Filled.Lock) {
                     DataFlowSummary()
                     TextButton(onClick = onOpenPolicy) { Text("Politique de confidentialité complète") }
                 }
-                ProfileForm(initial = Profile(), saveLabel = "Commencer") { p ->
+                SectionCard(title = "Tu changes de téléphone ?", icon = Icons.Filled.Restore) {
+                    Text(
+                        "Si tu as une sauvegarde GoodLife (fichier .goodlife), restaure-la avec son mot de passe : " +
+                            "tu retrouves ton profil, tes repas, ton sommeil et ta progression.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    RestoreButton(outlined = false)
+                }
+                ProfileForm(
+                    initial = Profile(), saveLabel = "Commencer",
+                    consentText = "J'accepte que GoodLife enregistre sur ce téléphone mes données de santé " +
+                        "(poids, taille, repas, sommeil, allergies) pour calculer mes besoins. " +
+                        "Je peux retirer cet accord en effaçant mes données (Paramètres)."
+                ) { p ->
                     Repo.updateSettings { it.copy(privacyAcceptedAt = System.currentTimeMillis()) }
                     Repo.saveProfile(Nutrition.formulaTarget(p))
                 }

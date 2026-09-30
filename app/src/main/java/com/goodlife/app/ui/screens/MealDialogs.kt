@@ -42,6 +42,7 @@ import com.goodlife.app.data.Recipe
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.localDay
 import com.goodlife.app.ui.toNumber
+import com.goodlife.app.ui.AiContentFooter
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -182,6 +183,10 @@ fun RecipeDialog(
                         if (r.tip.isNotBlank()) {
                             Text(r.tip, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         }
+                        AiContentFooter(
+                            "Recette : $name\n" + r.ingredients.joinToString("\n") + "\n" +
+                                r.steps.joinToString("\n") + "\n" + r.tip
+                        )
                     }
                     error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
                     else -> Row(verticalAlignment = Alignment.CenterVertically) {

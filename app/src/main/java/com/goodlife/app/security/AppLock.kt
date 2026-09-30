@@ -23,6 +23,13 @@ object AppLock {
     fun isAvailable(context: Context): Boolean =
         BiometricManager.from(context).canAuthenticate(AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS
 
+    /**
+     * Le téléphone a-t-il un code, schéma ou mot de passe ? Seul cas où le verrou peut être levé
+     * automatiquement : un capteur momentanément indisponible ne doit jamais ouvrir l'app.
+     */
+    fun deviceSecure(context: Context): Boolean =
+        (context.getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager).isDeviceSecure
+
     fun authenticate(
         activity: FragmentActivity,
         title: String,

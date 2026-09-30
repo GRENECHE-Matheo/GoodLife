@@ -6,7 +6,7 @@
 Application Android de suivi de l'alimentation et du sommeil, avec une interface
 Material You inspirée des applications Google.
 
-## Fonctionnalités (v0.1)
+## Fonctionnalités
 
 - **Scanner un repas** : caméra intégrée à l'app (CameraX), l'IA identifie les aliments,
   estime les portions, les calories et les macronutriments.
@@ -24,8 +24,15 @@ Material You inspirée des applications Google.
 - **Progression** : score quotidien (0–100) selon la proximité avec l'objectif, séries de jours réussis
   (perte : sous l'objectif sans descendre sous 70 % ; prise : au moins l'objectif ; maintien : ±10 %),
   XP et niveaux (de « Commis » à « Légende de la cuisine »), courbes de score, de calories et de poids.
+- **Réservée aux 15 ans et plus** ; objectif « Perdre du poids » non proposé avant 18 ans ni si l'IMC est
+  sous 18,5 (garde-fou santé). Consentement explicite (case à cocher) pour les données de santé.
 - **Quiz du chef** : 5 questions d'alimentation différentes chaque jour (banque de 60 questions, sans IA),
   présentées par le petit cuisto ; 4/5 le lendemain d'une série cassée permettent de la sauver.
+  Petits sons (synthétisés dans l'app, désactivables) et vibrations sur les réponses ; en fin de quiz,
+  la barre d'XP se remplit en ralentissant sur la fin, avec étincelles et confettis (animation spéciale au passage de niveau).
+- **Sauvegarde chiffrée** (optionnelle) : copie de toutes les données dans le fichier de ton choix (Drive, Téléchargements…),
+  chiffrée AES-256-GCM avec une clé tirée d'un mot de passe (PBKDF2, 310 000 itérations), mise à jour automatiquement
+  quand on quitte l'app après un changement ; restauration dès le premier écran sur un nouveau téléphone.
 - **Photo de profil** : choisie dans la galerie, recadrée et stockée chiffrée sur le téléphone.
 - **Animations Material Motion** : fondu entre onglets, axe partagé pour les sous-écrans, anneau de calories,
   barres et courbes animées, cuisto qui réagit.
@@ -35,14 +42,15 @@ Material You inspirée des applications Google.
   après avoir vérifié l'empreinte SHA-256 du fichier et que sa signature est identique à celle de l'app installée.
 - **RGPD** : politique de confidentialité dans l'app (`PRIVACY.md`), export des données (JSON), effacement,
   retrait du consentement.
-- **Paramètres** : thème (système / clair / sombre), couleur (Material You ou 5 couleurs),
-  verrouillage par empreinte et blocage des captures au choix, clé et modèle IA.
+- **Paramètres** : thème (système / clair / sombre), couleur (Material You ou 5 couleurs), sons,
+  verrouillage par empreinte et blocage des captures au choix, sauvegarde chiffrée, clé et modèle IA.
 
 ## Confidentialité
 
 - Toutes les données (profil, repas, sommeil, clé API) sont stockées **uniquement sur le téléphone**,
   chiffrées en AES-256-GCM avec une clé gardée dans l'Android Keystore.
-- Sauvegarde cloud Android désactivée. Aucun compte, aucune pub, aucun tracker.
+- Sauvegarde cloud Android désactivée. Aucun compte, aucune pub, aucun tracker. La seule copie possible est
+  la sauvegarde chiffrée par mot de passe, si tu l'actives (le fichier est illisible sans le mot de passe).
 - **Verrouillage par empreinte** (ou visage / code du téléphone) à l'ouverture et après 1 min
   en arrière-plan, via l'API Biometric d'Android : l'app ne voit jamais l'empreinte.
 - **Captures d'écran bloquées** (FLAG_SECURE) : pas de capture, pas d'enregistrement d'écran,
@@ -52,26 +60,37 @@ Material You inspirée des applications Google.
 
 ## IA
 
-Chaque utilisateur utilise **sa propre clé Gemini** (gratuite), stockée chiffrée sur son téléphone et conservée
-lors des mises à jour. GoodLife n'a aucun serveur : les requêtes vont directement du téléphone à Google.
+Chaque utilisateur utilise **sa propre clé Gemini**, qu'il crée lui-même chez Google (il accepte alors les
+conditions de Google, 18 ans minimum ; l'éventuelle facturation se fait entre lui et Google). Elle est stockée
+chiffrée sur son téléphone et conservée lors des mises à jour. GoodLife n'a aucun serveur : les requêtes vont
+directement du téléphone à Google. Chaque réponse de l'IA est marquée « Généré par l'IA » avec un bouton
+« Signaler » (e-mail préparé, relu et envoyé par l'utilisateur).
 
 **Sans clé ni IA** : scan de code-barres avec ML Kit (sur le téléphone) + valeurs nutritionnelles
 d'Open Food Facts (seul le numéro du code-barres est envoyé), saisie manuelle, planning et sommeil.
 
-Modèle par défaut : `gemini-3.5-flash-lite` (rapide, gros quota gratuit). Si un modèle
+Modèle par défaut : `gemini-3.5-flash-lite` (rapide et économique). Si un modèle
 disparaît, l'app bascule automatiquement sur un autre.
 
-L'app utilise l'API **Google Gemini** (offre gratuite de Google AI Studio). Chaque utilisateur
-crée sa clé gratuite sur https://aistudio.google.com/apikey et la colle dans *Profil › Clé IA*.
-Aucune clé n'est intégrée dans l'APK.
+Chaque utilisateur crée sa clé sur https://aistudio.google.com/apikey et la colle dans
+*Paramètres › Intelligence artificielle*. Aucune clé n'est intégrée dans l'app.
+
+## Deux versions : GitHub et Google Play
+
+Le même code donne deux versions (*product flavors*) :
+- **github** : APK publié sur GitHub, avec la mise à jour intégrée vérifiée (empreinte + signature) ;
+- **play** : pour Google Play, **sans** mise à jour intégrée ni permission `REQUEST_INSTALL_PACKAGES`
+  (interdites par le règlement Play : les mises à jour passent par le Play Store).
 
 ## Compilation
 
-L'APK est compilé automatiquement par GitHub Actions (`.github/workflows/build.yml`) :
-- à chaque push sur `main` → APK en artefact ;
-- à chaque tag `v*` → release GitHub avec l'APK attaché.
+Compilé automatiquement par GitHub Actions (`.github/workflows/build.yml`) :
+- à chaque push sur `main` → APK GitHub + AAB Google Play en artefacts ;
+- à chaque tag `v*` → release GitHub avec l'APK attaché (l'AAB reste en artefact, pour la Play Console).
 
-En local : Android Studio (JDK 17, SDK 34), ou `gradle assembleRelease` avec Gradle 8.9.
+En local : JDK 17+, Gradle 8.13, SDK 36 — `gradle assembleGithubRelease bundlePlayRelease`.
+
+Publication sur Google Play : voir [`PLAY_STORE.md`](PLAY_STORE.md).
 
 ## Compatibilité
 
@@ -82,7 +101,7 @@ Pixel, etc. La détection automatique du sommeil nécessite les services Google 
 ## Stack
 
 Kotlin · Jetpack Compose · Material 3 · CameraX · Play Services (Sleep API) · Gemini REST API.
-minSdk 26 (Android 8.0) · targetSdk 34.
+minSdk 26 (Android 8.0) · targetSdk 36 (Android 16, exigé par Google Play depuis le 31/08/2026).
 
 ## Licence
 

@@ -17,6 +17,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,11 +33,14 @@ import androidx.compose.ui.unit.dp
 import com.goodlife.app.data.ActivityLevel
 import com.goodlife.app.data.Goal
 import com.goodlife.app.data.Profile
+import com.goodlife.app.ai.Nutrition
 import com.goodlife.app.data.Sex
 import com.goodlife.app.ui.toNumber
 
 @Composable
-fun ProfileForm(initial: Profile, saveLabel: String, onSave: (Profile) -> Unit) {
+fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null, onSave: (Profile) -> Unit) {
+    // Consentement explicite (RGPD art. 9, données de santé) : case à cocher obligatoire si [consentText]
+    var consent by remember { mutableStateOf(consentText == null) }
     var name by remember { mutableStateOf(initial.name) }
     var age by remember { mutableStateOf(initial.age.toString()) }
     var sex by remember { mutableStateOf(initial.sex) }
@@ -83,18 +92,39 @@ fun ProfileForm(initial: Profile, saveLabel: String, onSave: (Profile) -> Unit) 
             placeholder = { Text("Ex : arachides, lactose, gluten") },
             modifier = Modifier.fillMaxWidth()
         )
+        if (consentText != null) {
+            Row(
+                Modifier.fillMaxWidth().toggleable(consent, role = Role.Checkbox) { consent = it },
+                verticalAlignment = Alignment.Top
+            ) {
+                Checkbox(checked = consent, onCheckedChange = null)
+                Spacer(Modifier.width(8.dp))
+                Text(consentText, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         if (error != null) {
             Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
         Button(
+            enabled = consent,
             onClick = {
                 val a = age.toNumber()?.toInt()
                 val w = weight.toNumber()
                 val h = height.toNumber()
                 error = when {
-                    a == null || a !in 13..110 -> "Âge invalide (13 à 110 ans)."
+                    a != null && a in 1 until Nutrition.MIN_AGE ->
+                        "GoodLife est réservée aux ${Nutrition.MIN_AGE} ans et plus."
+                    a == null || a !in Nutrition.MIN_AGE..110 -> "Âge invalide (${Nutrition.MIN_AGE} à 110 ans)."
                     w == null || w !in 25.0..350.0 -> "Poids invalide."
                     h == null || h !in 100.0..250.0 -> "Taille invalide (en cm)."
+                    goal == Goal.PERTE && !Nutrition.weightLossAllowed(
+                        initial.copy(age = a, weightKg = w, heightCm = h)
+                    ) -> if (a < 18)
+                        "L'objectif « Perdre du poids » n'est pas proposé avant 18 ans : pendant la croissance, " +
+                            "parles-en plutôt à un médecin. Choisis « Maintenir » ou « Prendre du poids »."
+                    else
+                        "Ton IMC est déjà sous 18,5 : l'objectif « Perdre du poids » n'est pas proposé. " +
+                            "Si tu veux perdre du poids malgré tout, parles-en à un médecin."
                     else -> null
                 }
                 if (error == null) {

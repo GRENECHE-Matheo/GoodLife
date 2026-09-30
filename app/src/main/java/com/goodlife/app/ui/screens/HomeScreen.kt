@@ -100,6 +100,8 @@ import com.goodlife.app.ui.theme.GoogleGreen
 import com.goodlife.app.ui.theme.GoogleRed
 import com.goodlife.app.ui.theme.GoogleYellow
 import com.goodlife.app.ui.toNumber
+import com.goodlife.app.ui.AiContentFooter
+import com.goodlife.app.ui.days
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -114,7 +116,7 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress" -> 1; else -> 2 } }) { screen ->
         when (screen) {
             "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
-            "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, onClose = { overlay = "" })
+            "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" })
             else -> HomeContent(
                 onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" },
                 onOpenProfile = onOpenProfile
@@ -199,7 +201,7 @@ private fun HomeContent(
             }
             Spacer(Modifier.width(4.dp))
             Surface(onClick = onQuiz, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                ChefMascot(Modifier.padding(2.dp), size = 44.dp, mood = ChefMood.QUESTION)
+                ChefMascot(Modifier.padding(2.dp), size = 44.dp, mood = if (summary.quizDoneToday) ChefMood.CONTENT else ChefMood.QUESTION)
             }
         }
 
@@ -210,7 +212,7 @@ private fun HomeContent(
                     ChefMascot(size = 64.dp, mood = ChefMood.TRISTE)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Ta série de ${summary.recoverableStreak} jours s'est arrêtée hier", style = MaterialTheme.typography.titleSmall)
+                        Text("Ta série de ${days(summary.recoverableStreak)} s'est arrêtée hier", style = MaterialTheme.typography.titleSmall)
                         Text(
                             "Réponds au quiz du chef (${QuizBank.PASS}/${QuizBank.PER_DAY}) aujourd'hui pour la sauver.",
                             style = MaterialTheme.typography.bodySmall
@@ -412,6 +414,7 @@ private fun SuggestionRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                AiContentFooter("Idée de repas : ${s.name} (${s.kcal} kcal)\n${s.description}\n${s.why}")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilledTonalButton(onClick = onPlan) {
                         Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))

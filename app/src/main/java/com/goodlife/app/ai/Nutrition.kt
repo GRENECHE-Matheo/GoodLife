@@ -22,7 +22,8 @@ object Nutrition {
     fun clampTarget(p: Profile, kcal: Int): Int =
         kcal.coerceIn(safetyFloor(p), 4500)
 
-    fun formulaTarget(p: Profile): Profile {
+    fun formulaTarget(profile: Profile): Profile {
+        val p = if (profile.goal == Goal.PERTE && !weightLossAllowed(profile)) profile.copy(goal = Goal.MAINTIEN) else profile
         val kcal = clampTarget(p, (tdee(p) + p.goal.deltaKcal).roundToInt())
         val protein = (p.weightKg * if (p.goal == Goal.PRISE) 1.8 else 1.6).roundToInt()
         val fat = (kcal * 0.28 / 9).roundToInt()
@@ -34,6 +35,15 @@ object Nutrition {
                 "(${p.activity.label}) = ${tdee(p).roundToInt()} kcal/jour, ajusté pour l'objectif « ${p.goal.label} »."
         )
     }
+
+    /** Âge minimum pour utiliser l'app seul (majorité numérique en France, loi Informatique et Libertés art. 45). */
+    const val MIN_AGE = 15
+
+    /**
+     * Garde-fou santé : pas d'objectif de perte de poids pour les mineurs (croissance) ni quand l'IMC
+     * est déjà sous 18,5 (maigreur), pour ne pas encourager des troubles du comportement alimentaire.
+     */
+    fun weightLossAllowed(p: Profile): Boolean = p.age >= 18 && bmi(p) >= 18.5
 
     fun bmi(p: Profile): Double {
         val m = p.heightCm / 100.0

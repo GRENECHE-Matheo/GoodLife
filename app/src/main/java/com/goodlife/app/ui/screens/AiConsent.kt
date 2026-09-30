@@ -48,7 +48,9 @@ fun AiConsentText() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             "Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes) utilisent " +
-                "Google Gemini avec ta propre clé gratuite. Si tu les actives :",
+                "Google Gemini avec ta propre clé API, que tu crées toi-même chez Google (Google AI Studio). " +
+                "En la créant, tu acceptes les conditions de Google (18 ans minimum) ; l'éventuelle facturation " +
+                "se fait entre toi et Google. Si tu actives l'IA :",
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
@@ -56,7 +58,9 @@ fun AiConsentText() {
                 "• Pour les recommandations : âge, sexe, poids, taille, activité, objectif, habitudes, allergies " +
                 "et repas du jour. Ce sont des données de santé.\n" +
                 "• Elles partent directement de ton téléphone vers Google, sous ton propre compte Google.\n" +
-                "• Google peut les conserver temporairement et les traiter hors de l'UE.\n" +
+                "• Google peut les conserver temporairement et les traiter hors de l'UE. Selon ses conditions, " +
+                "pour les utilisateurs situés dans l'UE, Google ne s'en sert pas pour améliorer ses produits.\n" +
+                "• Les réponses de l'IA sont des estimations et peuvent être fausses : vérifie-les.\n" +
                 "• Ton prénom et ton sommeil ne sont jamais envoyés.",
             style = MaterialTheme.typography.bodyMedium
         )

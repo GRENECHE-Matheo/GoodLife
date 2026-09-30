@@ -220,5 +220,7 @@ fun SubScreenHeader(title: String, onBack: () -> Unit) {
 
 fun formatTime(ms: Long): String = SimpleDateFormat("HH:mm", Locale.FRANCE).format(Date(ms))
 fun formatDay(ms: Long): String = SimpleDateFormat("EEE d MMM", Locale.FRANCE).format(Date(ms))
+/** « 1 jour », « 3 jours ». */
+fun days(n: Int): String = if (n > 1) "$n jours" else "$n jour"
 fun formatDuration(min: Long): String = "${min / 60} h ${"%02d".format(min % 60)}"
 fun String.toNumber(): Double? = replace(',', '.').trim().toDoubleOrNull()

@@ -43,13 +43,21 @@ fun LineChart(
     Column {
         Canvas(Modifier.fillMaxWidth().height(140.dp)) {
             if (present.isEmpty()) return@Canvas
-            val lo = minY ?: (minOf(present.min(), reference ?: present.min()) - 1f)
-            val hi = maxY ?: (maxOf(present.max(), reference ?: present.max()) + 1f)
+            val rawLo = minOf(present.min(), reference ?: present.min())
+            val rawHi = maxOf(present.max(), reference ?: present.max())
+            val headroom = maxOf((rawHi - rawLo) * 0.08f, 1f)
+            val lo = minY ?: (rawLo - headroom)
+            val hi = maxY ?: (rawHi + headroom)
             val span = (hi - lo).takeIf { it > 0f } ?: 1f
-            val stepX = if (values.size > 1) size.width / (values.size - 1) else 0f
-            fun y(v: Float) = size.height - (v - lo) / span * size.height
+            // Marge pour que les points et le trait ne soient jamais coupés par les bords
+            val pad = 8.dp.toPx()
+            val plotH = size.height - 2 * pad
+            // Chaque point est centré dans la colonne de son étiquette (même découpage que la ligne de dates)
+            val slot = size.width / values.size.coerceAtLeast(1)
+            fun x(i: Int) = slot * (i + 0.5f)
+            fun y(v: Float) = pad + plotH - (v - lo) / span * plotH
             for (i in 0..3) {
-                val gy = size.height * i / 3f
+                val gy = pad + plotH * i / 3f
                 drawLine(grid, Offset(0f, gy), Offset(size.width, gy), 1.dp.toPx())
             }
             if (reference != null) {
@@ -62,14 +70,14 @@ fun LineChart(
             var started = false
             values.forEachIndexed { i, v ->
                 if (v == null) return@forEachIndexed
-                val pt = Offset(i * stepX, y(v))
+                val pt = Offset(x(i), y(v))
                 if (!started) { path.moveTo(pt.x, pt.y); started = true } else path.lineTo(pt.x, pt.y)
             }
             // La courbe se dessine de gauche à droite
             clipRect(right = size.width * reveal.value + 6.dp.toPx()) {
                 drawPath(path, color, style = Stroke(3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
                 values.forEachIndexed { i, v ->
-                    if (v != null) drawCircle(color, 4.dp.toPx(), Offset(i * stepX, y(v)))
+                    if (v != null) drawCircle(color, 4.dp.toPx(), Offset(x(i), y(v)))
                 }
             }
         }

@@ -42,7 +42,14 @@ data class Settings(
     val aiEnabled: Boolean = false,
     val aiConsentAsked: Boolean = false,
     val aiConsentAt: Long = 0L,
-    val privacyAcceptedAt: Long = 0L
+    val privacyAcceptedAt: Long = 0L,
+    val sounds: Boolean = true,
+    // Sauvegarde automatique chiffrée : fichier choisi, clé dérivée du mot de passe (jamais le mot de passe)
+    val backupUri: String = "",
+    val backupKey: String = "",
+    val backupName: String = "",
+    val lastBackupAt: Long = 0L,
+    val backupError: String = ""
 ) {
 
     fun toJson(): JSONObject = JSONObject()
@@ -65,6 +72,12 @@ data class Settings(
         .put("aiConsentAsked", aiConsentAsked)
         .put("aiConsentAt", aiConsentAt)
         .put("privacyAcceptedAt", privacyAcceptedAt)
+        .put("sounds", sounds)
+        .put("backupUri", backupUri)
+        .put("backupKey", backupKey)
+        .put("backupName", backupName)
+        .put("lastBackupAt", lastBackupAt)
+        .put("backupError", backupError)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -89,7 +102,13 @@ data class Settings(
             aiEnabled = o.optBoolean("aiEnabled", false),
             aiConsentAsked = o.optBoolean("aiConsentAsked", false),
             aiConsentAt = o.optLong("aiConsentAt", 0L),
-            privacyAcceptedAt = o.optLong("privacyAcceptedAt", 0L)
+            privacyAcceptedAt = o.optLong("privacyAcceptedAt", 0L),
+            sounds = o.optBoolean("sounds", true),
+            backupUri = o.optString("backupUri"),
+            backupKey = o.optString("backupKey"),
+            backupName = o.optString("backupName"),
+            lastBackupAt = o.optLong("lastBackupAt", 0L),
+            backupError = o.optString("backupError")
         )
     }
 }
@@ -119,6 +138,16 @@ object Repo {
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings
 
+    /** Compteur de modifications des données (hors réglages), pour ne sauvegarder que si besoin. */
+    @Volatile var revision = 0L
+        private set
+    @Volatile private var backedUpRevision = 0L
+
+    private fun put(key: String, value: String?) {
+        store.put(key, value)
+        revision++
+    }
+
     @Synchronized
     fun init(context: Context) {
         if (::store.isInitialized) return
@@ -138,6 +167,12 @@ object Repo {
         _avatar.value = store.get(K_AVATAR)?.let { runCatching { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }.getOrNull() }
         _settings.value = store.get(K_SETTINGS)?.let { runCatching { Settings.fromJson(JSONObject(it)) }.getOrNull() }
             ?: Settings()
+        // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
+        _profile.value?.let { p ->
+            if (p.goal == Goal.PERTE && !com.goodlife.app.ai.Nutrition.weightLossAllowed(p)) {
+                saveProfile(com.goodlife.app.ai.Nutrition.formulaTarget(p))
+            }
+        }
     }
 
     // ---------- Profil ----------
@@ -145,7 +180,7 @@ object Repo {
     fun saveProfile(p: Profile) {
         val old = _profile.value
         _profile.value = p
-        store.put(K_PROFILE, p.toJson().toString())
+        put(K_PROFILE, p.toJson().toString())
         if (old == null || old.weightKg != p.weightKg) logWeight(p.weightKg)
     }
 
@@ -154,7 +189,7 @@ object Repo {
     fun updateGame(transform: (GameState) -> GameState) {
         val g = transform(_game.value)
         _game.value = g
-        store.put(K_GAME, g.toJson().toString())
+        put(K_GAME, g.toJson().toString())
     }
 
     fun logWeight(kg: Double) {
@@ -165,12 +200,17 @@ object Repo {
     @Synchronized
     fun saveAvatar(jpeg: ByteArray?) {
         _avatar.value = jpeg
-        store.put(K_AVATAR, jpeg?.let { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) })
+        put(K_AVATAR, jpeg?.let { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) })
     }
 
     // ---------- Repas ----------
     @Synchronized
-    fun addMeal(m: Meal) {
+    fun addMeal(meal: Meal) {
+        // Garde-fou commun à toutes les sources (saisie, photo IA, code-barres, planning)
+        val m = meal.copy(
+            kcal = meal.kcal.coerceIn(0, MAX_MEAL_KCAL),
+            proteinG = meal.proteinG.safeGrams(), carbsG = meal.carbsG.safeGrams(), fatG = meal.fatG.safeGrams()
+        )
         _meals.value = (_meals.value + m).sortedByDescending { it.timestamp }
         persistMeals()
     }
@@ -186,7 +226,7 @@ object Repo {
         val limit = System.currentTimeMillis() - 365L * 24 * 3600 * 1000
         val kept = _meals.value.filter { it.timestamp >= limit }
         _meals.value = kept
-        store.put(K_MEALS, JSONArray().apply { kept.forEach { put(it.toJson()) } }.toString())
+        put(K_MEALS, JSONArray().apply { kept.forEach { put(it.toJson()) } }.toString())
     }
 
     fun mealsOfDay(all: List<Meal>, dayOffset: Int = 0): List<Meal> {
@@ -211,7 +251,7 @@ object Repo {
     }
 
     private fun persistSleep() {
-        store.put(K_SLEEP, JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } }.toString())
+        put(K_SLEEP, JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } }.toString())
     }
 
     // ---------- Emploi du temps des repas ----------
@@ -238,7 +278,7 @@ object Repo {
         val limit = localDay(-90)
         val kept = _plan.value.filter { it.date >= limit }
         _plan.value = kept
-        store.put(K_PLAN, JSONArray().apply { kept.forEach { put(it.toJson()) } }.toString())
+        put(K_PLAN, JSONArray().apply { kept.forEach { put(it.toJson()) } }.toString())
     }
 
     // ---------- Réglages ----------
@@ -247,6 +287,78 @@ object Repo {
         val s = transform(_settings.value)
         _settings.value = s
         store.put(K_SETTINGS, s.toJson().toString())
+    }
+
+    // ---------- Sauvegarde chiffrée ----------
+    fun backupNeeded(): Boolean = revision != backedUpRevision || _settings.value.lastBackupAt == 0L
+
+    fun onBackupDone(atRevision: Long, error: String?) {
+        if (error == null) backedUpRevision = atRevision
+        updateSettings {
+            if (error == null) it.copy(lastBackupAt = System.currentTimeMillis(), backupError = "")
+            else it.copy(backupError = error)
+        }
+    }
+
+    /** Contenu de la sauvegarde : toutes les données, sans la clé API ni les réglages propres au téléphone. */
+    fun backupJson(): String {
+        val s = _settings.value
+        return JSONObject()
+            .put("app", "GoodLife")
+            .put("format", 1)
+            .put("createdAt", System.currentTimeMillis())
+            .put("profile", _profile.value?.toJson() ?: JSONObject.NULL)
+            .put("meals", JSONArray().apply { _meals.value.forEach { put(it.toJson()) } })
+            .put("mealPlan", JSONArray().apply { _plan.value.forEach { put(it.toJson()) } })
+            .put("sleep", JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } })
+            .put("game", _game.value.toJson())
+            .put("avatar", _avatar.value?.let { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) } ?: JSONObject.NULL)
+            .put("settings", JSONObject()
+                .put("themeMode", s.themeMode)
+                .put("themeColor", s.themeColor)
+                .put("sounds", s.sounds)
+                .put("checkUpdates", s.checkUpdates)
+                .put("privacyAcceptedAt", s.privacyAcceptedAt))
+            .toString()
+    }
+
+    /**
+     * Remplace toutes les données par celles d'une sauvegarde. Les réglages de sécurité, l'IA (consentement
+     * et clé) et la configuration de sauvegarde de ce téléphone sont conservés.
+     */
+    @Synchronized
+    fun restore(json: String) {
+        val o = JSONObject(json)
+        require(o.optString("app") == "GoodLife") { "Ce fichier n'est pas une sauvegarde GoodLife." }
+        val profile = o.optJSONObject("profile")?.let { Profile.fromJson(it) }
+            ?: throw IllegalArgumentException("La sauvegarde ne contient pas de profil.")
+        require(profile.age in com.goodlife.app.ai.Nutrition.MIN_AGE..110 && profile.weightKg in 25.0..350.0 && profile.heightCm in 100.0..250.0) {
+            "Le profil de la sauvegarde est invalide."
+        }
+        _profile.value = profile
+        put(K_PROFILE, profile.toJson().toString())
+        _meals.value = o.optJSONArray("meals")?.mapObjects { Meal.fromJson(it) }?.sortedByDescending { it.timestamp } ?: emptyList()
+        persistMeals()
+        _plan.value = o.optJSONArray("mealPlan")?.mapObjects { PlannedMeal.fromJson(it) } ?: emptyList()
+        persistPlan()
+        _sleep.value = o.optJSONArray("sleep")?.mapObjects { SleepSession.fromJson(it) }?.sortedByDescending { it.start } ?: emptyList()
+        persistSleep()
+        val game = o.optJSONObject("game")?.let { GameState.fromJson(it) } ?: GameState()
+        _game.value = game
+        put(K_GAME, game.toJson().toString())
+        val avatar = o.optString("avatar").takeIf { it.isNotBlank() && it != "null" }
+        _avatar.value = avatar?.let { runCatching { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }.getOrNull() }
+        put(K_AVATAR, avatar)
+        val st = o.optJSONObject("settings")
+        updateSettings { cur ->
+            cur.copy(
+                themeMode = st?.optString("themeMode")?.ifBlank { null } ?: cur.themeMode,
+                themeColor = st?.optString("themeColor")?.ifBlank { null } ?: cur.themeColor,
+                sounds = st?.optBoolean("sounds", cur.sounds) ?: cur.sounds,
+                checkUpdates = st?.optBoolean("checkUpdates", cur.checkUpdates) ?: cur.checkUpdates,
+                privacyAcceptedAt = st?.optLong("privacyAcceptedAt", 0L)?.takeIf { it > 0 } ?: cur.privacyAcceptedAt
+            )
+        }
     }
 
     @Synchronized
@@ -271,6 +383,9 @@ object Repo {
         c.add(Calendar.DAY_OF_YEAR, 1)
         return from to c.timeInMillis
     }
+
+    const val MAX_MEAL_KCAL = 5000
+    private fun Double.safeGrams() = if (isNaN()) 0.0 else coerceIn(0.0, 1000.0)
 
     private const val K_PROFILE = "profile"
     private const val K_MEALS = "meals"

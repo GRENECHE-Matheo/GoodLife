@@ -127,7 +127,8 @@ object Game {
                 best = max(best, streak)
                 val xp = when (status) {
                     DayStatus.REUSSI -> score / 2 + 20 + minOf(streak, 10) * 2
-                    DayStatus.RATTRAPE -> 10
+                    // Jamais moins qu'un jour raté : sauver sa série ne doit pas faire perdre d'XP
+                    DayStatus.RATTRAPE -> maxOf(10, score / 4)
                     DayStatus.RATE -> score / 4
                     DayStatus.VIDE -> 0
                 }

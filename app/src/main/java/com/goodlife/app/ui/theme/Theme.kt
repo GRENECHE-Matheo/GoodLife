@@ -10,6 +10,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 // Couleurs Google utilisées pour les macros
@@ -17,6 +18,14 @@ val GoogleBlue = Color(0xFF1A73E8)
 val GoogleGreen = Color(0xFF1E8E3E)
 val GoogleYellow = Color(0xFFF9AB00)
 val GoogleRed = Color(0xFFD93025)
+
+/** Vert « réussi », lisible sur fond clair comme sur fond sombre. */
+val successColor: Color
+    @Composable get() = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF81C995) else GoogleGreen
+
+/** Rouge « raté », cohérent avec la couleur d'erreur du thème. */
+val failColor: Color
+    @Composable get() = MaterialTheme.colorScheme.error
 
 /** Palette d'accent : couleurs claires et sombres. */
 private data class Accent(

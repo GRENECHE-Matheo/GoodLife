@@ -22,7 +22,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.13'
 
       - name: Préparer la clé de signature
         env:
@@ -35,20 +35,28 @@ jobs:
             echo "::warning::Pas de keystore : APK signé avec une clé de debug."
           fi
 
-      - name: Compiler l'APK
+      - name: Compiler l'APK (GitHub) et l'AAB (Google Play)
         env:
           GOODLIFE_KEYSTORE_PASSWORD: ${{ secrets.GOODLIFE_KEYSTORE_PASSWORD }}
           GOODLIFE_KEY_ALIAS: ${{ secrets.GOODLIFE_KEY_ALIAS }}
           GOODLIFE_KEY_PASSWORD: ${{ secrets.GOODLIFE_KEY_PASSWORD }}
-        run: gradle assembleRelease --stacktrace --no-daemon
+        run: gradle assembleGithubRelease bundlePlayRelease --stacktrace --no-daemon
 
       - name: Renommer
-        run: cp app/build/outputs/apk/release/app-release.apk "GoodLife-${GITHUB_REF_NAME//\//-}.apk"
+        run: |
+          cp app/build/outputs/apk/github/release/app-github-release.apk "GoodLife-${GITHUB_REF_NAME//\//-}.apk"
+          cp app/build/outputs/bundle/playRelease/app-play-release.aab "GoodLife-play-${GITHUB_REF_NAME//\//-}.aab"
 
       - uses: actions/upload-artifact@v4
         with:
           name: GoodLife-apk
           path: GoodLife-*.apk
+
+      # Fichier à envoyer dans la Play Console (non publié dans la release GitHub)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GoodLife-play-aab
+          path: GoodLife-play-*.aab
 
       - name: Publier la release
         if: startsWith(github.ref, 'refs/tags/')

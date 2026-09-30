@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.fragment.app.FragmentActivity
+import com.goodlife.app.data.Backup
 import com.goodlife.app.data.Repo
 import com.goodlife.app.net.UpdateInstaller
 import com.goodlife.app.security.AppLock
@@ -115,6 +116,9 @@ class MainActivity : FragmentActivity() {
     override fun onStop() {
         super.onStop()
         backgroundAt = SystemClock.elapsedRealtime()
+        // Sauvegarde chiffrée automatique (seulement si activée et si des données ont changé)
+        val app = applicationContext
+        Thread { Backup.autoBackup(app) }.start()
     }
 
     override fun onStart() {
@@ -125,9 +129,12 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    /** Bloque captures d'écran, enregistrement d'écran et aperçu dans les apps récentes. */
+    /**
+     * Bloque captures d'écran, enregistrement d'écran et aperçu dans les apps récentes.
+     * Jamais en version debug : l'écran de l'émulateur doit rester visible pendant le développement.
+     */
     private fun applyScreenshotBlock(block: Boolean) {
-        if (block) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        if (block && !BuildConfig.DEBUG) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
 }
