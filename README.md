@@ -40,6 +40,8 @@ Material You inspirée des applications Google.
   Nutridex des amis, encouragements tout prêts, blocage.
 - **Actus du jour** : une anecdote insolite et deux découvertes par jour (banque intégrée, sans réseau ni IA).
 - **Planning** : semaine lisible sur une ligne, génération de la semaine par l'IA avec budget et coût estimé par repas.
+- **Saisie « aliment + grammes »** hors ligne avec la table **Ciqual 2025 de l'Anses** (3 341 aliments, Licence Ouverte
+  Etalab 2.0, source : doi:10.57745/RDMHWY), en plus de la saisie directe en calories.
 - **Sauvegarde chiffrée** (optionnelle) : copie de toutes les données dans le fichier de ton choix (Drive, Téléchargements…),
   chiffrée AES-256-GCM avec une clé tirée d'un mot de passe (PBKDF2, 310 000 itérations), mise à jour automatiquement
   quand on quitte l'app après un changement ; restauration dès le premier écran sur un nouveau téléphone.

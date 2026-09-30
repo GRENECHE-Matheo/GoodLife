@@ -79,6 +79,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Repo.init(this)
+        com.goodlife.app.net.appContext = applicationContext
         UpdateInstaller.cleanup(this, onlyInstalled = true)
         com.goodlife.app.steps.Steps.schedule(this)
         com.goodlife.app.social.StreetPass.sync(this)

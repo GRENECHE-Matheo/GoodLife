@@ -473,7 +473,7 @@ private fun MealRow(m: Meal, onDelete: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(m.name, fontWeight = FontWeight.Medium)
             Text(
-                "${formatTime(m.timestamp)} · ${if (m.source == "photo") "photo IA" else "saisie"}",
+                "${formatTime(m.timestamp)} · ${when (m.source) { "photo" -> "photo IA"; "ciqual" -> "Ciqual"; "code-barres" -> "code-barres"; "planning" -> "planning"; else -> "saisie" }}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -481,31 +481,4 @@ private fun MealRow(m: Meal, onDelete: () -> Unit) {
         Text("${m.kcal} kcal", style = MaterialTheme.typography.titleSmall)
         IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Supprimer") }
     }
-}
-
-@Composable
-private fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var kcal by remember { mutableStateOf("") }
-    val k = kcal.toNumber()?.toInt()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Ajouter un repas") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nom") }, singleLine = true)
-                OutlinedTextField(
-                    kcal, { kcal = it }, label = { Text("Calories (kcal)") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = name.isNotBlank() && k != null && k in 0..5000,
-                onClick = { onAdd(Meal(name = name.trim(), kcal = k ?: 0, source = "manuel")) }
-            ) { Text("Ajouter") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
-    )
 }

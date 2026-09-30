@@ -91,7 +91,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             code to (stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "")
         } catch (e: java.io.IOException) {
-            throw AiException("Pas de connexion internet (${e.message ?: "réseau"}).")
+            throw AiException(com.goodlife.app.net.networkError("Google Gemini", e).message ?: "Problème réseau.")
         } finally {
             conn.disconnect()
         }

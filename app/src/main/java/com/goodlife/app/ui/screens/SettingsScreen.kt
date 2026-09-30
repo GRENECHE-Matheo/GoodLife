@@ -336,6 +336,12 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                "Données nutritionnelles : Anses, table de composition nutritionnelle des aliments Ciqual 2025 " +
+                    "(mise à jour du 19/11/2025, Licence Ouverte Etalab 2.0) ; Open Food Facts (licence ODbL).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             TextButton(onClick = { uri.openUri("mailto:${BuildConfig.CONTACT_EMAIL}") }) {
                 Text("Contact : ${BuildConfig.CONTACT_EMAIL}")
             }

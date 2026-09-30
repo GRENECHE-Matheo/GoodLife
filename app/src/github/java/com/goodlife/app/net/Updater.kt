@@ -42,7 +42,10 @@ object Updater {
                 "https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest",
                 accept = "application/vnd.github+json"
             )
-            if (code !in 200..299) error("GitHub indisponible ($code)")
+            if (code == 403 || code == 429) {
+                error("GitHub limite le nombre de vérifications depuis ce réseau (réseau partagé ?). Réessaie dans une heure ou sur un autre réseau.")
+            }
+            if (code !in 200..299) error("GitHub indisponible (code $code). Réessaie plus tard.")
             val o = JSONObject(body)
             val tag = o.optString("tag_name")
             val page = o.optString("html_url").takeIf { it.startsWith(RELEASES) } ?: (RELEASES + "latest")
