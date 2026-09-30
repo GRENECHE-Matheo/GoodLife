@@ -1,0 +1,61 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Préparer la clé de signature
+        env:
+          KEYSTORE_B64: ${{ secrets.GOODLIFE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/goodlife.jks"
+            echo "GOODLIFE_KEYSTORE=$RUNNER_TEMP/goodlife.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Pas de keystore : APK signé avec une clé de debug."
+          fi
+
+      - name: Compiler l'APK
+        env:
+          GOODLIFE_KEYSTORE_PASSWORD: ${{ secrets.GOODLIFE_KEYSTORE_PASSWORD }}
+          GOODLIFE_KEY_ALIAS: ${{ secrets.GOODLIFE_KEY_ALIAS }}
+          GOODLIFE_KEY_PASSWORD: ${{ secrets.GOODLIFE_KEY_PASSWORD }}
+        run: gradle assembleRelease --stacktrace --no-daemon
+
+      - name: Renommer
+        run: cp app/build/outputs/apk/release/app-release.apk "GoodLife-${GITHUB_REF_NAME//\//-}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GoodLife-apk
+          path: GoodLife-*.apk
+
+      - name: Publier la release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: GoodLife ${{ github.ref_name }}
+          files: GoodLife-*.apk
+          body: |
+            GoodLife ${{ github.ref_name }} — première version.
+            Projet développé avec l'assistance d'une IA (Claude, Anthropic).
