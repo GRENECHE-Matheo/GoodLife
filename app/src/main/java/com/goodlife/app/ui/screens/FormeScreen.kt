@@ -29,7 +29,8 @@ fun FormeScreen() {
     val active = com.goodlife.app.track.Tracker.live.collectAsState().value != null
     androidx.compose.runtime.LaunchedEffect(active) { if (active) tab = 1 }
     Column(Modifier.fillMaxSize()) {
-        if (!active) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        // Sur la carte, on garde toute la place pour elle : pas de grand titre
+        if (!active && tab != 1) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
                 ScreenTitle("Forme", "Bouger, s'amuser, bien dormir")
             }

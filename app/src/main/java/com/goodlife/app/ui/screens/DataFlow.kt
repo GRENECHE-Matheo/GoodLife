@@ -64,7 +64,7 @@ fun DataFlowSummary(showAi: Boolean = true) {
         )
         FlowLine(
             Icons.Filled.Map, "Carte → OpenFreeMap et OpenStreetMap",
-            "La zone affichée sur la carte, et celle où tu cherches des clubs. Ta position et tes tracés GPS restent sur le téléphone."
+            "La zone affichée, et celle où tu cherches des clubs, des boucles ou un itinéraire. Ta position exacte et tes tracés GPS restent sur le téléphone."
         )
         FlowLine(
             Icons.Filled.Group, "Amis (si ton profil est public) → le téléphone de tes amis",

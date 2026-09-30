@@ -37,6 +37,11 @@ object Tracker {
     private val _live = MutableStateFlow<LiveOuting?>(null)
     val live: StateFlow<LiveOuting?> = _live
 
+    /** Itinéraire à suivre (boucle, destination ou parcours à refaire), affiché et utilisé pour le guidage. */
+    private val _planned = MutableStateFlow<PlannedRoute?>(null)
+    val planned: StateFlow<PlannedRoute?> = _planned
+    fun setPlanned(route: PlannedRoute?) { _planned.value = route }
+
     private var last: Location? = null
     private var lastTick = 0L
     private var stillSince = 0L

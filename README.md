@@ -44,6 +44,10 @@ Material You inspirée des applications Google.
   dénivelé, en direct), carte qui suit la position comme un GPS, historique, « refaire ce parcours » pour battre son record,
   clubs et lieux de sport autour (OpenStreetMap : site, horaires, tarif s'il est connu) ; **Sommeil**.
   Carte MapLibre + OpenFreeMap (données © OpenStreetMap), sans clé API.
+  **Parcours** : boucles d'une distance choisie et itinéraire vers une destination (appui long sur la carte), calculés
+  dans l'app sur les chemins OpenStreetMap (jamais d'autoroute ni de voie rapide, préférence pour les chemins, parcs,
+  rues calmes et pistes cyclables), guidage avec distance restante et alerte si l'on s'écarte. **Cartes hors ligne**
+  par zone choisie, avec taille estimée avant téléchargement.
 - **Demander à l'IA** : conversation sur une photo analysée, une recette ou son programme sportif (effacée à la fermeture).
 - **Planning** : semaine lisible sur une ligne, génération de la semaine par l'IA avec budget et coût estimé par repas.
 - **Saisie « aliment + grammes »** hors ligne avec la table **Ciqual 2025 de l'Anses** (3 341 aliments, Licence Ouverte

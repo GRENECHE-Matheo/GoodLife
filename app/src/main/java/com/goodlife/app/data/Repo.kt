@@ -66,7 +66,8 @@ data class Settings(
     val shareDex: Boolean = true,
     val streetPass: Boolean = false,
     // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
-    val scoreRulesFrom: String = ""
+    val scoreRulesFrom: String = "",
+    val preferredOuting: String = "RUN"     // activité préférée (course / marche / vélo), pré-choisie sur la carte
 ) {
 
     fun toJson(): JSONObject = JSONObject()
@@ -109,6 +110,7 @@ data class Settings(
         .put("shareDex", shareDex)
         .put("streetPass", streetPass)
         .put("scoreRulesFrom", scoreRulesFrom)
+        .put("preferredOuting", preferredOuting)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -153,7 +155,8 @@ data class Settings(
             shareStreak = o.optBoolean("shareStreak", true),
             shareDex = o.optBoolean("shareDex", true),
             streetPass = o.optBoolean("streetPass", false),
-            scoreRulesFrom = o.optString("scoreRulesFrom")
+            scoreRulesFrom = o.optString("scoreRulesFrom"),
+            preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" }
         )
     }
 }

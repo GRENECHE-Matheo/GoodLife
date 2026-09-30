@@ -94,10 +94,12 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "sauvegarde chiffrée si tu l'as activée. Tu peux supprimer une activité à tout moment. Pas de localisation en arrière-plan.",
     "Carte et clubs" to
         "Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, © OpenMapTiles) : comme pour toute " +
-        "appli de carte, le serveur voit ton adresse IP et la zone affichée. Quand tu cherches des clubs, les coordonnées " +
-        "de la zone cherchée sont envoyées à l'API Overpass d'OpenStreetMap (serveur public géré par une association " +
-        "allemande) ; rien d'autre. Les informations des clubs (tarifs, horaires, site) viennent d'OpenStreetMap et " +
-        "peuvent être incomplètes : vérifie-les auprès du club.",
+        "appli de carte, le serveur voit ton adresse IP et la zone affichée. Quand tu cherches des clubs, des boucles ou " +
+        "un itinéraire vers une destination, les coordonnées de la zone concernée sont envoyées à l'API Overpass " +
+        "d'OpenStreetMap (serveur public géré par une association allemande) pour récupérer les chemins ou les clubs ; " +
+        "le calcul de l'itinéraire se fait ensuite sur ton téléphone. Les cartes hors ligne sont téléchargées depuis " +
+        "OpenFreeMap pour la seule zone que tu choisis, et tu peux les supprimer à tout moment. Les informations des " +
+        "clubs (tarifs, horaires, site) viennent d'OpenStreetMap et peuvent être incomplètes : vérifie-les auprès du club.",
     "Le Nutridex" to
         "Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. " +
         "Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, " +
@@ -165,7 +167,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.8 · mise à jour le 30 septembre 2026",
+                "Version 0.8.1 · mise à jour le 30 septembre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
