@@ -4,6 +4,8 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*' ]
+    # Pas de compilation pour un simple changement de texte (les tags compilent toujours)
+    paths-ignore: [ '**.md' ]
   workflow_dispatch:
 
 permissions:
@@ -58,12 +60,14 @@ jobs:
           name: GoodLife-play-aab
           path: GoodLife-play-*.aab
 
+      - name: Notes de version (tirées de CHANGELOG.md)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: sh .github/release-notes.sh "$GITHUB_REF_NAME" > notes.md
+
       - name: Publier la release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: GoodLife ${{ github.ref_name }}
           files: GoodLife-*.apk
-          body: |
-            GoodLife ${{ github.ref_name }}
-            Projet développé avec l'assistance d'une IA (Claude, Anthropic).
+          body_path: notes.md
