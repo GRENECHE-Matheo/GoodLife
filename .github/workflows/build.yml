@@ -40,7 +40,6 @@ jobs:
           GOODLIFE_KEYSTORE_PASSWORD: ${{ secrets.GOODLIFE_KEYSTORE_PASSWORD }}
           GOODLIFE_KEY_ALIAS: ${{ secrets.GOODLIFE_KEY_ALIAS }}
           GOODLIFE_KEY_PASSWORD: ${{ secrets.GOODLIFE_KEY_PASSWORD }}
-          GOODLIFE_RELAY_SECRET: ${{ secrets.GOODLIFE_RELAY_SECRET }}
         run: gradle assembleRelease --stacktrace --no-daemon
 
       - name: Renommer

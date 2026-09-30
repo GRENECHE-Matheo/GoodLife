@@ -1,12 +1,12 @@
 package com.goodlife.app.ai
 
 import android.util.Base64
-import com.goodlife.app.BuildConfig
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.FoodAnalysis
 import com.goodlife.app.data.Meal
 import com.goodlife.app.data.MealSuggestion
 import com.goodlife.app.data.Profile
+import com.goodlife.app.data.Recipe
 import com.goodlife.app.data.mapObjects
 import com.goodlife.app.data.strings
 import kotlinx.coroutines.Dispatchers
@@ -15,9 +15,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.security.MessageDigest
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 class AiException(message: String) : Exception(message)
@@ -29,12 +26,19 @@ class AiException(message: String) : Exception(message)
  */
 class Gemini(private val apiKey: String, private val model: String) {
 
-    /**
-     * Avec une clé perso → appel direct à Google (sans limite GoodLife).
-     * Sans clé → passage par le relais GoodLife (10 analyses/jour, clé gardée côté serveur).
-     */
+    /** Appel direct à Google avec la clé personnelle de l'utilisateur (stockée chiffrée sur le téléphone). */
     private suspend fun call(prompt: String, jpeg: ByteArray?): JSONObject = withContext(Dispatchers.IO) {
-        if (apiKey.isNotBlank()) callDirect(prompt, jpeg) else callRelay(prompt, jpeg)
+        // Garde-fou RGPD : aucune donnée n'est envoyée sans consentement explicite.
+        if (!Repo.settings.value.aiEnabled) {
+            throw AiException("Les fonctions IA sont désactivées. Tu peux les activer dans Paramètres › Intelligence artificielle.")
+        }
+        if ((Repo.profile.value?.age ?: 0) < 18) {
+            throw AiException("Les fonctions IA (Google Gemini) sont réservées aux personnes de 18 ans et plus.")
+        }
+        if (apiKey.isBlank()) {
+            throw AiException("Ajoute ta clé API Gemini (gratuite) dans Paramètres › Intelligence artificielle.")
+        }
+        callDirect(prompt, jpeg)
     }
 
     private fun callDirect(prompt: String, jpeg: ByteArray?): JSONObject {
@@ -52,57 +56,6 @@ class Gemini(private val apiKey: String, private val model: String) {
             }
         }
         throw AiException(lastError)
-    }
-
-    private fun callRelay(prompt: String, jpeg: ByteArray?): JSONObject {
-        val secret = BuildConfig.RELAY_SECRET
-        if (secret.isBlank()) {
-            throw AiException("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle.")
-        }
-        val payload = JSONObject().put("prompt", prompt)
-        if (jpeg != null) payload.put("image", Base64.encodeToString(jpeg, Base64.NO_WRAP))
-        val body = payload.toString().toByteArray(Charsets.UTF_8)
-
-        val install = Repo.settings.value.installId
-        val time = System.currentTimeMillis().toString()
-        val signature = hmacHex(secret, "$install\n$time\n${sha256Hex(body)}")
-
-        val conn = (URL("${BuildConfig.RELAY_URL}/v1/generate").openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 20_000
-            readTimeout = 90_000
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            setRequestProperty("x-gl-install", install)
-            setRequestProperty("x-gl-time", time)
-            setRequestProperty("x-gl-sig", signature)
-            // User-agent explicite : certains filtres anti-robots de Cloudflare bloquent les user-agents génériques.
-            setRequestProperty("User-Agent", "GoodLife-Android/${BuildConfig.VERSION_NAME}")
-        }
-        val (code, text) = try {
-            conn.outputStream.use { it.write(body) }
-            val c = conn.responseCode
-            val stream = if (c in 200..299) conn.inputStream else conn.errorStream
-            c to (stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "")
-        } catch (e: java.io.IOException) {
-            throw AiException("Pas de connexion internet (${e.message ?: "réseau"}).")
-        } finally {
-            conn.disconnect()
-        }
-
-        val o = runCatching { JSONObject(text) }.getOrNull()
-        val message = o?.optString("message")?.takeIf { it.isNotBlank() }
-        return when {
-            code in 200..299 && o != null -> {
-                if (o.has("remaining")) Repo.setRelayRemaining(o.optInt("remaining"))
-                extractJson(o.optString("text"))
-            }
-            code == 429 -> {
-                Repo.setRelayRemaining(0)
-                throw AiException(message ?: "Limite gratuite du jour atteinte. Ajoute ta clé dans Paramètres.")
-            }
-            else -> throw AiException(message ?: "Service IA GoodLife indisponible ($code). Réessaie plus tard.")
-        }
     }
 
     private fun post(model: String, prompt: String, jpeg: ByteArray?): Pair<Int, String> {
@@ -168,15 +121,6 @@ class Gemini(private val apiKey: String, private val model: String) {
         if (start < 0 || end <= start) throw AiException("Réponse IA illisible.")
         return runCatching { JSONObject(text.substring(start, end + 1)) }
             .getOrElse { throw AiException("Réponse IA illisible.") }
-    }
-
-    private fun sha256Hex(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
-
-    private fun hmacHex(secret: String, message: String): String {
-        val mac = Mac.getInstance("HmacSHA256")
-        mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
-        return mac.doFinal(message.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
     }
 
     // ------------------------------------------------------------------
@@ -245,15 +189,18 @@ class Gemini(private val apiKey: String, private val model: String) {
         val remaining = (p.targetKcal - eaten).coerceAtLeast(0)
         val list = today.joinToString("; ") { "${it.name} (${it.kcal} kcal)" }.ifBlank { "rien encore" }
         val prompt = """
-            Tu es un coach nutrition. Propose 3 idées de repas adaptées pour la suite de la journée.
+            Tu es un coach nutrition. Propose 4 idées de repas simples pour la suite de la journée ou demain.
             Objectif : ${p.goal.label}, cible ${p.targetKcal} kcal/jour, déjà consommé $eaten kcal, reste $remaining kcal.
             Mangé aujourd'hui : $list
             Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}
             ALLERGIES (à exclure absolument) : ${p.allergies.ifBlank { "aucune" }}
-            Plats simples, de saison, faciles à préparer.
+            Plats de saison, faciles, variés.
             Réponds UNIQUEMENT en JSON :
-            {"repas": [{"nom": "...", "moment": "déjeuner/dîner/collation", "kcal": 0,
-                        "description": "ingrédients et préparation en 1 phrase",
+            {"repas": [{"nom": "nom court (max 5 mots)",
+                        "moment": "petit-déjeuner/déjeuner/collation/dîner",
+                        "kcal": 0,
+                        "resume": "max 8 mots",
+                        "description": "ingrédients principaux et préparation en 2 phrases",
                         "pourquoi": "pourquoi c'est adapté, 1 phrase"}]}
         """.trimIndent()
         val o = call(prompt, null)
@@ -262,10 +209,35 @@ class Gemini(private val apiKey: String, private val model: String) {
                 name = it.optString("nom"),
                 moment = it.optString("moment"),
                 kcal = it.optDouble("kcal", 0.0).roundToInt(),
+                summary = it.optString("resume"),
                 description = it.optString("description"),
                 why = it.optString("pourquoi")
             )
         } ?: emptyList()
+    }
+
+    suspend fun recipe(p: Profile?, name: String, description: String, kcal: Int): Recipe {
+        val prompt = """
+            Donne une recette simple et réaliste pour : "$name" (${kcal} kcal par portion environ).
+            Contexte : $description
+            ALLERGIES (à exclure absolument) : ${p?.allergies?.ifBlank { "aucune" } ?: "aucune"}
+            Habitudes : ${p?.habits?.ifBlank { "non précisées" } ?: "non précisées"}
+            Quantités précises en grammes ou unités, étapes courtes, en français.
+            Réponds UNIQUEMENT en JSON :
+            {"portions": 1, "minutes": 0, "kcal_portion": 0,
+             "ingredients": ["quantité + ingrédient"],
+             "etapes": ["étape courte"],
+             "astuce": "une astuce courte"}
+        """.trimIndent()
+        val o = call(prompt, null)
+        return Recipe(
+            servings = o.optInt("portions", 1).coerceAtLeast(1),
+            minutes = o.optInt("minutes", 0),
+            kcalPerServing = o.optDouble("kcal_portion", kcal.toDouble()).roundToInt(),
+            ingredients = o.optJSONArray("ingredients")?.strings() ?: emptyList(),
+            steps = o.optJSONArray("etapes")?.strings() ?: emptyList(),
+            tip = o.optString("astuce")
+        )
     }
 
     companion object {

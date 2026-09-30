@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,9 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,25 +35,33 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.goodlife.app.ai.Gemini
 import com.goodlife.app.data.Meal
+import com.goodlife.app.data.MealSlot
 import com.goodlife.app.data.MealSuggestion
+import com.goodlife.app.data.Recipe
 import com.goodlife.app.data.Repo
+import com.goodlife.app.net.Updater
 import com.goodlife.app.ui.CalorieRing
 import com.goodlife.app.ui.MacroBar
 import com.goodlife.app.ui.ScreenTitle
@@ -78,6 +92,13 @@ fun HomeScreen(onScan: () -> Unit) {
     var suggestions by remember { mutableStateOf<List<MealSuggestion>>(emptyList()) }
     var sugLoading by remember { mutableStateOf(false) }
     var sugError by remember { mutableStateOf<String?>(null) }
+    var expandedIdx by remember { mutableIntStateOf(-1) }
+    var planFor by remember { mutableStateOf<MealSuggestion?>(null) }
+    var recipeFor by remember { mutableStateOf<MealSuggestion?>(null) }
+    val recipes = remember { mutableStateMapOf<String, Recipe>() }
+
+    val uri = LocalUriHandler.current
+    LaunchedEffect(Unit) { Updater.check() }
 
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val hello = if (hour < 18) "Bonjour" else "Bonsoir"
@@ -90,6 +111,25 @@ fun HomeScreen(onScan: () -> Unit) {
             if (p.name.isBlank()) hello else "$hello ${p.name}",
             formatDay(System.currentTimeMillis()).replaceFirstChar { it.uppercase() }
         )
+
+        val update = if (settings.checkUpdates) Updater.availableUpdate() else null
+        if (update != null && update.first != settings.dismissedTag) {
+            SectionCard(
+                title = "Nouvelle version ${update.first}",
+                icon = Icons.Filled.SystemUpdate,
+                container = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    "Télécharge l'APK depuis la page officielle GitHub, puis installe-le par-dessus : " +
+                        "tes données et ta clé sont conservées.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { uri.openUri(update.second) }) { Text("Télécharger") }
+                    TextButton(onClick = { Repo.updateSettings { it.copy(dismissedTag = update.first) } }) { Text("Plus tard") }
+                }
+            }
+        }
 
         SectionCard {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -133,47 +173,51 @@ fun HomeScreen(onScan: () -> Unit) {
         }
 
         SectionCard(title = "Idées de repas", icon = Icons.Filled.AutoAwesome) {
-            Text(
-                "Suggestions adaptées à ce qu'il te reste, à tes habitudes et à tes allergies.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            suggestions.forEach { s ->
-                Column(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(s.name, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                        Text("${s.kcal} kcal", color = MaterialTheme.colorScheme.primary)
-                    }
-                    if (s.moment.isNotBlank()) {
-                        Text(s.moment.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium)
-                    }
-                    Text(s.description, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        s.why, style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (!settings.aiEnabled) {
+                Text(
+                    "Les idées de repas utilisent l'IA (désactivée). Tu peux l'activer dans Paramètres.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    "Selon ce qu'il te reste, tes habitudes et tes allergies. Touche une idée pour les détails.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                suggestions.forEachIndexed { i, s ->
+                    if (i > 0) HorizontalDivider()
+                    SuggestionRow(
+                        s = s,
+                        expanded = expandedIdx == i,
+                        onToggle = { expandedIdx = if (expandedIdx == i) -1 else i },
+                        onPlan = { planFor = s },
+                        onRecipe = { recipeFor = s }
                     )
                 }
-            }
-            if (sugError != null) Text(sugError!!, color = MaterialTheme.colorScheme.error)
-            FilledTonalButton(
-                enabled = !sugLoading,
-                onClick = {
-                    sugLoading = true; sugError = null
-                    scope.launch {
-                        try {
-                            suggestions = Gemini(settings.apiKey, settings.model).suggestMeals(p, today)
-                        } catch (e: Exception) {
-                            sugError = e.message
-                        } finally {
-                            sugLoading = false
+                if (sugError != null) Text(sugError!!, color = MaterialTheme.colorScheme.error)
+                FilledTonalButton(
+                    enabled = !sugLoading,
+                    onClick = {
+                        sugLoading = true; sugError = null
+                        scope.launch {
+                            try {
+                                suggestions = Gemini(settings.apiKey, settings.model).suggestMeals(p, today)
+                                expandedIdx = -1
+                                recipes.clear()
+                            } catch (e: Exception) {
+                                sugError = e.message
+                            } finally {
+                                sugLoading = false
+                            }
                         }
                     }
+                ) {
+                    if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (suggestions.isEmpty()) "Proposer des repas" else "Autres idées")
                 }
-            ) {
-                if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(if (suggestions.isEmpty()) "Proposer des repas" else "Autres idées")
             }
         }
 
@@ -193,7 +237,71 @@ fun HomeScreen(onScan: () -> Unit) {
         Spacer(Modifier.height(8.dp))
     }
 
+    planFor?.let { s ->
+        AddToPlanDialog(
+            initialName = s.name, initialKcal = s.kcal, initialSlot = MealSlot.guess(s.moment),
+            description = s.description, recipe = recipes[s.name], editableName = false,
+            onDismiss = { planFor = null }
+        )
+    }
+    recipeFor?.let { s ->
+        RecipeDialog(
+            name = s.name, description = s.description, kcal = s.kcal, cached = recipes[s.name],
+            onLoaded = { recipes[s.name] = it }, onDismiss = { recipeFor = null }
+        )
+    }
+
     if (showAdd) AddMealDialog(onDismiss = { showAdd = false }) { Repo.addMeal(it); showAdd = false }
+}
+
+@Composable
+private fun SuggestionRow(
+    s: MealSuggestion,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onPlan: () -> Unit,
+    onRecipe: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(s.name, fontWeight = FontWeight.Medium)
+                Text(
+                    listOf(s.moment.replaceFirstChar { it.uppercase() }, s.summary).filter { it.isNotBlank() }.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text("${s.kcal} kcal", color = MaterialTheme.colorScheme.primary)
+            Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
+                Text(s.description, style = MaterialTheme.typography.bodyMedium)
+                if (s.why.isNotBlank()) {
+                    Text(
+                        s.why, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = onPlan) {
+                        Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Planifier")
+                    }
+                    OutlinedButton(onClick = onRecipe) {
+                        Icon(Icons.Filled.Restaurant, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Recette")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

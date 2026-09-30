@@ -14,13 +14,11 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.3"
 
-        // Relais GoodLife (10 analyses gratuites/jour sans clé personnelle)
-        buildConfigField("String", "RELAY_URL", "\"https://goodlife-relay.matheo-greneche0.workers.dev\"")
-        // Secret de signature injecté par GitHub Actions, jamais écrit dans le dépôt
-        buildConfigField("String", "RELAY_SECRET", "\"${System.getenv("GOODLIFE_RELAY_SECRET") ?: ""}\"")
+        // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
+        buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")
     }
 
     signingConfigs {
@@ -87,6 +85,9 @@ dependencies {
     // Verrouillage par empreinte / visage / code du téléphone
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.fragment:fragment-ktx:1.8.3")
+
+    // Lecture des codes-barres 100 % sur le téléphone (modèle intégré, sans Google Play)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // Sleep API (détection du sommeil, même méthode que Google Fit)
     implementation("com.google.android.gms:play-services-location:21.3.0")

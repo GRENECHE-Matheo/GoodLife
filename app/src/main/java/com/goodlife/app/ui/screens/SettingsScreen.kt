@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -21,10 +23,12 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -42,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import com.goodlife.app.BuildConfig
 import com.goodlife.app.ai.Gemini
 import com.goodlife.app.data.Repo
+import com.goodlife.app.net.Updater
+import kotlinx.coroutines.launch
 import com.goodlife.app.security.AppLock
 import com.goodlife.app.security.findFragmentActivity
 import com.goodlife.app.sleep.SleepTracker
@@ -74,6 +81,27 @@ fun SettingsScreen(onBack: () -> Unit) {
     var keySaved by remember { mutableStateOf(false) }
     var lockMessage by remember { mutableStateOf<String?>(null) }
     var confirmWipe by remember { mutableStateOf(false) }
+    var showPolicy by remember { mutableStateOf(false) }
+    var askAiConsent by remember { mutableStateOf(false) }
+    var exportMessage by remember { mutableStateOf<String?>(null) }
+    var checking by remember { mutableStateOf(false) }
+    var updateMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            exportMessage = runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(Repo.exportJson().toByteArray()) }
+                "Données exportées."
+            }.getOrElse { "Export impossible : ${it.message}" }
+        }
+    }
+
+    if (showPolicy) {
+        PrivacyScreen(onBack = { showPolicy = false })
+        return
+    }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -155,85 +183,133 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         // ---- IA ----
         SectionCard(title = "Intelligence artificielle", icon = Icons.Filled.VpnKey) {
-            Text(
-                "Sans clé : ${com.goodlife.app.data.Settings.RELAY_DAILY_LIMIT} analyses IA gratuites par jour, offertes par GoodLife " +
-                    "(Gemini 3.5 Flash-Lite). Restantes aujourd'hui : ${settings.relayRemainingToday()}.",
-                style = MaterialTheme.typography.bodyMedium
+            SettingSwitch(
+                title = "Fonctions IA (Google Gemini)",
+                subtitle = if (settings.aiEnabled) "Activées. Pour chaque demande, la photo et les infos nécessaires sont envoyées à Google avec ta clé."
+                           else "Désactivées. Aucune donnée n'est envoyée à Google.",
+                checked = settings.aiEnabled,
+                onChange = { on -> if (on) askAiConsent = true else disableAi() }
             )
-            Text(
-                "Pour en faire plus, crée ta propre clé gratuite sur Google AI Studio et colle-la ici. " +
-                    "Elle est chiffrée sur ton téléphone et n'est envoyée qu'à Google.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
-                Text("Obtenir une clé gratuite")
-            }
-            OutlinedTextField(
-                value = keyDraft,
-                onValueChange = { keyDraft = it.trim(); keySaved = false },
-                label = { Text("Clé API Gemini") },
-                singleLine = true,
-                visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { showKey = !showKey }) {
-                        Icon(if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, "Afficher")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalButton(onClick = {
-                    Repo.updateSettings { it.copy(apiKey = keyDraft) }
-                    keySaved = true
-                }) { Text("Enregistrer la clé") }
-                if (keySaved) {
-                    Spacer(Modifier.width(12.dp))
-                    Text("Enregistrée", color = MaterialTheme.colorScheme.primary)
+            if (settings.aiEnabled) {
+                Text(
+                    "Chaque utilisateur utilise sa propre clé Gemini, gratuite. Elle est chiffrée sur ce téléphone, " +
+                        "conservée lors des mises à jour de l'app, et n'est envoyée qu'à Google avec tes demandes.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
+                    Text("Obtenir une clé gratuite")
                 }
-            }
-            if (settings.apiKey.isNotBlank()) {
-                TextButton(onClick = {
-                    keyDraft = ""
-                    Repo.updateSettings { it.copy(apiKey = "") }
-                }) { Text("Retirer ma clé (revenir aux analyses offertes)") }
-            }
-            // Choix du modèle seulement avec une clé perso ; sinon modèle unique imposé par le relais.
-            if (settings.apiKey.isNotBlank()) {
-                Text("Modèle (avec ta clé)", style = MaterialTheme.typography.labelLarge)
-                Gemini.KNOWN_MODELS.forEach { (id, desc) ->
-                    Row(
-                        Modifier.fillMaxWidth().selectable(
-                            selected = settings.model == id,
-                            onClick = { Repo.updateSettings { it.copy(model = id) } },
-                            role = Role.RadioButton
-                        ),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = settings.model == id, onClick = null)
+                OutlinedTextField(
+                    value = keyDraft,
+                    onValueChange = { keyDraft = it.trim(); keySaved = false },
+                    label = { Text("Clé API Gemini") },
+                    singleLine = true,
+                    visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showKey = !showKey }) {
+                            Icon(if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, "Afficher")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalButton(onClick = {
+                        Repo.updateSettings { it.copy(apiKey = keyDraft) }
+                        keySaved = true
+                    }) { Text("Enregistrer la clé") }
+                    if (keySaved) {
                         Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(id)
-                            Text(
-                                desc, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Text("Enregistrée", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                if (settings.apiKey.isNotBlank()) {
+                    TextButton(onClick = {
+                        keyDraft = ""
+                        Repo.updateSettings { it.copy(apiKey = "") }
+                    }) { Text("Retirer ma clé") }
+                }
+                // Choix du modèle : uniquement quand une clé personnelle est enregistrée.
+                if (settings.apiKey.isNotBlank()) {
+                    Text("Modèle (avec ta clé)", style = MaterialTheme.typography.labelLarge)
+                    Gemini.KNOWN_MODELS.forEach { (id, desc) ->
+                        Row(
+                            Modifier.fillMaxWidth().selectable(
+                                selected = settings.model == id,
+                                onClick = { Repo.updateSettings { it.copy(model = id) } },
+                                role = Role.RadioButton
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = settings.model == id, onClick = null)
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(id)
+                                Text(
+                                    desc, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
+        // ---- Mises à jour ----
+        SectionCard(title = "Mises à jour", icon = Icons.Filled.SystemUpdate) {
+            SettingSwitch(
+                title = "Me prévenir des nouvelles versions",
+                subtitle = "Vérifie les versions publiées sur GitHub (au plus toutes les 12 h).",
+                checked = settings.checkUpdates,
+                onChange = { v -> Repo.updateSettings { it.copy(checkUpdates = v) } }
+            )
+            val update = Updater.availableUpdate()
+            Text(
+                if (update != null) "Nouvelle version ${update.first} disponible (tu as la ${BuildConfig.VERSION_NAME})."
+                else "Tu as la version ${BuildConfig.VERSION_NAME}.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    enabled = !checking,
+                    onClick = {
+                        checking = true; updateMessage = null
+                        scope.launch {
+                            val err = Updater.check(force = true)
+                            updateMessage = err?.let { "Vérification impossible : $it" }
+                                ?: if (Updater.availableUpdate() == null) "Tu as la dernière version." else null
+                            checking = false
+                        }
+                    }
+                ) { Text(if (checking) "Vérification…" else "Vérifier maintenant") }
+                if (update != null) {
+                    Button(onClick = { uri.openUri(update.second) }) { Text("Télécharger") }
+                }
+            }
+            if (updateMessage != null) Text(updateMessage!!, style = MaterialTheme.typography.bodySmall)
+        }
+
         // ---- Confidentialité ----
         SectionCard(title = "Confidentialité", icon = Icons.Filled.Lock) {
             Text(
-                "• Profil, repas et sommeil : stockés uniquement sur ce téléphone, chiffrés (AES-256, Android Keystore).\n" +
-                    "• Aucune sauvegarde cloud, aucun compte, aucune pub, aucun tracker.\n" +
-                    "• Quand tu analyses une photo, seules la photo et tes allergies partent vers Google Gemini " +
-                    "(directement avec ta clé, ou via le relais GoodLife sans clé, qui ne stocke rien). " +
-                    "Les photos ne sont jamais enregistrées.",
+                "• Profil, repas, emploi du temps et sommeil : stockés uniquement sur ce téléphone, chiffrés.\n" +
+                    "• Aucun compte, aucune sauvegarde cloud, aucune pub, aucun traceur.\n" +
+                    (if (settings.aiEnabled)
+                        "• IA activée : pour chaque demande, la photo et/ou les infos nécessaires (données de santé) " +
+                            "sont envoyées directement à Google Gemini avec ta clé. Google peut les conserver " +
+                            "temporairement et les traiter hors de l'UE.\n"
+                    else "• IA désactivée : rien n'est envoyé à Google.\n") +
+                    "• Code-barres : lu sur le téléphone ; seul le numéro est envoyé à Open Food Facts.\n" +
+                    "• Mises à jour : si activé, l'app interroge GitHub (qui voit ton adresse IP).",
                 style = MaterialTheme.typography.bodyMedium
             )
+            TextButton(onClick = { showPolicy = true }) { Text("Lire la politique de confidentialité") }
+            OutlinedButton(onClick = { exportLauncher.launch("goodlife-export.json") }) {
+                Text("Exporter mes données (JSON)")
+            }
+            if (exportMessage != null) {
+                Text(exportMessage!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
             OutlinedButton(onClick = { confirmWipe = true }) {
                 Text("Effacer toutes mes données", color = MaterialTheme.colorScheme.error)
             }
@@ -250,6 +326,8 @@ fun SettingsScreen(onBack: () -> Unit) {
             )
         }
     }
+
+    if (askAiConsent) AiConsentDialog(onDismiss = { askAiConsent = false })
 
     if (confirmWipe) {
         AlertDialog(

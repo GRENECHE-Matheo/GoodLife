@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.goodlife.app.ui.screens
 
 import android.Manifest
@@ -41,11 +43,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.goodlife.app.food.detectFoodBarcode
+import com.goodlife.app.net.FoodProduct
+import com.goodlife.app.net.OpenFoodFacts
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -94,6 +107,7 @@ fun ScanScreen(onDone: () -> Unit) {
     val settings by Repo.settings.collectAsState()
     val profile by Repo.profile.collectAsState()
     val scope = rememberCoroutineScope()
+    val uri = LocalUriHandler.current
 
     var hasCamera by remember {
         mutableStateOf(
@@ -102,28 +116,48 @@ fun ScanScreen(onDone: () -> Unit) {
     }
     val askCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasCamera = it }
 
+    val aiReady = settings.aiEnabled && settings.apiKey.isNotBlank()
+    var mode by rememberSaveable { mutableStateOf(if (aiReady) "photo" else "barcode") }
     var photo by remember { mutableStateOf<Bitmap?>(null) }
-    var loading by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<FoodAnalysis?>(null) }
+    var product by remember { mutableStateOf<FoodProduct?>(null) }
+    var askConsent by remember { mutableStateOf(false) }
+    var keyDraft by remember { mutableStateOf("") }
+
+    fun reset() { photo = null; result = null; product = null; error = null; loading = null }
 
     fun analyze(bmp: Bitmap) {
-        photo = bmp; result = null; error = null; loading = true
+        photo = bmp; result = null; product = null; error = null
         scope.launch {
             try {
-                val jpeg = withContext(Dispatchers.Default) { bmp.toJpeg() }
-                result = Gemini(settings.apiKey, settings.model).analyzeFood(jpeg, profile)
+                if (mode == "photo") {
+                    loading = "Analyse du repas par l'IA…"
+                    val jpeg = withContext(Dispatchers.Default) { bmp.toJpeg() }
+                    result = Gemini(settings.apiKey, settings.model).analyzeFood(jpeg, profile)
+                } else {
+                    loading = "Lecture du code-barres…"
+                    val code = detectFoodBarcode(bmp)
+                    if (code == null) {
+                        error = "Aucun code-barres trouvé. Rapproche-toi et cadre bien le code."
+                    } else {
+                        loading = "Recherche du produit…"
+                        product = OpenFoodFacts.product(code)
+                        if (product == null) error = "Produit $code introuvable dans Open Food Facts. Tu peux le saisir à la main depuis l'accueil."
+                    }
+                }
             } catch (e: Exception) {
                 error = e.message ?: "Analyse impossible."
             } finally {
-                loading = false
+                loading = null
             }
         }
     }
 
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            val bmp = loadBitmap(context, uri)
+    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { picked ->
+        if (picked != null) {
+            val bmp = loadBitmap(context, picked)
             if (bmp != null) analyze(bmp) else error = "Image illisible."
         }
     }
@@ -132,25 +166,54 @@ fun ScanScreen(onDone: () -> Unit) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ScreenTitle("Scanner un repas", "Cadre bien ton assiette, l'IA estime les calories")
-        if (settings.apiKey.isBlank()) {
-            val left = settings.relayRemainingToday()
-            Text(
-                if (left > 0) "Analyses gratuites restantes aujourd'hui : $left/${com.goodlife.app.data.Settings.RELAY_DAILY_LIMIT}"
-                else "Plus d'analyses gratuites aujourd'hui. Ajoute ta clé dans Paramètres pour continuer.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (left > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+        ScreenTitle("Scanner", if (mode == "photo") "Photo du repas : l'IA estime les calories" else "Code-barres d'un produit emballé")
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = mode == "photo", onClick = { mode = "photo"; reset() },
+                label = { Text("Photo (IA)") },
+                leadingIcon = { Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp)) }
+            )
+            FilterChip(
+                selected = mode == "barcode", onClick = { mode = "barcode"; reset() },
+                label = { Text("Code-barres") },
+                leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp)) }
             )
         }
 
         val current = photo
-        if (current == null) {
-            if (!hasCamera) {
-                SectionCard(title = "Accès à la caméra") {
-                    Text("GoodLife a besoin de la caméra pour photographier tes repas directement dans l'app.")
-                    Button(onClick = { askCamera.launch(Manifest.permission.CAMERA) }) { Text("Autoriser la caméra") }
-                }
-            } else {
+        when {
+            mode == "photo" && !settings.aiEnabled -> SectionCard(title = "IA désactivée") {
+                Text(
+                    "L'analyse des photos envoie la photo à Google Gemini avec ta propre clé, c'est pourquoi elle " +
+                        "demande ton accord. Le mode Code-barres fonctionne sans IA ni clé.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Button(onClick = { askConsent = true }) { Text("Activer l'IA") }
+            }
+            mode == "photo" && settings.apiKey.isBlank() -> SectionCard(title = "Ajoute ta clé Gemini") {
+                Text(
+                    "Chaque utilisateur utilise sa propre clé, gratuite. Elle reste chiffrée sur ce téléphone " +
+                        "et n'est envoyée qu'à Google.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text("Créer une clé gratuite") }
+                OutlinedTextField(
+                    value = keyDraft, onValueChange = { keyDraft = it.trim() },
+                    label = { Text("Clé API Gemini") }, singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    enabled = keyDraft.length >= 20,
+                    onClick = { Repo.updateSettings { it.copy(apiKey = keyDraft) }; keyDraft = "" }
+                ) { Text("Enregistrer la clé") }
+            }
+            current == null && !hasCamera -> SectionCard(title = "Accès à la caméra") {
+                Text("GoodLife a besoin de la caméra pour photographier directement dans l'app.")
+                Button(onClick = { askCamera.launch(Manifest.permission.CAMERA) }) { Text("Autoriser la caméra") }
+            }
+            current == null -> {
                 var capture by remember { mutableStateOf<ImageCapture?>(null) }
                 Box(
                     Modifier.fillMaxWidth().aspectRatio(3f / 4f)
@@ -159,8 +222,10 @@ fun ScanScreen(onDone: () -> Unit) {
                 ) {
                     InAppCamera(onReady = { capture = it })
                     Box(
-                        Modifier.align(Alignment.Center).fillMaxWidth(0.75f).aspectRatio(1f)
-                            .border(BorderStroke(2.dp, Color.White.copy(alpha = 0.7f)), RoundedCornerShape(32.dp))
+                        Modifier.align(Alignment.Center)
+                            .fillMaxWidth(if (mode == "barcode") 0.85f else 0.75f)
+                            .aspectRatio(if (mode == "barcode") 2f else 1f)
+                            .border(BorderStroke(2.dp, Color.White.copy(alpha = 0.7f)), RoundedCornerShape(24.dp))
                     )
                 }
                 Row(
@@ -186,39 +251,94 @@ fun ScanScreen(onDone: () -> Unit) {
                     ) { Icon(Icons.Filled.PhotoCamera, "Prendre la photo", Modifier.size(36.dp)) }
                     Spacer(Modifier.size(56.dp))
                 }
+                if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
             }
-            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
-        } else {
-            Image(
-                bitmap = current.asImageBitmap(),
-                contentDescription = "Photo du repas",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(28.dp))
-            )
-            when {
-                loading -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp)
-                    Spacer(Modifier.width(12.dp))
-                    Text("Analyse en cours…")
-                }
-                error != null -> {
-                    Text(error!!, color = MaterialTheme.colorScheme.error)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(onClick = { analyze(current) }) { Text("Réessayer") }
-                        OutlinedButton(onClick = { photo = null; error = null }) { Text("Nouvelle photo") }
-                    }
-                }
-                result != null -> ResultCard(
-                    r = result!!,
-                    onAdd = { meal ->
-                        Repo.addMeal(meal)
-                        photo = null; result = null
-                        onDone()
-                    },
-                    onRetake = { photo = null; result = null }
+            else -> {
+                Image(
+                    bitmap = current.asImageBitmap(),
+                    contentDescription = "Photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(28.dp))
                 )
+                when {
+                    loading != null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Text(loading!!)
+                    }
+                    error != null -> {
+                        Text(error!!, color = MaterialTheme.colorScheme.error)
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(onClick = { analyze(current) }) { Text("Réessayer") }
+                            OutlinedButton(onClick = { reset() }) { Text("Nouvelle photo") }
+                        }
+                    }
+                    result != null -> ResultCard(
+                        r = result!!,
+                        onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
+                        onRetake = { reset() }
+                    )
+                    product != null -> ProductCard(
+                        p = product!!,
+                        onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
+                        onRetake = { reset() }
+                    )
+                }
             }
         }
+        if (mode == "barcode") {
+            Text(
+                "Le code-barres est lu sur ton téléphone (ML Kit). Seul son numéro est envoyé à Open Food Facts, " +
+                    "base de données alimentaire ouverte, pour trouver les valeurs nutritionnelles.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    if (askConsent) AiConsentDialog(onDismiss = { askConsent = false })
+}
+
+@Composable
+private fun ProductCard(p: FoodProduct, onAdd: (Meal) -> Unit, onRetake: () -> Unit) {
+    var grams by remember(p) { mutableStateOf((p.servingGrams ?: 100.0).let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() }) }
+    val g = grams.toNumber() ?: 0.0
+    val kcal = (p.kcal100 * g / 100).toInt()
+    SectionCard {
+        Text(p.name, style = MaterialTheme.typography.titleLarge)
+        if (p.brand.isNotBlank()) Text(p.brand, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "Pour 100 g : ${p.kcal100.toInt()} kcal · P ${"%.1f".format(p.protein100)} g · " +
+                "G ${"%.1f".format(p.carbs100)} g · L ${"%.1f".format(p.fat100)} g",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        OutlinedTextField(
+            value = grams, onValueChange = { grams = it },
+            label = { Text("Quantité mangée (g ou ml)") }, singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text("$kcal kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                enabled = g > 0 && g <= 5000,
+                onClick = {
+                    onAdd(
+                        Meal(
+                            name = p.name, kcal = kcal,
+                            proteinG = p.protein100 * g / 100, carbsG = p.carbs100 * g / 100, fatG = p.fat100 * g / 100,
+                            details = "Code-barres ${p.barcode} · ${g.toInt()} g · Open Food Facts",
+                            source = "code-barres"
+                        )
+                    )
+                }
+            ) { Text("Ajouter au journal") }
+            OutlinedButton(onClick = onRetake) { Text("Autre produit") }
+        }
+        Text(
+            "Données : Open Food Facts (licence ODbL), à vérifier sur l'emballage.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

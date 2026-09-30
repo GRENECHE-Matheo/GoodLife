@@ -1,4 +1,4 @@
-# GoodLife — v0.2
+# GoodLife — v0.3
 
 > ⚠️ **Projet assisté par IA** : le code de cette application a été écrit avec l'assistance
 > d'une intelligence artificielle (Claude, par Anthropic), puis relu et piloté par son auteur.
@@ -17,6 +17,13 @@ Material You inspirée des applications Google.
 - **Suivi du sommeil** : détection automatique via la Sleep API de Google Play Services
   (mouvement, lumière, usage de l'écran) + mode manuel.
 - Historique sur 7 jours (calories et sommeil).
+- **Emploi du temps des repas** : planning de la semaine par créneau (petit-déjeuner, déjeuner, collation, dîner),
+  « marquer comme mangé » ajoute le repas au journal.
+- **Idées de repas IA** : liste courte, détails au toucher, boutons « Planifier » et « Recette ».
+- **IA désactivée par défaut** : consentement explicite au démarrage et dans les Paramètres, réservé aux 18 ans et plus.
+- **Mises à jour** : l'app signale les nouvelles versions publiées sur GitHub et ouvre la page officielle.
+- **RGPD** : politique de confidentialité dans l'app (`PRIVACY.md`), export des données (JSON), effacement,
+  retrait du consentement.
 - **Paramètres** : thème (système / clair / sombre), couleur (Material You ou 5 couleurs),
   verrouillage par empreinte et blocage des captures au choix, clé et modèle IA.
 
@@ -34,12 +41,11 @@ Material You inspirée des applications Google.
 
 ## IA
 
-**Sans clé** : 10 analyses IA gratuites par jour et par installation, via le relais GoodLife
-(Cloudflare Worker, dossier `relay/`). La clé Gemini est stockée comme secret côté Cloudflare :
-elle n'est ni dans l'app, ni dans ce dépôt. Chaque requête est signée par l'app (HMAC-SHA256,
-horodatée) et le relais impose le modèle, la taille des requêtes et le quota (par installation et par IP).
+Chaque utilisateur utilise **sa propre clé Gemini** (gratuite), stockée chiffrée sur son téléphone et conservée
+lors des mises à jour. GoodLife n'a aucun serveur : les requêtes vont directement du téléphone à Google.
 
-**Avec sa propre clé** (Paramètres › Intelligence artificielle) : appel direct à Google, sans la limite GoodLife.
+**Sans clé ni IA** : scan de code-barres avec ML Kit (sur le téléphone) + valeurs nutritionnelles
+d'Open Food Facts (seul le numéro du code-barres est envoyé), saisie manuelle, planning et sommeil.
 
 Modèle par défaut : `gemini-3.5-flash-lite` (rapide, gros quota gratuit). Si un modèle
 disparaît, l'app bascule automatiquement sur un autre.

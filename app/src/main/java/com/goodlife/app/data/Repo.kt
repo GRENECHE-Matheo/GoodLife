@@ -9,7 +9,12 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
-import java.util.UUID
+
+/** Jour local au format AAAA-MM-JJ, décalé de [offset] jours. */
+fun localDay(offset: Int = 0): String {
+    val c = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offset) }
+    return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(c.time)
+}
 
 /** Jour UTC au format AAAA-MM-JJ (même référence que le relais). */
 fun utcDay(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -27,13 +32,16 @@ data class Settings(
     val blockScreenshots: Boolean = true,
     val themeMode: String = "system",   // system | light | dark
     val themeColor: String = "auto",    // auto | blue | green | purple | orange | pink
-    val installId: String = "",
-    val relayRemaining: Int = -1,
-    val relayDay: String = ""
+    val checkUpdates: Boolean = true,
+    val lastUpdateCheck: Long = 0L,
+    val latestTag: String = "",
+    val latestUrl: String = "",
+    val dismissedTag: String = "",
+    val aiEnabled: Boolean = false,
+    val aiConsentAsked: Boolean = false,
+    val aiConsentAt: Long = 0L,
+    val privacyAcceptedAt: Long = 0L
 ) {
-    /** Analyses gratuites restantes aujourd'hui via le relais (null = inconnu → limite pleine). */
-    fun relayRemainingToday(limit: Int = RELAY_DAILY_LIMIT): Int =
-        if (relayDay == utcDay() && relayRemaining >= 0) relayRemaining else limit
 
     fun toJson(): JSONObject = JSONObject()
         .put("apiKey", apiKey).put("model", model).put("sleepAuto", sleepAuto)
@@ -44,13 +52,18 @@ data class Settings(
         .put("blockScreenshots", blockScreenshots)
         .put("themeMode", themeMode)
         .put("themeColor", themeColor)
-        .put("installId", installId)
-        .put("relayRemaining", relayRemaining)
-        .put("relayDay", relayDay)
+        .put("checkUpdates", checkUpdates)
+        .put("lastUpdateCheck", lastUpdateCheck)
+        .put("latestTag", latestTag)
+        .put("latestUrl", latestUrl)
+        .put("dismissedTag", dismissedTag)
+        .put("aiEnabled", aiEnabled)
+        .put("aiConsentAsked", aiConsentAsked)
+        .put("aiConsentAt", aiConsentAt)
+        .put("privacyAcceptedAt", privacyAcceptedAt)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
-        const val RELAY_DAILY_LIMIT = 10
         fun fromJson(o: JSONObject) = Settings(
             apiKey = o.optString("apiKey"),
             model = o.optString("model", DEFAULT_MODEL).ifBlank { DEFAULT_MODEL },
@@ -62,9 +75,15 @@ data class Settings(
             blockScreenshots = o.optBoolean("blockScreenshots", true),
             themeMode = o.optString("themeMode", "system").ifBlank { "system" },
             themeColor = o.optString("themeColor", "auto").ifBlank { "auto" },
-            installId = o.optString("installId"),
-            relayRemaining = o.optInt("relayRemaining", -1),
-            relayDay = o.optString("relayDay")
+            checkUpdates = o.optBoolean("checkUpdates", true),
+            lastUpdateCheck = o.optLong("lastUpdateCheck", 0L),
+            latestTag = o.optString("latestTag"),
+            latestUrl = o.optString("latestUrl"),
+            dismissedTag = o.optString("dismissedTag"),
+            aiEnabled = o.optBoolean("aiEnabled", false),
+            aiConsentAsked = o.optBoolean("aiConsentAsked", false),
+            aiConsentAt = o.optLong("aiConsentAt", 0L),
+            privacyAcceptedAt = o.optLong("privacyAcceptedAt", 0L)
         )
     }
 }
@@ -82,6 +101,9 @@ object Repo {
     private val _sleep = MutableStateFlow<List<SleepSession>>(emptyList())
     val sleep: StateFlow<List<SleepSession>> = _sleep
 
+    private val _plan = MutableStateFlow<List<PlannedMeal>>(emptyList())
+    val plan: StateFlow<List<PlannedMeal>> = _plan
+
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings
 
@@ -96,12 +118,11 @@ object Repo {
         _sleep.value = store.get(K_SLEEP)?.let { s ->
             runCatching { JSONArray(s).mapObjects { SleepSession.fromJson(it) } }.getOrNull()
         } ?: emptyList()
+        _plan.value = store.get(K_PLAN)?.let { s ->
+            runCatching { JSONArray(s).mapObjects { PlannedMeal.fromJson(it) } }.getOrNull()
+        } ?: emptyList()
         _settings.value = store.get(K_SETTINGS)?.let { runCatching { Settings.fromJson(JSONObject(it)) }.getOrNull() }
             ?: Settings()
-        // Identifiant anonyme et aléatoire de cette installation (sert au quota du relais).
-        if (_settings.value.installId.isBlank()) {
-            updateSettings { it.copy(installId = UUID.randomUUID().toString()) }
-        }
     }
 
     // ---------- Profil ----------
@@ -157,6 +178,33 @@ object Repo {
         store.put(K_SLEEP, JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } }.toString())
     }
 
+    // ---------- Emploi du temps des repas ----------
+    @Synchronized
+    fun addPlanned(m: PlannedMeal) {
+        _plan.value = _plan.value + m
+        persistPlan()
+    }
+
+    @Synchronized
+    fun updatePlanned(m: PlannedMeal) {
+        _plan.value = _plan.value.map { if (it.id == m.id) m else it }
+        persistPlan()
+    }
+
+    @Synchronized
+    fun deletePlanned(id: Long) {
+        _plan.value = _plan.value.filterNot { it.id == id }
+        persistPlan()
+    }
+
+    private fun persistPlan() {
+        // on garde 3 mois en arrière maximum
+        val limit = localDay(-90)
+        val kept = _plan.value.filter { it.date >= limit }
+        _plan.value = kept
+        store.put(K_PLAN, JSONArray().apply { kept.forEach { put(it.toJson()) } }.toString())
+    }
+
     // ---------- Réglages ----------
     @Synchronized
     fun updateSettings(transform: (Settings) -> Settings) {
@@ -165,18 +213,14 @@ object Repo {
         store.put(K_SETTINGS, s.toJson().toString())
     }
 
-    fun setRelayRemaining(remaining: Int) {
-        updateSettings { it.copy(relayRemaining = remaining, relayDay = utcDay()) }
-    }
-
     @Synchronized
     fun wipeAll() {
         store.clear()
         _profile.value = null
         _meals.value = emptyList()
         _sleep.value = emptyList()
+        _plan.value = emptyList()
         _settings.value = Settings()
-        updateSettings { it.copy(installId = UUID.randomUUID().toString()) }
     }
 
     fun dayBounds(dayOffset: Int = 0): Pair<Long, Long> {
@@ -194,4 +238,27 @@ object Repo {
     private const val K_MEALS = "meals"
     private const val K_SLEEP = "sleep"
     private const val K_SETTINGS = "settings"
+    private const val K_PLAN = "plan"
+
+    /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
+    fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
+
+    /** Export RGPD (droit à la portabilité) : toutes les données locales, sans la clé API. */
+    fun exportJson(): String {
+        val s = _settings.value
+        return JSONObject()
+            .put("app", "GoodLife")
+            .put("exportedAt", System.currentTimeMillis())
+            .put("profile", _profile.value?.toJson() ?: JSONObject.NULL)
+            .put("meals", JSONArray().apply { _meals.value.forEach { put(it.toJson()) } })
+            .put("mealPlan", JSONArray().apply { _plan.value.forEach { put(it.toJson()) } })
+            .put("sleep", JSONArray().apply { _sleep.value.forEach { put(it.toJson()) } })
+            .put("settings", JSONObject()
+                .put("aiEnabled", s.aiEnabled)
+                .put("aiConsentAt", s.aiConsentAt)
+                .put("privacyAcceptedAt", s.privacyAcceptedAt)
+                .put("personalApiKeySaved", s.apiKey.isNotBlank())
+                .put("checkUpdates", s.checkUpdates))
+            .toString(2)
+    }
 }

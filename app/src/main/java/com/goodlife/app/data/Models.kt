@@ -125,9 +125,83 @@ data class MealSuggestion(
     val name: String,
     val moment: String,
     val kcal: Int,
+    val summary: String,
     val description: String,
     val why: String
 )
+
+enum class MealSlot(val label: String) {
+    PETIT_DEJ("Petit-déjeuner"),
+    DEJEUNER("Déjeuner"),
+    COLLATION("Collation"),
+    DINER("Dîner");
+
+    companion object {
+        /** Devine le créneau à partir du « moment » renvoyé par l'IA. */
+        fun guess(moment: String): MealSlot {
+            val m = moment.lowercase()
+            return when {
+                "petit" in m || "matin" in m -> PETIT_DEJ
+                "collation" in m || "goûter" in m || "gouter" in m || "snack" in m -> COLLATION
+                "dîner" in m || "diner" in m || "soir" in m -> DINER
+                else -> DEJEUNER
+            }
+        }
+    }
+}
+
+data class Recipe(
+    val servings: Int,
+    val minutes: Int,
+    val kcalPerServing: Int,
+    val ingredients: List<String>,
+    val steps: List<String>,
+    val tip: String
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("servings", servings).put("minutes", minutes).put("kcalPerServing", kcalPerServing)
+        .put("ingredients", JSONArray(ingredients)).put("steps", JSONArray(steps)).put("tip", tip)
+
+    companion object {
+        fun fromJson(o: JSONObject) = Recipe(
+            servings = o.optInt("servings", 1),
+            minutes = o.optInt("minutes", 0),
+            kcalPerServing = o.optInt("kcalPerServing", 0),
+            ingredients = o.optJSONArray("ingredients")?.strings() ?: emptyList(),
+            steps = o.optJSONArray("steps")?.strings() ?: emptyList(),
+            tip = o.optString("tip")
+        )
+    }
+}
+
+data class PlannedMeal(
+    val id: Long = System.currentTimeMillis(),
+    val date: String,              // AAAA-MM-JJ (heure locale)
+    val slot: MealSlot,
+    val name: String,
+    val kcal: Int,
+    val description: String = "",
+    val recipe: Recipe? = null,
+    val done: Boolean = false
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("id", id).put("date", date).put("slot", slot.name).put("name", name).put("kcal", kcal)
+        .put("description", description).put("done", done)
+        .apply { if (recipe != null) put("recipe", recipe.toJson()) }
+
+    companion object {
+        fun fromJson(o: JSONObject) = PlannedMeal(
+            id = o.optLong("id"),
+            date = o.optString("date"),
+            slot = enumOr(o.optString("slot"), MealSlot.DEJEUNER),
+            name = o.optString("name"),
+            kcal = o.optInt("kcal"),
+            description = o.optString("description"),
+            recipe = o.optJSONObject("recipe")?.let { Recipe.fromJson(it) },
+            done = o.optBoolean("done", false)
+        )
+    }
+}
 
 data class FoodAnalysis(
     val dish: String,
