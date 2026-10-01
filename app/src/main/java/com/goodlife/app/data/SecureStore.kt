@@ -41,6 +41,71 @@ class SecureStore(context: Context) {
         return gen.generateKey()
     }
 
+    /**
+     * Clé Keystore réservée aux secrets (clé API Gemini, clé de la sauvegarde) :
+     * - dans la puce de sécurité dédiée (StrongBox) si le téléphone en a une, sinon dans l'environnement sécurisé (TEE) ;
+     * - utilisable seulement quand le téléphone est déverrouillé (Android 9+) ;
+     * - jamais exportable : même avec les fichiers de l'app, personne ne peut la lire (ni l'utilisateur, ni le développeur).
+     */
+    @Synchronized
+    private fun secretKey(): SecretKey {
+        val ks = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+        (ks.getEntry(SECRET_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        fun spec(strongBox: Boolean, unlocked: Boolean) = KeyGenParameterSpec.Builder(SECRET_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setKeySize(256)
+            .apply {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    if (unlocked) setUnlockedDeviceRequired(true)
+                    if (strongBox) setIsStrongBoxBacked(true)
+                }
+            }
+            .build()
+        // Du plus protégé au plus simple : puce StrongBox + déverrouillage requis, puis TEE + déverrouillage requis,
+        // puis TEE seul (téléphone sans code de verrouillage : Android refuse alors l'option « déverrouillé »).
+        val options = listOf(true to true, false to true, false to false)
+        var last: Throwable? = null
+        for ((strongBox, unlocked) in options) {
+            val key = runCatching {
+                val gen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE)
+                gen.init(spec(strongBox, unlocked))
+                gen.generateKey().also { k ->
+                    // Vérifie tout de suite qu'elle est utilisable (sinon Android ne le dit qu'au premier chiffrement)
+                    Cipher.getInstance(TRANSFORMATION).init(Cipher.ENCRYPT_MODE, k)
+                }
+            }
+            if (key.isSuccess) return key.getOrThrow()
+            last = key.exceptionOrNull()
+            runCatching { ks.deleteEntry(SECRET_ALIAS) }
+        }
+        throw last ?: IllegalStateException("Keystore")
+    }
+
+    /** Enregistre un secret (null = l'effacer). Chiffré avec [secretKey], à part des autres données. */
+    @Synchronized
+    fun putSecret(name: String, value: String?) {
+        if (value.isNullOrEmpty()) { prefs.edit().remove(SECRET_PREFIX + name).commit(); return }
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey())
+        val packed = cipher.iv + cipher.doFinal(value.toByteArray(Charsets.UTF_8))
+        prefs.edit().putString(SECRET_PREFIX + name, Base64.encodeToString(packed, Base64.NO_WRAP)).commit()
+    }
+
+    /** Secret déchiffré, ou null s'il n'existe pas ou si le téléphone est verrouillé. */
+    @Synchronized
+    fun getSecret(name: String): String? {
+        val stored = prefs.getString(SECRET_PREFIX + name, null) ?: return null
+        return runCatching {
+            val bytes = Base64.decode(stored, Base64.NO_WRAP)
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, bytes, 0, IV_SIZE))
+            String(cipher.doFinal(bytes, IV_SIZE, bytes.size - IV_SIZE), Charsets.UTF_8)
+        }.getOrNull()
+    }
+
+    fun hasSecret(name: String): Boolean = prefs.contains(SECRET_PREFIX + name)
+
     /** Écrit tout de suite sur le disque (avant un redémarrage de l'app, par exemple). */
     fun flush() {
         prefs.edit().commit()
@@ -103,11 +168,15 @@ class SecureStore(context: Context) {
     fun clear() {
         prefs.edit().clear().apply()
         filesDir.listFiles()?.forEach { it.delete() }
+        // La clé des secrets est détruite : même une ancienne copie des fichiers ne pourrait plus être déchiffrée
+        runCatching { KeyStore.getInstance(KEYSTORE).apply { load(null) }.deleteEntry(SECRET_ALIAS) }
     }
 
     private companion object {
         const val KEYSTORE = "AndroidKeyStore"
         const val ALIAS = "goodlife_master_key"
+        const val SECRET_ALIAS = "goodlife_secret_key"
+        const val SECRET_PREFIX = "secret_"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val IV_SIZE = 12
     }

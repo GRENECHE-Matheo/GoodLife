@@ -68,7 +68,9 @@ import com.goodlife.app.data.Repo
 import com.goodlife.app.ui.Sfx
 import com.goodlife.app.ui.Sounds
 import com.goodlife.app.net.Updater
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.goodlife.app.security.AppLock
 import com.goodlife.app.security.findFragmentActivity
 import com.goodlife.app.sleep.SleepTracker
@@ -117,6 +119,32 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             }.getOrElse { t("Export impossible : %1\$s", it.message) }
         }
     }
+    // Export protégé : même format que la sauvegarde chiffrée (restaurable), clé tirée du mot de passe
+    var exportKey by remember { mutableStateOf<com.goodlife.app.data.Backup.DerivedKey?>(null) }
+    var exportDialog by remember { mutableStateOf(false) }
+    val protectedExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(com.goodlife.app.data.Backup.MIME)
+    ) { uri ->
+        val k = exportKey
+        exportKey = null
+        if (uri != null && k != null) {
+            exportMessage = runCatching {
+                com.goodlife.app.data.Backup.write(context, uri, com.goodlife.app.data.Backup.encrypt(Repo.backupJson(), k))
+                t("Données exportées, protégées par ton mot de passe.")
+            }.getOrElse { t("Export impossible : %1\$s", it.message) }
+        }
+    }
+    if (exportDialog) ExportDialog(
+        onDismiss = { exportDialog = false },
+        onProtected = { password ->
+            exportDialog = false
+            scope.launch {
+                exportKey = withContext(Dispatchers.Default) { com.goodlife.app.data.Backup.deriveKey(password) }
+                protectedExportLauncher.launch("GoodLife-export.goodlife")
+            }
+        },
+        onPlain = { exportDialog = false; exportLauncher.launch("goodlife-export.json") }
+    )
 
 
     ScreenColumn {
@@ -279,11 +307,13 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                         }
                     }
                 } else {
+                    NoScreenshotsWhileVisible()
                     OutlinedTextField(
                         value = keyDraft,
                         onValueChange = { keyDraft = it.trim(); keySaved = false },
                         label = { Text(if (replacingKey) t("Nouvelle clé API Gemini") else t("Clé API Gemini")) },
                         singleLine = true,
+                        keyboardOptions = KEY_KEYBOARD,
                         visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             // L'œil ne montre que ce qui est en train d'être tapé, jamais la clé enregistrée
@@ -295,7 +325,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         FilledTonalButton(enabled = keyDraft.length >= 20, onClick = {
-                            Repo.updateSettings { it.copy(apiKey = keyDraft) }
+                            saveApiKey(context, keyDraft)
                             keyDraft = ""; showKey = false; keySaved = true; replacingKey = false
                         }) { Text(t("Enregistrer la clé")) }
                         if (replacingKey) TextButton(onClick = { replacingKey = false; keyDraft = "" }) { Text(t("Annuler")) }
@@ -367,8 +397,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary
             )
             TextButton(onClick = onOpenPolicy) { Text(t("Lire la politique de confidentialité")) }
-            OutlinedButton(onClick = { exportLauncher.launch("goodlife-export.json") }) {
-                Text(t("Exporter mes données (JSON)"))
+            OutlinedButton(onClick = { exportDialog = true }) {
+                Text(t("Exporter mes données"))
             }
             if (exportMessage != null) {
                 Text(exportMessage!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
@@ -441,4 +471,36 @@ private fun restartApp(context: android.content.Context) {
     context.startActivity(intent)
     (context as? android.app.Activity)?.finishAffinity()
     Runtime.getRuntime().exit(0)
+}
+
+/** Export : protégé par mot de passe (recommandé, restaurable) ou fichier lisible (JSON, pour la portabilité RGPD). */
+@Composable
+private fun ExportDialog(onDismiss: () -> Unit, onProtected: (String) -> Unit, onPlain: () -> Unit) {
+    var pw by remember { mutableStateOf("") }
+    var pw2 by remember { mutableStateOf("") }
+    var show by remember { mutableStateOf(false) }
+    val ok = pw.length >= com.goodlife.app.data.Backup.MIN_PASSWORD && pw == pw2
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(t("Exporter mes données")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(t("Le fichier contient tes données de santé (repas, poids, sommeil…). Protège-le par un mot de passe : sans lui, personne ne peut le lire. Tu pourras aussi le restaurer dans GoodLife."),
+                    style = MaterialTheme.typography.bodyMedium)
+                PasswordField(pw, { pw = it }, t("Mot de passe"), show) { show = !show }
+                PasswordField(pw2, { pw2 = it }, t("Confirmer"), show) { show = !show }
+                Text(
+                    when {
+                        pw.isNotEmpty() && pw.length < com.goodlife.app.data.Backup.MIN_PASSWORD -> t("Au moins %1\$s caractères.", com.goodlife.app.data.Backup.MIN_PASSWORD)
+                        pw2.isNotEmpty() && pw != pw2 -> t("Les deux mots de passe sont différents.")
+                        else -> t("Ta clé API n'est jamais incluse dans l'export.")
+                    },
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = onPlain) { Text(t("Exporter sans mot de passe (fichier lisible)")) }
+            }
+        },
+        confirmButton = { TextButton(enabled = ok, onClick = { onProtected(pw) }) { Text(t("Exporter")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
+    )
 }

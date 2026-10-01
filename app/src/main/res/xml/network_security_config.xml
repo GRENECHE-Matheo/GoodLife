@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Réseau : HTTPS uniquement, et seulement les autorités de certification du système.
+  Un certificat ajouté à la main sur le téléphone (proxy d'interception) n'est jamais accepté :
+  personne ne peut lire la clé API ou les données en espionnant le Wi-Fi ou avec un proxy.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

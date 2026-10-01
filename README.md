@@ -22,7 +22,12 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9.6
+## 🆕 Nouveautés de la v0.9.7
+
+- **Clé API blindée** : coffre chiffré par la puce de sécurité du téléphone, saisie protégée, réseau HTTPS strict.
+- **Export protégé par mot de passe** et **invitations d'ami en lien cliquable**.
+
+## Nouveautés de la v0.9.6
 
 - **Accueil plus clair** : les calories et le bouton photo d'abord ; missions et badges en version compacte.
 - **Amis repensés** : tout en cartes, ajout en un geste, rencontres à accepter d'un bouton, profil replié avec « Modifier ».

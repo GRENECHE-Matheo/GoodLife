@@ -91,7 +91,7 @@ data class Settings(
 
 
     fun toJson(): JSONObject = JSONObject()
-        .put("apiKey", apiKey).put("model", model).put("sleepAuto", sleepAuto)
+        .put("model", model).put("sleepAuto", sleepAuto)
         .put("manualSleepStart", manualSleepStart)
         .put("lastSleepConfidence", lastSleepConfidence)
         .put("lastSleepConfidenceAt", lastSleepConfidenceAt)
@@ -112,7 +112,6 @@ data class Settings(
         .put("privacyAcceptedAt", privacyAcceptedAt)
         .put("sounds", sounds)
         .put("backupUri", backupUri)
-        .put("backupKey", backupKey)
         .put("backupName", backupName)
         .put("lastBackupAt", lastBackupAt)
         .put("backupError", backupError)
@@ -278,6 +277,7 @@ object Repo {
     fun init(context: Context) {
         if (::store.isInitialized) return
         appContext = context.applicationContext
+        com.goodlife.app.ai.AppIdentity.init(context.applicationContext)
         store = SecureStore(context.applicationContext)
         // Langue choisie appliquée avant tout le reste (les libellés sont traduits dès leur premier usage)
         com.goodlife.app.i18n.Lang.apply(
@@ -298,6 +298,7 @@ object Repo {
         _avatar.value = store.get(K_AVATAR)?.let { runCatching { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }.getOrNull() }
         _settings.value = store.get(K_SETTINGS)?.let { runCatching { Settings.fromJson(JSONObject(it)) }.getOrNull() }
             ?: Settings()
+        loadSecrets()
         _steps.value = store.get(K_STEPS)?.let { runCatching { StepsData.fromJson(JSONObject(it)) }.getOrNull() }
             ?: StepsData()
         _dex.value = store.get(K_DEX)?.let { runCatching { DexState.fromJson(JSONObject(it)) }.getOrNull() }
@@ -661,13 +662,47 @@ object Repo {
     fun putExtra(key: String, value: String?) = store.put("x_$key", value)
 
     // ---------- Réglages ----------
-    @Synchronized
     /** Attend que tout soit écrit sur le disque (avant de redémarrer l'app). */
     fun flush() = store.flush()
 
+    /**
+     * Secrets (clé API, clé de la sauvegarde) : dans un coffre à part, chiffré par une clé de la puce de sécurité,
+     * utilisable seulement téléphone déverrouillé. Les anciennes versions les gardaient dans les réglages : ils sont
+     * déplacés une fois, puis effacés des réglages.
+     */
+    private fun loadSecrets() {
+        val s = _settings.value
+        if (s.apiKey.isNotEmpty() || s.backupKey.isNotEmpty()) {
+            // Téléphone verrouillé (app lancée en arrière-plan) : on réessaiera au prochain démarrage
+            val moved = runCatching {
+                if (s.apiKey.isNotEmpty()) store.putSecret(S_API_KEY, s.apiKey)
+                if (s.backupKey.isNotEmpty()) store.putSecret(S_BACKUP_KEY, s.backupKey)
+            }.isSuccess
+            if (moved) store.put(K_SETTINGS, s.toJson().toString())   // réécrits sans les secrets
+            return
+        }
+        _settings.value = s.copy(apiKey = store.getSecret(S_API_KEY) ?: "", backupKey = store.getSecret(S_BACKUP_KEY) ?: "")
+    }
+
+    /** À l'ouverture de l'app : relit les secrets si l'app avait démarré téléphone verrouillé (ils étaient illisibles). */
+    fun reloadSecretsIfNeeded() {
+        if (!::store.isInitialized) return
+        val s = _settings.value
+        if ((s.apiKey.isEmpty() && store.hasSecret(S_API_KEY)) || (s.backupKey.isEmpty() && store.hasSecret(S_BACKUP_KEY))) {
+            _settings.value = s.copy(
+                apiKey = s.apiKey.ifEmpty { store.getSecret(S_API_KEY) ?: "" },
+                backupKey = s.backupKey.ifEmpty { store.getSecret(S_BACKUP_KEY) ?: "" }
+            )
+        }
+    }
+
+    @Synchronized
     fun updateSettings(transform: (Settings) -> Settings) {
-        val s = transform(_settings.value)
+        val old = _settings.value
+        val s = transform(old)
         _settings.value = s
+        if (s.apiKey != old.apiKey) runCatching { store.putSecret(S_API_KEY, s.apiKey) }
+        if (s.backupKey != old.backupKey) runCatching { store.putSecret(S_BACKUP_KEY, s.backupKey) }
         store.put(K_SETTINGS, s.toJson().toString())
     }
 
@@ -838,6 +873,8 @@ object Repo {
     private const val K_MEALS = "meals"
     private const val K_SLEEP = "sleep"
     private const val K_SETTINGS = "settings"
+    private const val S_API_KEY = "api_key"
+    private const val S_BACKUP_KEY = "backup_key"
     private const val K_PLAN = "plan"
     private const val K_GAME = "game"
     private const val K_AVATAR = "avatar"

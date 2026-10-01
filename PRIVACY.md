@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.9.6 · mise à jour le 1er octobre 2026
+Version 0.9.7 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -39,7 +39,7 @@ Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que t
 
 ## Ta clé API
 
-Ta clé Gemini est chiffrée sur le téléphone (Android Keystore), conservée lors des mises à jour de l'app et envoyée uniquement à Google, dans l'en-tête des requêtes. Elle n'apparaît dans aucune exportation ni sauvegarde.
+Ta clé Gemini est rangée dans un coffre à part, chiffrée par une clé de la puce de sécurité du téléphone (Android Keystore, StrongBox quand le téléphone en a une). Cette clé ne peut pas être extraite, et elle ne fonctionne que téléphone déverrouillé (Android 9 et plus) : même avec les fichiers de l'app, personne ne peut lire ta clé API, ni toi, ni le développeur. Pendant la saisie, les captures d'écran sont bloquées, le clavier n'apprend pas la clé, et elle est retirée du presse-papiers si tu l'as collée. Elle est conservée lors des mises à jour de l'app et envoyée uniquement à Google, en HTTPS (aucun certificat ajouté à la main n'est accepté), dans l'en-tête des requêtes. Elle n'apparaît dans aucune exportation ni sauvegarde, et « Effacer toutes mes données » détruit aussi la clé du coffre.
 
 ## Scan de code-barres (sans IA)
 
@@ -76,7 +76,7 @@ Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutride
 
 ## Amis : Tap to Sync, QR code et croisements
 
-Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec les croisements, ou par un message que tu envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), selon ses propres conditions, jamais par un serveur GoodLife. Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.
+Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec les croisements, ou par un message que tu envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), selon ses propres conditions, jamais par un serveur GoodLife. Ce message contient un lien vers une page d'invitation statique hébergée par GitHub Pages : ta carte est dans la partie du lien après « # », que le navigateur n'envoie jamais au serveur ; GitHub voit seulement l'adresse IP de la personne qui ouvre la page (sans statistique ni cookie). Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.
 • Croisements (désactivés par défaut, 18 ans et plus, Android 12+) : tant qu'ils sont actifs, une notification discrète l'indique (Android l'impose) et les téléphones GoodLife à quelques mètres peuvent lire ta carte en Bluetooth. Une notification te prévient quand tu croises quelqu'un pour la première fois ou que tu le recroises. L'app ne demande pas la localisation. Tu peux masquer et bloquer une personne.
 • Les cartes que tu reçois sont gardées chiffrées sur ton téléphone ; retire ou bloque une personne pour effacer la sienne.
 • Les encouragements sont des messages tout prêts, sans texte libre. Quand une carte reçue contient un encouragement pour toi, une notification te prévient (préparée sur ton téléphone, sans serveur).
@@ -104,7 +104,7 @@ La détection automatique utilise la Sleep API des services Google Play, calcul�
 
 ## Tes droits (RGPD)
 
-Accès et portabilité : Paramètres › Exporter mes données. Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Comme GoodLife n'a pas de serveur, toutes tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une). Pour toute question : matheo.greneche0@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
+Accès et portabilité : Paramètres › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Comme GoodLife n'a pas de serveur, toutes tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une). Pour toute question : matheo.greneche0@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
 
 ## Ce que GoodLife ne fait pas
 

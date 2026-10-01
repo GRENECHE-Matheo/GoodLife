@@ -73,7 +73,7 @@ fun DataFlowSummary(showAi: Boolean = true) {
         )
         FlowLine(
             Icons.Filled.Group, t("Amis (si ton profil est public) → le téléphone de tes amis"),
-            t("Seulement ton pseudo et ce que tu choisis (niveau, série, Nutridex, bilan de la semaine), de téléphone à téléphone, ou par un message que tu envoies toi-même. Jamais par un serveur GoodLife.")
+            t("Seulement ton pseudo et ce que tu choisis (niveau, série, Nutridex, bilan de la semaine), de téléphone à téléphone, ou par un message que tu envoies toi-même (avec un lien vers une page d'invitation sur GitHub Pages, qui ne reçoit jamais ta carte). Jamais par un serveur GoodLife.")
         )
         FlowLine(
             Icons.Filled.Backup, t("Sauvegarde (si tu l'actives) → l'endroit que tu choisis"),

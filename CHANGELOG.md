@@ -8,6 +8,25 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.7 — 01/10/2026
+
+**Ta clé API blindée, un export protégé et des invitations en un clic.**
+
+- 🔒 **Clé API dans un coffre** : chiffrée par une clé de la puce de sécurité du téléphone (StrongBox quand il y en a une),
+  utilisable seulement téléphone déverrouillé, impossible à extraire. Même avec les fichiers de l'app, personne ne peut
+  la lire. « Effacer toutes mes données » détruit aussi la clé du coffre.
+- 🔒 **Saisie de la clé** : captures d'écran bloquées, le clavier ne l'apprend pas (plus de suggestion possible), et elle
+  est retirée du presse-papiers si elle a été collée.
+- 🔒 **Réseau** : HTTPS uniquement, et aucun certificat ajouté à la main n'est accepté (pas d'interception par un proxy).
+- 🔒 La clé de la sauvegarde chiffrée rejoint le même coffre.
+- ✨ La clé peut être **limitée à GoodLife** dans la console Google Cloud (restriction « Applications Android ») :
+  l'app envoie désormais son nom de paquet et l'empreinte de son certificat.
+- ✨ **Export protégé par mot de passe** (recommandé) : fichier chiffré, restaurable dans GoodLife. L'export lisible
+  (JSON) reste possible.
+- ✨ **Invitation d'ami en lien cliquable** : « Partager ma carte » envoie un lien https ; il ouvre une petite page
+  qui lance GoodLife. La carte reste dans le lien après le « # » : elle n'est jamais envoyée au serveur.
+- 🔒 Politique de confidentialité v0.9.7.
+
 ## v0.9.6 — 01/10/2026
 
 **Plus simple à utiliser au quotidien.**

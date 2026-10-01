@@ -274,15 +274,17 @@ fun ScanScreen(onDone: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text(t("Créer ma clé chez Google")) }
+                NoScreenshotsWhileVisible()
                 OutlinedTextField(
                     value = keyDraft, onValueChange = { keyDraft = it.trim() },
                     label = { Text(t("Clé API Gemini")) }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KEY_KEYBOARD,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Button(
                     enabled = keyDraft.length >= 20,
-                    onClick = { Repo.updateSettings { it.copy(apiKey = keyDraft) }; keyDraft = "" }
+                    onClick = { saveApiKey(context, keyDraft); keyDraft = "" }
                 ) { Text(t("Enregistrer la clé")) }
             }
             current == null && !hasCamera -> SectionCard(title = t("Accès à la caméra")) {

@@ -61,9 +61,18 @@ object Social {
         return receiveText(code, "code")
     }
 
-    /** Texte à envoyer par message pour qu'un ami m'ajoute à distance (sans aucun serveur). */
+    /**
+     * Lien d'invitation cliquable : une page statique (GitHub Pages) qui ouvre GoodLife. La carte est après le « # » :
+     * le navigateur ne l'envoie jamais au serveur, et l'app vérifie sa signature.
+     */
+    fun inviteLink(code: String): String {
+        val (owner, repo) = com.goodlife.app.BuildConfig.UPDATE_REPO.split("/").let { it[0] to it.getOrElse(1) { "GoodLife" } }
+        return "https://${owner.lowercase()}.github.io/$repo/ami/#$code"
+    }
+
+    /** Message à envoyer pour qu'un ami m'ajoute à distance (sans aucun serveur GoodLife) : un lien cliquable. */
     fun shareText(): String? = mySignedCard()?.let {
-        t("Ajoute-moi sur GoodLife 🍏 Ouvre ce message avec l'app GoodLife (Partager › GoodLife), ou copie-le dans Amis › Coller un code :\n") + Identity.toText(it)
+        t("Ajoute-moi en ami sur GoodLife 🍏 Touche ce lien depuis ton téléphone Android :") + "\n" + inviteLink(Identity.toText(it))
     }
 
     private fun record(card: PlayerCard, via: String): SyncEvent {

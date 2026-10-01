@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GoodLife – Ajouter un ami</title>
+<style>
+  :root { --bg:#f6f8fc; --card:#fff; --text:#1c1b1f; --sub:#5f6368; --accent:#34a853; --btn:#1a73e8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121417; --card:#1f2329; --text:#e8eaed; --sub:#9aa0a6; --accent:#81c995; --btn:#8ab4f8; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text);
+         display:flex; min-height:100vh; align-items:center; justify-content:center; padding:16px; }
+  .card { background:var(--card); border-radius:28px; padding:28px 22px; max-width:420px; width:100%; text-align:center;
+          box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  .logo { font-size:56px; line-height:1; }
+  h1 { font-size:22px; margin:14px 0 6px; }
+  p { color:var(--sub); font-size:15px; line-height:1.45; margin:8px 0; }
+  .pseudo { color:var(--text); font-weight:600; }
+  a.btn, button { display:block; width:100%; border:0; border-radius:999px; padding:15px 18px; margin-top:12px; font-size:16px;
+          font-weight:600; text-decoration:none; cursor:pointer; }
+  a.primary { background:var(--btn); color:#fff; }
+  @media (prefers-color-scheme: dark) { a.primary { color:#0b1a33; } }
+  .secondary { background:transparent; color:var(--btn); border:1.5px solid var(--btn) !important; }
+  .small { font-size:12px; margin-top:18px; }
+  .err { color:#d93025; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo">🍏</div>
+  <h1 id="title">Ajouter un ami sur GoodLife</h1>
+  <p id="intro">Ouvre ce lien sur un téléphone Android où GoodLife est installée.</p>
+  <a class="btn primary" id="open" href="#">Ouvrir dans GoodLife</a>
+  <button class="secondary" id="copy" type="button">Copier le code</button>
+  <a class="btn secondary" id="get" href="https://github.com/GRENECHE-Matheo/GoodLife/releases/latest">Je n'ai pas encore GoodLife</a>
+  <p class="small" id="privacy">La carte d'ami reste dans ce lien (après le « # ») : elle n'est jamais envoyée à un serveur. Aucune statistique, aucun cookie.</p>
+</main>
+<script>
+  // Le code d'ami (« GL1:… ») est dans la partie du lien après « # » : le navigateur ne l'envoie jamais au serveur.
+  var code = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+  var valid = /^GL1:[A-Za-z0-9_-]{40,1900}$/.test(code);
+  var en = !/^fr/i.test(navigator.language || "fr");
+  var T = en ? {
+    title: "Add a friend on GoodLife", intro: "Open this link on an Android phone with GoodLife installed.",
+    open: "Open in GoodLife", copy: "Copy the code", copied: "Code copied: paste it in Friends › Paste a code",
+    get: "I don't have GoodLife yet", bad: "This link is incomplete: ask your friend to send it again.",
+    privacy: "The friend card stays in this link (after the “#”): it is never sent to a server. No analytics, no cookies."
+  } : {
+    title: "Ajouter un ami sur GoodLife", intro: "Ouvre ce lien sur un téléphone Android où GoodLife est installée.",
+    open: "Ouvrir dans GoodLife", copy: "Copier le code", copied: "Code copié : colle-le dans Amis › Coller un code",
+    get: "Je n'ai pas encore GoodLife", bad: "Ce lien est incomplet : demande à ton ami de te le renvoyer.",
+    privacy: "La carte d'ami reste dans ce lien (après le « # ») : elle n'est jamais envoyée à un serveur. Aucune statistique, aucun cookie."
+  };
+  document.documentElement.lang = en ? "en" : "fr";
+  document.getElementById("title").textContent = T.title;
+  document.getElementById("get").textContent = T.get;
+  document.getElementById("privacy").textContent = T.privacy;
+  var intro = document.getElementById("intro"), open = document.getElementById("open"), copy = document.getElementById("copy");
+  open.textContent = T.open; copy.textContent = T.copy;
+  if (!valid) {
+    intro.textContent = T.bad; intro.className = "err";
+    open.style.display = "none"; copy.style.display = "none";
+  } else {
+    intro.textContent = T.intro;
+    open.href = "goodlife://ami/" + code;   // ouvre l'app (qui vérifie la signature de la carte)
+    copy.onclick = function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(function () {
+        copy.textContent = T.copied;
+      }, function () { window.prompt(T.copy, code); });
+    };
+  }
+</script>
+</body>
+</html>

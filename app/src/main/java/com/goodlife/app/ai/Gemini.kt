@@ -282,6 +282,9 @@ class Gemini(private val apiKey: String, private val model: String) {
             doOutput = true
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
             setRequestProperty("x-goog-api-key", apiKey)
+            // Permettent de limiter la clé à GoodLife (console Google Cloud › restriction « Applications Android »)
+            AppIdentity.packageName?.let { setRequestProperty("X-Android-Package", it) }
+            AppIdentity.certSha1?.let { setRequestProperty("X-Android-Cert", it) }
         }
         return try {
             conn.outputStream.use { it.write(withLanguage(body).toString().toByteArray(Charsets.UTF_8)) }
@@ -625,5 +628,27 @@ class Gemini(private val apiKey: String, private val model: String) {
             "gemini-3.8-flash" to t("Plus précis, quota plus petit"),
             "gemini-2.5-flash" to t("Ancien modèle, en secours")
         )
+    }
+}
+
+/** Identité de l'app (nom du paquet et empreinte SHA-1 du certificat de signature), lue une fois. */
+object AppIdentity {
+    @Volatile var packageName: String? = null; private set
+    @Volatile var certSha1: String? = null; private set
+
+    fun init(context: android.content.Context) {
+        if (packageName != null) return
+        packageName = context.packageName
+        certSha1 = runCatching {
+            val pm = context.packageManager
+            val sig = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES)
+                    .signingInfo?.apkContentsSigners?.firstOrNull()
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNATURES).signatures?.firstOrNull()
+            } ?: return@runCatching null
+            java.security.MessageDigest.getInstance("SHA-1").digest(sig.toByteArray()).joinToString("") { "%02X".format(it) }
+        }.getOrNull()
     }
 }

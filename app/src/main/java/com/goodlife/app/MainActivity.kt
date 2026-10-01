@@ -83,6 +83,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Repo.init(this)
+        Repo.reloadSecretsIfNeeded()
         com.goodlife.app.net.appContext = applicationContext
         UpdateInstaller.cleanup(this, onlyInstalled = true)
         com.goodlife.app.steps.Steps.schedule(this)
@@ -141,10 +142,14 @@ class MainActivity : FragmentActivity() {
         intent?.getStringExtra(com.goodlife.app.social.AppNav.EXTRA)?.let { com.goodlife.app.social.AppNav.request.value = it }
     }
 
-    /** Carte d'ami reçue par message et ouverte avec GoodLife : vérifiée (signature) puis ajoutée. */
+    /** Carte d'ami reçue par message (texte partagé ou lien d'invitation) : vérifiée (signature) puis ajoutée. */
     private fun handleSharedCard(intent: android.content.Intent?) {
-        if (intent?.action != android.content.Intent.ACTION_SEND) return
-        val text = intent.getStringExtra(android.content.Intent.EXTRA_TEXT) ?: return
+        val text = when (intent?.action) {
+            android.content.Intent.ACTION_SEND -> intent.getStringExtra(android.content.Intent.EXTRA_TEXT)
+            android.content.Intent.ACTION_VIEW -> intent.dataString?.let { android.net.Uri.decode(it) }
+            else -> null
+        } ?: return
+        if (!text.contains("GL1:")) return
         if (Repo.profile.value == null) return
         val e = com.goodlife.app.social.Social.receiveFromMessage(text)
         android.widget.Toast.makeText(
@@ -174,6 +179,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onStart() {
+        Repo.reloadSecretsIfNeeded()
         super.onStart()
         val away = SystemClock.elapsedRealtime() - backgroundAt
         if (Repo.settings.value.appLock && backgroundAt > 0 && away > AppLock.GRACE_MS) {

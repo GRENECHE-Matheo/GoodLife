@@ -238,7 +238,7 @@ private fun NewPasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit
 }
 
 @Composable
-private fun PasswordField(value: String, onChange: (String) -> Unit, label: String, show: Boolean, onToggle: () -> Unit) {
+internal fun PasswordField(value: String, onChange: (String) -> Unit, label: String, show: Boolean, onToggle: () -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
