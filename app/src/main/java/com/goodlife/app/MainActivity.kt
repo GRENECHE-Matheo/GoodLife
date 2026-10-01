@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.launch
 import com.goodlife.app.data.Backup
 import com.goodlife.app.data.Repo
 import com.goodlife.app.net.UpdateInstaller
@@ -85,6 +86,9 @@ class MainActivity : FragmentActivity() {
         com.goodlife.app.steps.Steps.schedule(this)
         com.goodlife.app.social.StreetPass.sync(this)
         com.goodlife.app.coach.CoachNotifier.schedule(this)
+        // Objectif de pas conseillé par l'IA : recalculé une fois par jour, à la première ouverture
+        val ctx = applicationContext
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { com.goodlife.app.steps.StepGoalAi.refreshIfNeeded(ctx) }
         val s = Repo.settings.value
         applyScreenshotBlock(s.blockScreenshots)
         // Rotation / changement de thème : pas de re-verrouillage ; retour après plus d'1 min : verrouillage.

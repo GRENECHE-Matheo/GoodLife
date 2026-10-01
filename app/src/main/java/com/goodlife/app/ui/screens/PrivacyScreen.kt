@@ -58,12 +58,16 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "• Idées de repas : ton objectif, les repas du jour, tes habitudes et allergies.\n" +
         "• Recette : le nom du plat, tes habitudes et allergies.\n" +
         "• Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.\n" +
-        "• Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.\n" +
+        "• Objectif de pas (si tu choisis « Conseil de l'IA ») : âge, sexe, activité, objectif, tes pas et objectifs des 7 " +
+        "derniers jours. Envoyé une fois par jour, automatiquement (à la première ouverture de l'app ou au relevé des pas), " +
+        "tant que ce mode est choisi.\n" +
         "• Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites " +
         "que tu écris (données de santé).\n" +
         "• Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné " +
-        "(photo et analyse, recette, programme, ou titre et extrait de l'actu), tes allergies et habitudes. La conversation " +
-        "n'est pas gardée après fermeture.\n" +
+        "(photo et analyse, recette, programme, ou titre, extrait et lien de l'actu), tes allergies et habitudes. Pour une " +
+        "actu, l'IA peut faire des recherches Google (outil de recherche de Gemini) pour savoir de quoi parle l'article : " +
+        "Google reçoit alors les recherches que l'IA formule ; les sources et les suggestions de recherche de Google sont " +
+        "affichées avec la réponse. La conversation n'est pas gardée après fermeture.\n" +
         "• Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, " +
         "objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours " +
         "(jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, " +
@@ -116,9 +120,10 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "chiffres ; si le verrouillage par empreinte est activé, les chiffres ne s'affichent nulle part dans les notifications. " +
         "Tu peux couper chaque notification à tout moment.",
     "Actus du jour" to
-        "Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, " +
-        "Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et " +
-        "le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. " +
+        "Tu choisis tes thèmes (alimentation, sport, santé et bien-être, insolite, anecdote du jour), ou aucun : les actus " +
+        "sont alors désactivées. Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS " +
+        "publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus " +
+        "sur tes thèmes. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. " +
         "Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre " +
         "chez la source, dans ton navigateur, " +
         "seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te " +
@@ -201,7 +206,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.9.2 · mise à jour le 1er octobre 2026",
+                "Version 0.9.3 · mise à jour le 1er octobre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -168,6 +168,7 @@ class StepsWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     override suspend fun doWork(): Result {
         Repo.init(applicationContext)
         runCatching { Steps.refresh(applicationContext) }
+        runCatching { StepGoalAi.refreshIfNeeded(applicationContext) }
         return Result.success()
     }
 }

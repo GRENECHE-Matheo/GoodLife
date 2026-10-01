@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
 import androidx.activity.compose.BackHandler
@@ -73,9 +75,12 @@ fun rememberToday(): String {
 @Composable
 fun NewsTeaser(onOpen: () -> Unit) {
     val today = rememberToday()
-    var feed by remember(today) { mutableStateOf(NewsFeed.cached()) }
+    val themes = Repo.settings.collectAsState().value.newsThemes
+    if (themes.isBlank()) return   // aucun thème choisi : pas d'actus
+    var feed by remember(today, themes) { mutableStateOf(NewsFeed.cached()) }
     // Une fois par jour, les actus sont préparées à l'ouverture de l'accueil
-    LaunchedEffect(today) { if (feed == null) feed = runCatching { NewsFeed.today() }.getOrNull() }
+    LaunchedEffect(today, themes) { if (feed == null) feed = runCatching { NewsFeed.today() }.getOrNull() }
+    val anecdote = if ("anecdote" in themes) remember(today) { NewsBank.today().insolite } else null
     val headline = feed?.let { f -> f.firstOrNull { it.kind == FeedItem.INSOLITE } ?: f.firstOrNull() }
     val unread = Repo.settings.collectAsState().value.lastNewsDay != today
     Surface(onClick = onOpen, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
@@ -84,11 +89,16 @@ fun NewsTeaser(onOpen: () -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    if (headline?.kind == FeedItem.INSOLITE) "Actu insolite du jour" else "Actus du jour",
+                    when {
+                        headline?.kind == FeedItem.INSOLITE -> "Actu insolite du jour"
+                        headline != null -> "Actus du jour"
+                        anecdote != null -> "Le saviez-vous ?"
+                        else -> "Actus du jour"
+                    },
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    headline?.title ?: "Alimentation, sport et insolite : les actus t'attendent",
+                    headline?.title ?: anecdote?.title ?: "Les actus du jour t'attendent",
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -105,7 +115,9 @@ fun NewsScreen(onBack: () -> Unit) {
     val today = rememberToday()
     LaunchedEffect(today) { Repo.updateSettings { it.copy(lastNewsDay = today) } }
 
-    var feed by remember(today) { mutableStateOf(NewsFeed.cached()) }
+    val themes = Repo.settings.collectAsState().value.newsThemes
+    val chosen = themes.split(",").filter { it.isNotBlank() }.toSet()
+    var feed by remember(today, themes) { mutableStateOf(NewsFeed.cached()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
@@ -114,7 +126,7 @@ fun NewsScreen(onBack: () -> Unit) {
     val uri = LocalUriHandler.current
     val aiReady = Repo.aiAllowed() && Repo.settings.collectAsState().value.apiKey.isNotBlank()
 
-    LaunchedEffect(today, retry) {
+    LaunchedEffect(today, retry, themes) {
         if (feed != null) return@LaunchedEffect
         loading = true; error = null
         try { feed = NewsFeed.today() } catch (e: Exception) { error = e.message } finally { loading = false }
@@ -123,6 +135,25 @@ fun NewsScreen(onBack: () -> Unit) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
             SubScreenHeader("Actus du jour", onBack)
+            // ---- Mes thèmes (0, 1 ou plusieurs) ----
+            Text("Mes thèmes", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NEWS_THEMES.forEach { (id, label) ->
+                    androidx.compose.material3.FilterChip(
+                        selected = id in chosen,
+                        onClick = {
+                            val next = if (id in chosen) chosen - id else chosen + id
+                            Repo.updateSettings { it.copy(newsThemes = NEWS_THEMES.map { t -> t.first }.filter { t -> t in next }.joinToString(",")) }
+                        },
+                        label = { Text(label) }
+                    )
+                }
+            }
+            if (chosen.isEmpty()) Text(
+                "Aucun thème choisi : les actus sont désactivées et n'apparaissent plus sur l'accueil. Choisis un thème pour les retrouver.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if ("anecdote" in chosen) DailyAnecdote(today)
 
             // ---- Vraies actus (flux RSS publics, sans clé) ----
             val odd = feed?.firstOrNull { it.kind == FeedItem.INSOLITE }
@@ -132,8 +163,9 @@ fun NewsScreen(onBack: () -> Unit) {
                     onAsk = if (aiReady) ({ askAbout = odd }) else null,
                     onSummary = if (aiReady && odd.public) ({ summarize = odd }) else null)
             }
-            Text("À la une", style = MaterialTheme.typography.titleMedium)
-            when {
+            val wantsNews = chosen.any { it in setOf("food", "sport", "health", "insolite") }
+            if (wantsNews) Text("À la une", style = MaterialTheme.typography.titleMedium)
+            if (wantsNews) when {
                 loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
@@ -146,7 +178,7 @@ fun NewsScreen(onBack: () -> Unit) {
                     }
                 }
                 feed.isNullOrEmpty() -> Text(
-                    "Pas de nouvelle actu sur l'alimentation ou le sport aujourd'hui. Reviens demain !",
+                    "Pas de nouvelle actu sur tes thèmes aujourd'hui. Reviens demain !",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 else -> feed!!.filter { it.kind != FeedItem.INSOLITE }.forEach { item ->
@@ -157,10 +189,10 @@ fun NewsScreen(onBack: () -> Unit) {
             }
 
             // ---- Secours sans internet : anecdotes vérifiées de la banque intégrée (jamais deux fois la même) ----
-            if (!loading && (error != null || feed.isNullOrEmpty())) OfflineAnecdotes(today)
+            if (wantsNews && "anecdote" !in chosen && !loading && error != null) OfflineAnecdotes(today)
             Text(
                 "Actus trouvées chaque jour dans les flux publics de franceinfo, Sciences et Avenir, Futura, de l'Anses " +
-                    "et de Santé publique France (alimentation et sport uniquement). Seuls le titre (et, pour les organismes " +
+                    "et de Santé publique France, selon tes thèmes. Seuls le titre (et, pour les organismes " +
                     "publics, un court extrait) sont affichés : l'article complet s'ouvre chez la source. Les articles " +
                     "appartiennent à leurs éditeurs. Contenu d'information, pas un avis médical.",
                 style = MaterialTheme.typography.bodySmall,
@@ -174,12 +206,37 @@ fun NewsScreen(onBack: () -> Unit) {
         AiChatDialog(
             title = item.title,
             context = "Actualité publiée par ${item.source} : « ${item.title} »." +
-                (if (item.summary.isNotBlank()) " Extrait : ${item.summary}" else "") + "\n" +
-                "Tu ne connais que ce titre${if (item.summary.isNotBlank()) " et cet extrait" else ""} : ne prétends pas avoir lu " +
-                "l'article, reste prudent, et invite à le lire chez la source pour les détails.",
-            suggestions = listOf("Explique-moi simplement", "Qu'est-ce que ça change pour moi ?", "Est-ce que c'est fiable ?"),
-            onDismiss = { askAbout = null }
+                (if (item.summary.isNotBlank()) " Extrait : ${item.summary}" else "") + " Lien : ${item.url}\n" +
+                "Utilise la recherche Google pour retrouver cet article et d'autres sources fiables, afin de savoir précisément " +
+                "de quoi il parle. Explique avec tes propres mots (sans recopier l'article), distingue bien les faits des avis, " +
+                "et invite à lire l'article complet chez la source.",
+            suggestions = listOf("De quoi parle cet article ?", "Qu'est-ce que ça change pour moi ?", "Est-ce que c'est fiable ?"),
+            onDismiss = { askAbout = null },
+            webSearch = true
         )
+    }
+}
+
+/** Thèmes d'actus proposés (l'anecdote vient de la banque intégrée, vérifiée). */
+val NEWS_THEMES = listOf(
+    "food" to "🥗 Alimentation", "sport" to "🏃 Sport", "health" to "🧘 Santé et bien-être",
+    "insolite" to "😮 Insolite", "anecdote" to "💡 Anecdote du jour"
+)
+
+/** L'anecdote du jour : un fait vrai et vérifié sur la nourriture, jamais deux fois le même. */
+@Composable
+private fun DailyAnecdote(today: String) {
+    val news = remember(today) { NewsBank.today() }
+    SectionCard(container = MaterialTheme.colorScheme.secondaryContainer) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ChefMascot(size = 56.dp, mood = ChefMood.CLIN)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("Le saviez-vous ?", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(news.insolite.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+        }
+        Text(news.insolite.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
 

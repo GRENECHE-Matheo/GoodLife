@@ -14,8 +14,8 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.9.2"
+        versionCode = 16
+        versionName = "0.9.3"
 
         // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
         buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")

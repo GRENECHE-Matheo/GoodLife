@@ -138,6 +138,44 @@ class Gemini(private val apiKey: String, private val model: String) {
             ?.ifEmpty { null } ?: throw AiException("L'IA n'a pas pu résumer cet article.")
     }
 
+    /** Réponse avec recherche Google : texte, sources consultées et suggestions de recherche (à afficher, règles Google). */
+    data class Grounded(val text: String, val sources: List<Pair<String, String>>, val suggestionsHtml: String?, val searched: Boolean)
+
+    /**
+     * Conversation avec accès à la recherche Google (outil « google_search » de Gemini) : le modèle cherche lui-même
+     * sur le web et cite ses sources. Si le modèle ou la clé ne permettent pas la recherche, on répond sans.
+     */
+    suspend fun chatWithSearch(system: String, history: List<ChatMessage>): Grounded = withContext(Dispatchers.IO) {
+        guard()
+        val contents = JSONArray()
+        history.forEach { m -> contents.put(JSONObject().put("role", if (m.fromUser) "user" else "model").put("parts", parts(m.text, null))) }
+        val body = JSONObject()
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
+            .put("contents", contents)
+            .put("tools", JSONArray().put(JSONObject().put("google_search", JSONObject())))
+            .put("generationConfig", JSONObject().put("temperature", 0.4).put("maxOutputTokens", 1200))
+        val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
+        for (m in models) {
+            val (code, response) = post(m, body)
+            when {
+                code in 200..299 -> {
+                    val txt = text(response).trim().ifBlank { throw AiException("L'IA n'a pas répondu. Reformule ta question.") }
+                    val meta = JSONObject(response).optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("groundingMetadata")
+                    val sources = meta?.optJSONArray("groundingChunks")?.mapObjects { c ->
+                        c.optJSONObject("web")?.let { w -> w.optString("title").ifBlank { "Source" } to w.optString("uri") }
+                    }?.filterNotNull()?.filter { it.second.startsWith("https://") }?.distinctBy { it.second }?.take(5) ?: emptyList()
+                    val html = meta?.optJSONObject("searchEntryPoint")?.optString("renderedContent")?.takeIf { it.isNotBlank() }
+                    return@withContext Grounded(txt, sources, html, meta != null)
+                }
+                code == 404 -> continue
+                code == 429 -> throw AiException("Quota de ta clé atteint pour le moment. Réessaie dans une minute.")
+                code == 401 || code == 403 -> throw AiException("Clé API refusée (${errorMessage(response)}). Vérifie-la dans Paramètres.")
+                else -> break   // recherche non disponible pour ce modèle ou cette clé : réponse sans recherche
+            }
+        }
+        Grounded(chat(system, null, history), emptyList(), null, false)
+    }
+
     private fun parts(text: String, jpeg: ByteArray?): JSONArray {
         val parts = JSONArray().put(JSONObject().put("text", text))
         if (jpeg != null) {
@@ -400,17 +438,31 @@ class Gemini(private val apiKey: String, private val model: String) {
     }
 
     /** Objectif de pas quotidien progressif et atteignable (bien-être, pas d'avis médical). */
-    suspend fun recommendSteps(p: Profile, average: Int): Pair<Int, String> {
+    /**
+     * Objectif de pas du jour. [week] = pas réels des 7 derniers jours (jour → pas et objectif de ce jour-là),
+     * [previous] = objectif d'hier. L'app borne ensuite le résultat : ±15 % par rapport à hier, entre 3 000 et 20 000,
+     * arrondi à 250 pas, pour une progression réaliste.
+     */
+    suspend fun recommendSteps(
+        p: Profile, average: Int,
+        week: List<Pair<String, com.goodlife.app.data.StepDay>> = emptyList(), previous: Int = 0
+    ): Pair<Int, String> {
+        val detail = week.joinToString("; ") { (d, s) -> "$d : ${s.steps} pas (objectif ${s.goal})" }.ifBlank { "pas d'historique" }
+        val met = week.count { it.second.goal > 0 && it.second.steps >= it.second.goal }
         val prompt = """
-            Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose un objectif
-            de pas quotidien motivant mais atteignable, qui fait progresser doucement (environ +10 % par rapport
-            à l'habitude actuelle, jamais un saut brutal).
+            Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose l'objectif de pas
+            d'AUJOURD'HUI : motivant mais atteignable, qui fait progresser petit à petit et reste réaliste.
+            Si l'objectif a été souvent atteint, augmente un peu ; s'il a souvent été raté, baisse un peu ; jamais de saut brutal.
             Âge : ${p.age} ans · Sexe : ${p.sex.label} · Activité : ${p.activity.label} · Objectif : ${p.goal.label}
-            Moyenne actuelle : ${if (average > 0) "$average pas/jour" else "inconnue"}
-            Réponds UNIQUEMENT en JSON : {"pas": 0, "explication": "1 à 2 phrases simples en français"}
+            Moyenne des 7 derniers jours : ${if (average > 0) "$average pas/jour" else "inconnue"}
+            Détail des 7 derniers jours : $detail
+            Objectif atteint $met jour(s) sur ${week.size}. Objectif d'hier : ${if (previous > 0) "$previous pas" else "aucun"}.
+            Réponds UNIQUEMENT en JSON : {"pas": 0, "explication": "1 à 2 phrases simples en français, avec les vrais chiffres"}
         """.trimIndent()
         val o = call(prompt, null)
-        val steps = o.optDouble("pas", 0.0).roundToInt().coerceIn(3000, 15_000)
+        var steps = o.optDouble("pas", 0.0).roundToInt()
+        if (previous > 0) steps = steps.coerceIn((previous * 0.85).roundToInt(), (previous * 1.15).roundToInt())
+        steps = ((steps / 250.0).roundToInt() * 250).coerceIn(3000, 20_000)
         return steps to o.optString("explication")
     }
 

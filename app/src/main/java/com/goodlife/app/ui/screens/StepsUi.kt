@@ -219,6 +219,11 @@ fun StepsSettingsSection() {
                 "ia" -> {
                     if (settings.stepsGoalIa > 0) {
                         Text("${formatSteps(settings.stepsGoalIa)} pas par jour", fontWeight = FontWeight.Medium)
+                        Text(
+                            "Recalculé chaque jour à la première ouverture de l'app, à partir de tes pas des 7 derniers jours " +
+                                "(au plus 15 % de changement d'un jour à l'autre).",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         if (settings.stepsGoalIaWhy.isNotBlank()) {
                             Text(settings.stepsGoalIaWhy, style = MaterialTheme.typography.bodySmall)
                             AiContentFooter("Objectif de pas : ${settings.stepsGoalIa}\n${settings.stepsGoalIaWhy}")

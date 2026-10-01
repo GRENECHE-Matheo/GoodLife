@@ -1,6 +1,8 @@
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,17 +77,42 @@ fun AiChatDialog(
     context: String,
     image: ByteArray? = null,
     suggestions: List<String>,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    webSearch: Boolean = false
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            AiChatContent(title, context, image, suggestions, onDismiss)
+            AiChatContent(title, context, image, suggestions, onDismiss, webSearch)
         }
     }
 }
 
+/** Suggestions de recherche Google, affichées telles quelles avec la réponse (règles de la recherche Google de Gemini). */
 @Composable
-private fun AiChatContent(title: String, context: String, image: ByteArray?, suggestions: List<String>, onClose: () -> Unit) {
+private fun SearchSuggestions(html: String) {
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { ctx ->
+            android.webkit.WebView(ctx).apply {
+                settings.javaScriptEnabled = false
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                webViewClient = object : android.webkit.WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                        request?.url?.let { u -> runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, u).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } }
+                        return true
+                    }
+                }
+                loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+            }
+        },
+        modifier = Modifier.fillMaxWidth().height(72.dp)
+    )
+}
+
+@Composable
+private fun AiChatContent(title: String, context: String, image: ByteArray?, suggestions: List<String>, onClose: () -> Unit, webSearch: Boolean) {
+    // Sources et suggestions Google de chaque réponse (seulement en mémoire, effacées à la fermeture)
+    val grounded = remember { androidx.compose.runtime.mutableStateMapOf<Int, Gemini.Grounded>() }
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
     val settings by Repo.settings.collectAsState()
     val profile by Repo.profile.collectAsState()
     val scope = rememberCoroutineScope()
@@ -110,7 +137,11 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
         input = ""; error = null; loading = true
         scope.launch {
             try {
-                messages.add(ChatMessage(false, Gemini(settings.apiKey, settings.model).chat(system, image, messages.toList())))
+                if (webSearch) {
+                    val g = Gemini(settings.apiKey, settings.model).chatWithSearch(system, messages.toList())
+                    messages.add(ChatMessage(false, g.text))
+                    grounded[messages.lastIndex] = g
+                } else messages.add(ChatMessage(false, Gemini(settings.apiKey, settings.model).chat(system, image, messages.toList())))
             } catch (e: Exception) {
                 messages.removeAt(messages.lastIndex)  // on retire la question pour pouvoir la reposer
                 input = q
@@ -149,9 +180,21 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
                         Bubble(false, "Pose-moi tes questions sur « $title ». Je réponds en tenant compte de tes allergies et habitudes.")
                     }
                 }
-                itemsIndexed(messages) { _, m ->
+                itemsIndexed(messages) { mi, m ->
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = if (m.fromUser) Alignment.End else Alignment.Start) {
                         Bubble(m.fromUser, m.text)
+                        if (!m.fromUser) grounded[mi]?.let { g ->
+                            if (g.sources.isNotEmpty()) Column(Modifier.widthIn(max = 340.dp).padding(top = 4.dp)) {
+                                Text("Sources consultées :", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                g.sources.forEach { (t, u) ->
+                                    Text("• $t", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.clickable { runCatching { uri.openUri(u) } }.padding(vertical = 2.dp))
+                                }
+                            }
+                            g.suggestionsHtml?.let { Box(Modifier.widthIn(max = 340.dp)) { SearchSuggestions(it) } }
+                            if (!g.searched) Text("(Réponse sans recherche internet : ton modèle ou ta clé ne la permettent pas.)",
+                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         if (!m.fromUser) AiContentFooter("Question sur « $title »\n${m.text}", Modifier.widthIn(max = 340.dp))
                     }
                 }

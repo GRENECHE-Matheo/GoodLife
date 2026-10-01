@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -72,7 +73,7 @@ import com.goodlife.app.ui.SectionCard
 import com.goodlife.app.ui.SlideSwitch
 import com.goodlife.app.ui.toNumber
 
-private const val PAGES = 7
+private const val PAGES = 8
 
 @Composable
 fun OnboardingScreen() {
@@ -108,6 +109,13 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
     var habits by rememberSaveable { mutableStateOf("") }
     var allergies by rememberSaveable { mutableStateOf("") }
     var notifs by rememberSaveable { mutableStateOf(listOf(true, true, true, true)) }
+    // Pas : compter ou non, avec quoi, et quel objectif
+    val canSensor = remember { com.goodlife.app.steps.Steps.sensorAvailable(context) }
+    val canHc = remember { com.goodlife.app.steps.Steps.healthConnectAvailable(context) }
+    var stepsOn by rememberSaveable { mutableStateOf(canSensor || canHc) }
+    var stepsSource by rememberSaveable { mutableStateOf(if (canSensor) "sensor" else "hc") }
+    var stepsMode by rememberSaveable { mutableStateOf("auto") }
+    var stepsManual by rememberSaveable { mutableStateOf("8000") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
     fun profile() = Profile(
@@ -117,20 +125,57 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
     )
 
     fun finish(prefs: NotifPrefs) {
-        Repo.updateSettings { it.copy(privacyAcceptedAt = System.currentTimeMillis()) }
+        Repo.updateSettings {
+            it.copy(
+                privacyAcceptedAt = System.currentTimeMillis(),
+                stepsGoalMode = stepsMode,
+                stepsGoalManual = stepsManual.toNumber()?.toInt()?.coerceIn(1000, 40_000) ?: 8000
+            )
+        }
         Repo.saveProfile(Nutrition.formulaTarget(profile()))
         saveNotifPrefs(context, prefs)
     }
     val prefs = NotifPrefs(notifs[0], notifs[1], notifs[2], notifs[3])
     val askNotif = rememberNotifPermission { granted -> finish(if (granted) prefs else NotifPrefs(false, false, false, false)) }
 
+    // Autorisations pour compter les pas (demandées en quittant la page « Tes pas »)
+    val askSensor = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { ok ->
+        if (ok) { Repo.updateSettings { it.copy(stepsEnabled = true, stepsSource = "sensor") }; com.goodlife.app.steps.Steps.schedule(context) }
+        else stepsOn = false
+        error = null; page++
+    }
+    val askHc = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.health.connect.client.PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        if (granted.containsAll(com.goodlife.app.steps.Steps.HC_PERMISSIONS)) Repo.updateSettings { it.copy(stepsEnabled = true, stepsSource = "hc") }
+        else stepsOn = false
+        error = null; page++
+    }
+    fun leaveStepsPage() {
+        when {
+            !stepsOn -> { Repo.updateSettings { it.copy(stepsEnabled = false) }; page++ }
+            stepsSource == "hc" && canHc -> askHc.launch(com.goodlife.app.steps.Steps.HC_PERMISSIONS)
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q &&
+                !com.goodlife.app.steps.Steps.hasActivityPermission(context) -> askSensor.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
+            else -> { Repo.updateSettings { it.copy(stepsEnabled = true, stepsSource = "sensor") }; com.goodlife.app.steps.Steps.schedule(context); page++ }
+        }
+    }
+
     fun next() {
+        if (page == 5) {
+            error = if (stepsOn && stepsMode == "manual" && (stepsManual.toNumber()?.toInt() ?: 0) !in 1000..40_000)
+                "Choisis un objectif entre 1 000 et 40 000 pas." else null
+            if (error == null) leaveStepsPage()
+            return
+        }
         error = when (page) {
             1 -> if (!policyOk) "Coche la case pour accepter la politique de confidentialité." else null
             2 -> ageError(age.toNumber()?.toInt())
             3 -> bodyError(weight.toNumber(), height.toNumber())
             4 -> goalError(goal, profile())
-            5 -> if (!healthOk) "Coche la case pour que GoodLife puisse enregistrer tes données." else null
+            6 -> if (!healthOk) "Coche la case pour que GoodLife puisse enregistrer tes données." else null
             else -> null
         }
         if (error == null && page < PAGES - 1) page++
@@ -192,7 +237,38 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                                 OutlinedTextField(allergies, { allergies = it.take(200) }, label = { Text("Allergies / intolérances (facultatif)") },
                                     placeholder = { Text("Ex : arachides, lactose, gluten") }, modifier = Modifier.fillMaxWidth())
                             }
-                            5 -> SummaryPage(profile(), healthOk) { healthOk = it; error = null }
+                            5 -> {
+                                PageTitle(ChefMood.SPORT, "Tes pas", "Bouger un peu plus chaque jour compte autant que bien manger.")
+                                Row(Modifier.fillMaxWidth().toggleable(stepsOn, role = Role.Switch) { stepsOn = it }, verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Compter mes pas", style = MaterialTheme.typography.bodyLarge)
+                                        Text("Comptés sur le téléphone, jamais envoyés (sauf ta moyenne à l'IA si tu choisis son conseil).",
+                                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    androidx.compose.material3.Switch(checked = stepsOn, onCheckedChange = null)
+                                }
+                                if (stepsOn) {
+                                    if (canSensor && canHc) Chips("Avec quoi ?", listOf("sensor", "hc"), stepsSource,
+                                        { if (it == "sensor") "Capteur du téléphone" else "Health Connect (montre, Samsung Health…)" }) { stepsSource = it }
+                                    else Text(if (canSensor) "Avec le capteur de pas du téléphone." else "Avec Health Connect (ton téléphone n'a pas de capteur de pas).",
+                                        style = MaterialTheme.typography.bodyMedium)
+                                    Chips("Mon objectif par jour", listOf("auto", "manual", "ia"), stepsMode, {
+                                        when (it) { "auto" -> "Automatique"; "manual" -> "Je choisis"; else -> "Conseil de l'IA" }
+                                    }) { stepsMode = it }
+                                    Text(
+                                        when (stepsMode) {
+                                            "auto" -> "Ta moyenne des 7 derniers jours + 10 %, pour progresser doucement (6 000 pas au début)."
+                                            "manual" -> "Tu fixes ton objectif, tu pourras le changer quand tu veux."
+                                            else -> "Chaque jour, l'IA regarde tes vrais pas de la semaine et ajuste ton objectif petit à petit " +
+                                                "(jamais plus de 15 % d'un jour à l'autre). Il faut activer l'IA (18 ans et plus) à l'étape suivante ; " +
+                                                "en attendant, l'objectif est automatique."
+                                        },
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (stepsMode == "manual") Field(stepsManual, { stepsManual = it; error = null }, "Pas par jour", decimal = false)
+                                }
+                            }
+                            6 -> SummaryPage(profile(), healthOk) { healthOk = it; error = null }
                             else -> {
                                 PageTitle(ChefMood.BRAVO, "Le chef t'accompagne", "Des petits messages pour garder le rythme, sans t'embêter.")
                                 NotifChoices(prefs) { n -> notifs = listOf(n.morning, n.noon, n.evening, n.weekly) }

@@ -8,6 +8,20 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.3 — 01/10/2026
+
+**Actus à ton goût, un chef qui cherche sur internet, et des pas qui progressent avec toi.**
+
+- ✨ **Actus à thèmes** : choisis 0, 1 ou plusieurs thèmes (alimentation, sport, santé et bien-être, insolite, anecdote du jour).
+  Aucun thème = plus d'actus, nulle part.
+- ✨ **L'anecdote du jour** revient : un fait vrai et vérifié sur la nourriture, jamais deux fois le même.
+- ✨ **« Demander au chef » sur une actu** : il fait lui-même une recherche Google pour savoir de quoi parle l'article,
+  explique avec ses mots et cite ses sources (avec ta clé Gemini).
+- ✨ **Objectif de pas par l'IA, chaque jour** : recalculé à la première ouverture de la journée à partir de tes vrais pas
+  des 7 derniers jours, jamais plus de 15 % de changement d'un jour à l'autre.
+- ✨ **Tes pas dès l'inscription** : capteur du téléphone ou Health Connect, objectif automatique, fixe ou conseillé par l'IA.
+- 🔒 Politique de confidentialité v0.9.3 (objectif de pas quotidien, recherche Google du chef, thèmes d'actus).
+
 ## v0.9.2 — 01/10/2026
 
 **Amis à distance, défi de la semaine, gels de série et widgets du chef.**

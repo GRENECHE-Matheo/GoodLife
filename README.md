@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9.2
+## 🆕 Nouveautés de la v0.9.3
+
+- **Actus à thèmes** (ou aucune), avec le retour de l'**anecdote du jour**.
+- Le chef **cherche sur internet** pour t'expliquer une actu, sources à l'appui.
+- **Objectif de pas conseillé par l'IA, recalculé chaque jour** à partir de tes vrais pas.
+
+## Nouveautés de la v0.9.2
 
 - **Amis à distance** : partage ta carte par message, toujours sans serveur, et **défi de la semaine** entre amis.
 - **Gels de série ❄️** : un gel tous les 7 jours de série pour sauver un jour raté (10 questions du chef).

@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.9.2 · mise à jour le 1er octobre 2026
+Version 0.9.3 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -24,9 +24,9 @@ L'IA est désactivée par défaut, demande un consentement séparé (réservé a
 • Idées de repas : ton objectif, les repas du jour, tes habitudes et allergies.
 • Recette : le nom du plat, tes habitudes et allergies.
 • Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.
-• Objectif de pas (si tu le demandes) : âge, sexe, activité, objectif et ta moyenne de pas.
+• Objectif de pas (si tu choisis « Conseil de l'IA ») : âge, sexe, activité, objectif, tes pas et objectifs des 7 derniers jours. Envoyé une fois par jour, automatiquement (à la première ouverture de l'app ou au relevé des pas), tant que ce mode est choisi.
 • Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites que tu écris (données de santé).
-• Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné (photo et analyse, recette, programme, ou titre et extrait de l'actu), tes allergies et habitudes. La conversation n'est pas gardée après fermeture.
+• Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné (photo et analyse, recette, programme, ou titre, extrait et lien de l'actu), tes allergies et habitudes. Pour une actu, l'IA peut faire des recherches Google (outil de recherche de Gemini) pour savoir de quoi parle l'article : Google reçoit alors les recherches que l'IA formule ; les sources et les suggestions de recherche de Google sont affichées avec la réponse. La conversation n'est pas gardée après fermeture.
 • Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains jours. Ces envois demandent ton accord, une fois, avant ta première question au coach (retiré si tu désactives l'IA). Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste en mémoire tant que l'app est ouverte, sans être enregistrée.
 Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que tu fais analyser), tes positions GPS, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
 
@@ -61,7 +61,7 @@ Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Par
 
 ## Actus du jour
 
-Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur l'alimentation et le sport. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
+Tu choisis tes thèmes (alimentation, sport, santé et bien-être, insolite, anecdote du jour), ou aucun : les actus sont alors désactivées. Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur tes thèmes. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
 • Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page publique de l'article et envoie son titre et son texte à Google Gemini, avec ta clé, pour le résumer. Aucune donnée te concernant n'est envoyée. Le résumé n'est pas gardé.
 
 ## Widgets

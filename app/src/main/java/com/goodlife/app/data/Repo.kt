@@ -57,6 +57,8 @@ data class Settings(
     val stepsGoalManual: Int = 8000,
     val stepsGoalIa: Int = 0,
     val stepsGoalIaWhy: String = "",
+    val stepsGoalIaDay: String = "",          // jour du dernier calcul par l'IA (une fois par jour)
+    val newsThemes: String = "food,sport,insolite,anecdote",   // thèmes d'actus choisis (vide = pas d'actus)
     val lastNewsDay: String = "",
     // Amis : profil privé par défaut ; rien n'est partagé tant que « Profil public » est coupé
     val publicProfile: Boolean = false,
@@ -113,6 +115,8 @@ data class Settings(
         .put("stepsGoalManual", stepsGoalManual)
         .put("stepsGoalIa", stepsGoalIa)
         .put("stepsGoalIaWhy", stepsGoalIaWhy)
+        .put("stepsGoalIaDay", stepsGoalIaDay)
+        .put("newsThemes", newsThemes)
         .put("lastNewsDay", lastNewsDay)
         .put("publicProfile", publicProfile)
         .put("pseudo", pseudo)
@@ -167,6 +171,8 @@ data class Settings(
             stepsGoalManual = o.optInt("stepsGoalManual", 8000),
             stepsGoalIa = o.optInt("stepsGoalIa", 0),
             stepsGoalIaWhy = o.optString("stepsGoalIaWhy"),
+            stepsGoalIaDay = o.optString("stepsGoalIaDay"),
+            newsThemes = if (o.has("newsThemes")) o.optString("newsThemes") else "food,sport,insolite,anecdote",
             lastNewsDay = o.optString("lastNewsDay"),
             publicProfile = o.optBoolean("publicProfile", false),
             pseudo = o.optString("pseudo"),

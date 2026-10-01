@@ -32,6 +32,7 @@ data class FeedItem(
     companion object {
         const val FOOD = "food"
         const val SPORT = "sport"
+        const val HEALTH = "health"
         const val INSOLITE = "insolite"
         fun fromJson(o: JSONObject) = FeedItem(
             o.optString("title"), o.optString("summary"), o.optString("url"), o.optString("source"), o.optLong("time"),
@@ -82,6 +83,12 @@ object NewsFeed {
         "olympique", " jo ", "handball", "basket", "randonnée", "fitness", "yoga", "athlète"
     )
 
+    /** Santé et bien-être (sans les sujets anxiogènes, déjà écartés). */
+    private val HEALTH_WORDS = listOf(
+        "santé", "bien-être", "sommeil", "dormir", "stress", "prévention", "hydrat", "posture", "écran", "respiration",
+        "méditation", "fatigue", "énergie", "moral", "dos ", "cœur", "coeur", "tension", "vitamine", "soleil"
+    )
+
     /** Une actu insolite : étonnante, surprenante, un record… */
     private val ODD_WORDS = listOf(
         "insolite", "étonnant", "surprenant", "bizarre", "curieux", "curieuse", "inattendu", "étrange",
@@ -107,14 +114,17 @@ object NewsFeed {
     /** Article sans date dans son flux. */
     const val NO_DATE = -1L
 
-    private const val VERSION = 7   // change quand les règles de choix changent (les actus du jour sont alors rechoisies)
+    private const val VERSION = 8   // change quand les règles de choix changent (les actus du jour sont alors rechoisies)
     private const val PER_DAY = 3      // actus alimentation / sport, en plus de l'actu insolite si on en trouve une
     private const val MAX_AGE_MS = 8L * 86_400_000L
 
     /** Actus déjà choisies aujourd'hui (sans réseau), ou null s'il faut les charger. */
+    /** Thèmes d'actus choisis (réglage), sans l'anecdote du jour qui vient de la banque intégrée. */
+    fun themes(): Set<String> = Repo.settings.value.newsThemes.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+
     fun cached(): List<FeedItem>? {
         val st = state()
-        if (st.optString("day") != localDay(0) || st.optInt("v") != VERSION) return null
+        if (st.optString("day") != localDay(0) || st.optInt("v") != VERSION || st.optString("themes") != themes().sorted().joinToString(",")) return null
         return st.optJSONArray("items")?.let { a -> (0 until a.length()).map { FeedItem.fromJson(a.getJSONObject(it)) } }
     }
 
@@ -123,6 +133,9 @@ object NewsFeed {
     /** Charge les flux et choisit les actus du jour (jamais déjà montrées). Garde le choix toute la journée. */
     suspend fun today(): List<FeedItem> {
         cached()?.let { return it }
+        val wanted = themes()
+        val topics = listOf(FeedItem.FOOD, FeedItem.SPORT, FeedItem.HEALTH).filter { it in wanted }
+        if (topics.isEmpty() && FeedItem.INSOLITE !in wanted) return emptyList()
         val all = coroutineScope {
             SOURCES.map { s -> async(Dispatchers.IO) { runCatching { fetch(s) }.getOrDefault(emptyList()) } }.awaitAll().flatten()
         }
@@ -138,7 +151,7 @@ object NewsFeed {
         val picked = mutableListOf<FeedItem>()
         // L'insolite : un vrai article publié aujourd'hui ou hier, sinon rien
         val sinceYesterday = Repo.dayBounds(-1).first
-        fresh.firstOrNull { it.kind == FeedItem.INSOLITE && it.time >= sinceYesterday }?.let { picked += it }
+        if (FeedItem.INSOLITE in wanted) fresh.firstOrNull { it.kind == FeedItem.INSOLITE && it.time >= sinceYesterday }?.let { picked += it }
         // Le reste doit être un thème normal (les insolites du flux « insolite seulement » ne servent qu'ici)
         val regularPool = fresh.filter { it.kind != FeedItem.INSOLITE || it.source != "Futura" }
         // Puis 2 actus sur l'alimentation et 1 sur le sport, en variant les sources
@@ -149,13 +162,15 @@ object NewsFeed {
             val bySource = pool.groupBy { it.source }.values.mapNotNull { it.firstOrNull() }.sortedByDescending { it.time }
             (bySource + pool).distinctBy { it.url }.take(n).forEach { picked += it.copy(kind = it.theme) }
         }
-        take(FeedItem.FOOD, 2)
-        take(FeedItem.SPORT, 1)
-        // Pas assez d'actus d'un thème : on complète avec l'autre
-        regularPool.forEach { if (regular() < PER_DAY && !has(it)) picked += it.copy(kind = it.theme) }
+        // Les thèmes choisis se partagent les places (alimentation d'abord), puis on complète avec ces mêmes thèmes
+        var slot = 0
+        while (regular() < PER_DAY && topics.isNotEmpty() && slot < PER_DAY * 3) {
+            take(topics[slot % topics.size], 1); slot++
+        }
+        regularPool.forEach { if (regular() < PER_DAY && !has(it) && it.theme in topics) picked += it.copy(kind = it.theme) }
         seen += picked.map { it.url }
         Repo.putExtra(KEY, JSONObject()
-            .put("day", localDay(0)).put("v", VERSION)
+            .put("day", localDay(0)).put("v", VERSION).put("themes", wanted.sorted().joinToString(","))
             .put("items", JSONArray().apply { picked.forEach { put(it.toJson()) } })
             .put("seen", JSONArray(seen.takeLast(400)))
             .toString())
@@ -210,16 +225,18 @@ object NewsFeed {
         val where = if (s.kind == null) title else text
         val food = FOOD_WORDS.any { it in where }
         val sport = SPORT_WORDS.any { it in where }
+        val health = HEALTH_WORDS.any { it in where }
         val topic = s.kind ?: when {
             food -> FeedItem.FOOD
             sport -> FeedItem.SPORT
+            health -> FeedItem.HEALTH
             else -> return null
         }
         // L'actu insolite parle toujours de nourriture ou de sport
         // Mot insolite dans le titre (pas dans une citation) ; pour le flux sport, il faut le mot « insolite » lui-même
         val odd = if (s.kind == FeedItem.SPORT) "insolite" in title
                   else ODD_WORDS.any { it in title.replace(Regex("«[^»]*»|\"[^\"]*\""), " ") }
-        return if (odd) FeedItem.INSOLITE + ":" + topic else topic
+        return if (odd && topic != FeedItem.HEALTH) FeedItem.INSOLITE + ":" + topic else topic
     }
     private fun excluded(text: String): Boolean = EXCLUDE.any { it in text }
 
