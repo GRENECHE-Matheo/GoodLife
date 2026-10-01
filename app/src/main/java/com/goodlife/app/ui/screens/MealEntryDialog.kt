@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -77,17 +79,17 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ajouter un repas") },
+        title = { Text(t("Ajouter un repas")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(byFood, { byFood = true }, label = { Text("Aliment + grammes") })
-                    FilterChip(!byFood, { byFood = false }, label = { Text("Calories") })
+                    FilterChip(byFood, { byFood = true }, label = { Text(t("Aliment + grammes")) })
+                    FilterChip(!byFood, { byFood = false }, label = { Text(t("Calories")) })
                 }
                 if (byFood) {
                     if (food == null) {
                         OutlinedTextField(
-                            query, { query = it }, label = { Text("Aliment (ex. riz cuit, pomme)") },
+                            query, { query = it }, label = { Text(t("Aliment (ex. riz cuit, pomme)")) },
                             singleLine = true, modifier = Modifier.fillMaxWidth()
                         )
                         Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState())) {
@@ -103,7 +105,7 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
                                 }
                             }
                             if (query.length >= 2 && results.isEmpty()) Text(
-                                "Aucun aliment trouvé. Essaie un autre mot, ou le mode « Calories ».",
+                                t("Aucun aliment trouvé. Essaie un autre mot, ou le mode « Calories »."),
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -112,46 +114,45 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
                             Column(Modifier.fillMaxWidth().padding(12.dp)) {
                                 Text(food.name, fontWeight = FontWeight.Medium)
                                 Text(
-                                    "Pour 100 g : ${food.kcal.roundToInt()} kcal · P ${"%.1f".format(food.protein)} g · " +
-                                        "G ${"%.1f".format(food.carbs)} g · L ${"%.1f".format(food.fat)} g",
+                                    t("Pour 100 g : %1\$s kcal · P %2\$s g · G %3\$s g · L %4\$s g", food.kcal.roundToInt(), "%.1f".format(food.protein), "%.1f".format(food.carbs), "%.1f".format(food.fat)),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                TextButton(onClick = { chosen = null }) { Text("Changer d'aliment") }
+                                TextButton(onClick = { chosen = null }) { Text(t("Changer d'aliment")) }
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
-                                count, { count = it.take(2) }, label = { Text("Nombre") }, singleLine = true,
+                                count, { count = it.take(2) }, label = { Text(t("Nombre")) }, singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
                             )
                             OutlinedTextField(
-                                grams, { grams = it.take(6) }, label = { Text("Grammes (pour 1)") }, singleLine = true,
+                                grams, { grams = it.take(6) }, label = { Text(t("Grammes (pour 1)")) }, singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(2f)
                             )
                         }
                         Text(
-                            if (computed != null) "= $computed kcal" else "Indique un nombre et une quantité en grammes.",
+                            if (computed != null) t("= %1\$s kcal", computed) else t("Indique un nombre et une quantité en grammes."),
                             style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Text(Ciqual.SOURCE, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t(Ciqual.SOURCE), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    OutlinedTextField(name, { name = it }, label = { Text("Nom (ex. Banane)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(name, { name = it }, label = { Text(t("Nom (ex. Banane)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            count, { count = it.take(2) }, label = { Text("Nombre") }, singleLine = true,
+                            count, { count = it.take(2) }, label = { Text(t("Nombre")) }, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
-                            kcal, { kcal = it }, label = { Text("kcal pour 1") }, singleLine = true,
+                            kcal, { kcal = it }, label = { Text(t("kcal pour 1")) }, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(2f)
                         )
                     }
-                    if (total != null) Text("= $total kcal", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                    if (total != null) Text(t("= %1\$s kcal", total), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
         },
@@ -160,18 +161,18 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
                 if (byFood && food != null && g != null && n != null) {
                     onAdd(
                         Meal(
-                            name = com.goodlife.app.ai.mealName(n, "${food.name} (${g.roundToInt()} g)").take(80),
+                            name = com.goodlife.app.ai.mealName(n, t("%1\$s (%2\$s g)", food.name, g.roundToInt())).take(80),
                             kcal = computed ?: 0,
                             proteinG = food.protein * g / 100 * n, carbsG = food.carbs * g / 100 * n, fatG = food.fat * g / 100 * n,
-                            details = "$n × ${g.roundToInt()} g · table Ciqual 2025 (Anses)",
+                            details = t("%1\$s × %2\$s g · table Ciqual 2025 (Anses)", n, g.roundToInt()),
                             source = "ciqual"
                         )
                     )
                 } else {
                     onAdd(Meal(name = com.goodlife.app.ai.mealName(n ?: 1, name.trim()).take(80), kcal = total ?: 0, source = "manuel"))
                 }
-            }) { Text("Ajouter") }
+            }) { Text(t("Ajouter")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }

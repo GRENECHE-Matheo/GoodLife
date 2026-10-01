@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.9.4 · mise à jour le 1er octobre 2026
+Version 0.9.5 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 

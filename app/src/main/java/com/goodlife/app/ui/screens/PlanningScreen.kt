@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -95,8 +97,8 @@ private fun weekDays(weeks: Int): List<String> {
 }
 
 private fun parse(d: String) = runCatching { ISO.parse(d) }.getOrNull()
-private fun fmt(d: String, pattern: String) = parse(d)?.let { SimpleDateFormat(pattern, Locale.FRANCE).format(it) } ?: d
-fun euros(v: Double): String = String.format(Locale.FRANCE, "%.2f €", v)
+private fun fmt(d: String, pattern: String) = parse(d)?.let { SimpleDateFormat(pattern, com.goodlife.app.i18n.Lang.locale).format(it) } ?: d
+fun euros(v: Double): String = String.format(com.goodlife.app.i18n.Lang.locale, "%.2f €", v)
 
 @Composable
 fun PlanningScreen() {
@@ -115,34 +117,34 @@ fun PlanningScreen() {
 
     ScreenColumn {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { ScreenTitle("Planning", "Tes repas de la semaine") }
+            Box(Modifier.weight(1f)) { ScreenTitle(t("Planning"), t("Tes repas de la semaine")) }
             if (settings.aiEnabled) {
                 FilledTonalButton(onClick = { generate = true }) {
                     Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Ma semaine")
+                    Text(t("Ma semaine"))
                 }
             }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { shopping = true }) { Text("🛒 Liste de courses") }
-            if (settings.aiEnabled) OutlinedButton(onClick = { fridge = true }) { Text("🧊 Mon frigo") }
+            OutlinedButton(onClick = { shopping = true }) { Text(t("🛒 Liste de courses")) }
+            if (settings.aiEnabled) OutlinedButton(onClick = { fridge = true }) { Text(t("🧊 Mon frigo")) }
         }
 
         // Semaine : « 29 sept. – 5 oct. » avec flèches
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { week--; selected = weekDays(week).first() }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Semaine précédente")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, t("Semaine précédente"))
             }
             Text(
-                (if (week == 0) "Cette semaine · " else "") + "${fmt(days.first(), "d MMM")} – ${fmt(days.last(), "d MMM")}",
+                (if (week == 0) t("Cette semaine · ") else "") + "${fmt(days.first(), "d MMM")} – ${fmt(days.last(), "d MMM")}",
                 style = MaterialTheme.typography.titleSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { week++; selected = weekDays(week).first() }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Semaine suivante")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, t("Semaine suivante"))
             }
         }
 
@@ -187,7 +189,7 @@ fun PlanningScreen() {
                 Text(fmt(day, "EEEE d MMMM").replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleLarge)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        if (target > 0) "$total / $target kcal prévues" else "$total kcal prévues",
+                        if (target > 0) t("%1\$s / %2\$s kcal prévues", total, target) else t("%1\$s kcal prévues", total),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (target > 0 && total > target) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
@@ -207,7 +209,7 @@ fun PlanningScreen() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(slot.label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
                         IconButton(onClick = { addSlot = slot }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Filled.Add, "Ajouter ${slot.label.lowercase()}", Modifier.size(20.dp))
+                            Icon(Icons.Filled.Add, t("Ajouter %1\$s", slot.label.lowercase()), Modifier.size(20.dp))
                         }
                     }
                     if (items.isEmpty()) {
@@ -218,7 +220,7 @@ fun PlanningScreen() {
             }
         }
         Text(
-            "Astuce : touche un repas pour voir sa description, sa recette ou le retirer ; ✓ l'ajoute à ton journal.",
+            t("Astuce : touche un repas pour voir sa description, sa recette ou le retirer ; ✓ l'ajoute à ton journal."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -254,7 +256,7 @@ private fun PlannedRow(m: PlannedMeal) {
                     listOfNotNull(
                         "${m.kcal} kcal",
                         m.costEur.takeIf { it > 0 }?.let { "≈ ${euros(it)}" },
-                        "mangé".takeIf { m.done }
+                        t("mangé").takeIf { m.done }
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -264,7 +266,7 @@ private fun PlannedRow(m: PlannedMeal) {
                 IconButton(onClick = {
                     Repo.addMeal(Meal(name = m.name, kcal = m.kcal, details = m.description, source = "planning"))
                     Repo.updatePlanned(m.copy(done = true))
-                }) { Icon(Icons.Filled.Check, "Marquer comme mangé") }
+                }) { Icon(Icons.Filled.Check, t("Marquer comme mangé")) }
             }
         }
         AnimatedVisibility(visible = expanded) {
@@ -272,11 +274,11 @@ private fun PlannedRow(m: PlannedMeal) {
                 if (m.description.isNotBlank()) Text(m.description, style = MaterialTheme.typography.bodyMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (m.recipe != null || aiOn) {
-                        AssistChip(onClick = { showRecipe = true }, label = { Text("Recette") })
+                        AssistChip(onClick = { showRecipe = true }, label = { Text(t("Recette")) })
                     }
                     AssistChip(
                         onClick = { Repo.deletePlanned(m.id) },
-                        label = { Text("Retirer") },
+                        label = { Text(t("Retirer")) },
                         leadingIcon = { Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)) }
                     )
                 }
@@ -310,28 +312,27 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
     AlertDialog(
         onDismissRequest = { if (!loading) onDismiss() },
         icon = { Icon(Icons.Filled.AutoAwesome, null) },
-        title = { Text(if (result == null) "Planifier ma semaine" else "Ta semaine est prête") },
+        title = { Text(if (result == null) t("Planifier ma semaine") else t("Ta semaine est prête")) },
         text = {
             val r = result
             if (r == null) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "À partir du ${fmt(startDate, "EEEE d MMMM")}. L'IA vise ton budget avec les prix moyens en " +
-                        "supermarché en France : ce sont des estimations.",
+                    t("À partir du %1\$s. L'IA vise ton budget avec les prix moyens en supermarché en France : ce sont des estimations.", fmt(startDate, "EEEE d MMMM")),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
                     budget, { budget = it.filter(Char::isDigit).take(4) },
-                    label = { Text("Budget de la semaine (€)") }, singleLine = true,
+                    label = { Text(t("Budget de la semaine (€)")) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Personnes", modifier = Modifier.weight(1f))
-                    IconButton(enabled = people > 1, onClick = { people-- }) { Icon(Icons.Filled.Remove, "Moins") }
+                    Text(t("Personnes"), modifier = Modifier.weight(1f))
+                    IconButton(enabled = people > 1, onClick = { people-- }) { Icon(Icons.Filled.Remove, t("Moins")) }
                     Text("$people", style = MaterialTheme.typography.titleMedium)
-                    IconButton(enabled = people < 8, onClick = { people++ }) { Icon(Icons.Filled.Add, "Plus") }
+                    IconButton(enabled = people < 8, onClick = { people++ }) { Icon(Icons.Filled.Add, t("Plus")) }
                 }
-                Text("Repas à prévoir", style = MaterialTheme.typography.labelLarge)
+                Text(t("Repas à prévoir"), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MealSlot.entries.forEach { s ->
                         FilterChip(
@@ -344,20 +345,20 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                 if (loading) Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
-                    Text("L'IA prépare ta semaine…", style = MaterialTheme.typography.bodySmall)
+                    Text(t("L'IA prépare ta semaine…"), style = MaterialTheme.typography.bodySmall)
                 }
                 if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val total = r.first.sumOf { it.costEur }
                 Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                        Text("≈ ${euros(total)} pour ${r.first.size} repas", style = MaterialTheme.typography.titleMedium)
-                        Text("Budget : ${b ?: 0} € · $people personne(s)", style = MaterialTheme.typography.bodySmall)
+                        Text(t("≈ %1\$s pour %2\$s repas", euros(total), r.first.size), style = MaterialTheme.typography.titleMedium)
+                        Text(t("Budget : %1\$s € · %2\$s personne(s)", b ?: 0, people), style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 if (r.second.isNotBlank()) Text(r.second, style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "Les repas déjà prévus (non mangés) sur ces créneaux seront remplacés.",
+                    t("Les repas déjà prévus (non mangés) sur ces créneaux seront remplacés."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -382,19 +383,19 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                             }
                         }
                     }
-                ) { Text("Générer") }
+                ) { Text(t("Générer")) }
             } else {
                 TextButton(onClick = {
                     Repo.addPlannedWeek(r.first, r.first.map { it.date }.toSet() + weekDaysFrom(startDate), slots)
                     onDone(startDate)
                     onDismiss()
-                }) { Text("Ajouter au planning") }
+                }) { Text(t("Ajouter au planning")) }
             }
         },
         dismissButton = {
             val r = result
-            if (r != null) TextButton(onClick = { result = null }) { Text("Refaire") }
-            else TextButton(enabled = !loading, onClick = onDismiss) { Text("Annuler") }
+            if (r != null) TextButton(onClick = { result = null }) { Text(t("Refaire")) }
+            else TextButton(enabled = !loading, onClick = onDismiss) { Text(t("Annuler")) }
         }
     )
 }

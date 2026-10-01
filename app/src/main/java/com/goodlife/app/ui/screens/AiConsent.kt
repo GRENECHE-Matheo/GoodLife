@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.widthIn
@@ -47,28 +49,15 @@ fun disableAi() = Repo.updateSettings { it.copy(aiEnabled = false, aiConsentAske
 fun AiConsentText() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            "Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes, coach) utilisent " +
-                "Google Gemini avec ta propre clé API, que tu crées toi-même chez Google (Google AI Studio). " +
-                "En la créant, tu acceptes les conditions de Google (18 ans minimum) ; l'éventuelle facturation " +
-                "se fait entre toi et Google. Si tu actives l'IA :",
+            t("Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes, coach) utilisent Google Gemini avec ta propre clé API, que tu crées toi-même chez Google (Google AI Studio). En la créant, tu acceptes les conditions de Google (18 ans minimum) ; l'éventuelle facturation se fait entre toi et Google. Si tu actives l'IA :"),
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            "• La photo du repas et tes allergies sont envoyées à Google pour l'analyse.\n" +
-                "• Pour les recommandations : âge, sexe, poids, taille, activité, objectif, habitudes, allergies " +
-                "et repas du jour. Pour le coach, en plus : tes chiffres des 7 derniers jours (scores, calories, pas, " +
-                "séances, sorties, évolution du poids) et ton planning. Ce sont des données de santé.\n" +
-                "• Elles partent directement de ton téléphone vers Google, sous ton propre compte Google.\n" +
-                "• Google peut les conserver temporairement et les traiter hors de l'UE. Selon ses conditions, " +
-                "pour les utilisateurs situés dans l'UE, Google ne s'en sert pas pour améliorer ses produits.\n" +
-                "• Les réponses de l'IA sont des estimations et peuvent être fausses : vérifie-les.\n" +
-                "• Ton prénom, ton sommeil et tes positions GPS ne sont jamais envoyés.",
+            t("• La photo du repas et tes allergies sont envoyées à Google pour l'analyse.\n• Pour les recommandations : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour. Pour le coach, en plus : tes chiffres des 7 derniers jours (scores, calories, pas, séances, sorties, évolution du poids) et ton planning. Ce sont des données de santé.\n• Elles partent directement de ton téléphone vers Google, sous ton propre compte Google.\n• Google peut les conserver temporairement et les traiter hors de l'UE. Selon ses conditions, pour les utilisateurs situés dans l'UE, Google ne s'en sert pas pour améliorer ses produits.\n• Les réponses de l'IA sont des estimations et peuvent être fausses : vérifie-les.\n• Ton prénom, ton sommeil et tes positions GPS ne sont jamais envoyés."),
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            "Ces données ne sont ni vendues ni utilisées pour de la publicité par GoodLife. " +
-                "Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. " +
-                "Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz.",
+            t("Ces données ne sont ni vendues ni utilisées pour de la publicité par GoodLife. Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -93,23 +82,23 @@ fun AiChoiceScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ChefMascot(size = 96.dp, mood = ChefMood.QUESTION)
-            Text("Activer l'IA ?", style = MaterialTheme.typography.headlineMedium)
-            SectionCard(title = "Ce que ça implique", icon = Icons.Filled.AutoAwesome) {
+            Text(t("Activer l'IA ?"), style = MaterialTheme.typography.headlineMedium)
+            SectionCard(title = t("Ce que ça implique"), icon = Icons.Filled.AutoAwesome) {
                 AiConsentText()
-                TextButton(onClick = { showPolicy = true }) { Text("Lire la politique de confidentialité") }
+                TextButton(onClick = { showPolicy = true }) { Text(t("Lire la politique de confidentialité")) }
             }
             if (adult) {
                 Button(onClick = { enableAi() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    Text("J'accepte, activer l'IA")
+                    Text(t("J'accepte, activer l'IA"))
                 }
             } else {
                 Text(
-                    "Les fonctions IA sont réservées aux 18 ans et plus. Tu peux utiliser tout le reste de l'app.",
+                    t("Les fonctions IA sont réservées aux 18 ans et plus. Tu peux utiliser tout le reste de l'app."),
                     color = MaterialTheme.colorScheme.error
                 )
             }
             OutlinedButton(onClick = { disableAi() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text("Continuer sans IA")
+                Text(t("Continuer sans IA"))
             }
         }
         }
@@ -124,13 +113,13 @@ fun AiConsentDialog(onDismiss: () -> Unit, onAccepted: () -> Unit = {}) {
     val adult = (profile?.age ?: 0) >= 18
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Activer l'IA ?") },
+        title = { Text(t("Activer l'IA ?")) },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 AiConsentText()
                 if (!adult) {
                     Text(
-                        "\nRéservé aux 18 ans et plus : l'IA ne peut pas être activée avec l'âge de ton profil.",
+                        t("\nRéservé aux 18 ans et plus : l'IA ne peut pas être activée avec l'âge de ton profil."),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -138,9 +127,9 @@ fun AiConsentDialog(onDismiss: () -> Unit, onAccepted: () -> Unit = {}) {
         },
         confirmButton = {
             if (adult) {
-                TextButton(onClick = { enableAi(); onAccepted(); onDismiss() }) { Text("J'accepte") }
+                TextButton(onClick = { enableAi(); onAccepted(); onDismiss() }) { Text(t("J'accepte")) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }

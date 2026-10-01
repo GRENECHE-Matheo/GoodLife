@@ -1,5 +1,7 @@
 package com.goodlife.app.social
 
+import com.goodlife.app.i18n.t
+
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -19,12 +21,12 @@ import java.security.spec.X509EncodedKeySpec
 
 /** Encouragement tout prêt (pas de texte libre : rien à modérer). */
 val CHEERS = listOf(
-    "Bravo pour ta série ! 🔥",
-    "Continue comme ça 💪",
-    "Tu vas y arriver !",
-    "Belle découverte au Nutridex 🥦",
-    "On se fait une marche ? 🚶",
-    "Fier de toi !"
+    t("Bravo pour ta série ! 🔥"),
+    t("Continue comme ça 💪"),
+    t("Tu vas y arriver !"),
+    t("Belle découverte au Nutridex 🥦"),
+    t("On se fait une marche ? 🚶"),
+    t("Fier de toi !")
 )
 
 /** Encouragement envoyé à [target] (id d'ami), le jour [day] (jours depuis 1970). */

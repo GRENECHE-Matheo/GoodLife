@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -65,7 +67,7 @@ private fun displayName(context: Context, uri: Uri): String = runCatching {
 }.getOrNull() ?: Backup.FILE_NAME
 
 private fun formatBackupDate(ms: Long): String =
-    SimpleDateFormat("EEEE d MMMM 'à' HH:mm", Locale.FRANCE).format(Date(ms))
+    SimpleDateFormat(if (com.goodlife.app.i18n.Lang.en) "EEEE d MMMM 'at' HH:mm" else "EEEE d MMMM 'à' HH:mm", com.goodlife.app.i18n.Lang.locale).format(Date(ms))
 
 /** Section « Sauvegarde » des Paramètres. */
 @Composable
@@ -93,21 +95,18 @@ fun BackupSection() {
         scope.launch {
             withContext(Dispatchers.IO) { Backup.autoBackup(context, force = true) }
             working = false
-            message = Repo.settings.value.backupError.ifBlank { "Sauvegarde activée et première copie enregistrée." }
+            message = Repo.settings.value.backupError.ifBlank { t("Sauvegarde activée et première copie enregistrée.") }
         }
     }
 
-    SectionCard(title = "Sauvegarde chiffrée", icon = Icons.Filled.Backup) {
+    SectionCard(title = t("Sauvegarde chiffrée"), icon = Icons.Filled.Backup) {
         if (settings.backupUri.isBlank()) {
             Text(
-                "Pour ne rien perdre si tu changes de téléphone ou réinstalles l'app. GoodLife écrit une copie " +
-                    "chiffrée de tes données dans le fichier de ton choix (Google Drive, Téléchargements…), puis la met à jour " +
-                    "toute seule à chaque fois que tu quittes l'app après un changement.",
+                t("Pour ne rien perdre si tu changes de téléphone ou réinstalles l'app. GoodLife écrit une copie chiffrée de tes données dans le fichier de ton choix (Google Drive, Téléchargements…), puis la met à jour toute seule à chaque fois que tu quittes l'app après un changement."),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                "Le fichier est illisible sans ton mot de passe, même pour Google ou pour le développeur. " +
-                    "Mot de passe oublié = sauvegarde perdue : personne ne peut le retrouver.",
+                t("Le fichier est illisible sans ton mot de passe, même pour Google ou pour le développeur. Mot de passe oublié = sauvegarde perdue : personne ne peut le retrouver."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -115,7 +114,7 @@ fun BackupSection() {
                 if (working) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Icon(Icons.Filled.Backup, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Activer la sauvegarde")
+                Text(t("Activer la sauvegarde"))
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -126,15 +125,15 @@ fun BackupSection() {
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Sauvegarde automatique activée", style = MaterialTheme.typography.bodyLarge)
+                    Text(t("Sauvegarde automatique activée"), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Fichier : ${settings.backupName.ifBlank { Backup.FILE_NAME }}",
+                        t("Fichier : %1\$s", settings.backupName.ifBlank { Backup.FILE_NAME }),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        if (settings.lastBackupAt > 0) "Dernière copie : ${formatBackupDate(settings.lastBackupAt)}"
-                        else "Pas encore de copie.",
+                        if (settings.lastBackupAt > 0) t("Dernière copie : %1\$s", formatBackupDate(settings.lastBackupAt))
+                        else t("Pas encore de copie."),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -150,18 +149,18 @@ fun BackupSection() {
                     scope.launch {
                         withContext(Dispatchers.IO) { Backup.autoBackup(context, force = true) }
                         working = false
-                        message = Repo.settings.value.backupError.ifBlank { "Copie enregistrée." }
+                        message = Repo.settings.value.backupError.ifBlank { t("Copie enregistrée.") }
                     }
                 }
             ) {
                 if (working) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Icon(Icons.Filled.Backup, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Sauvegarder maintenant")
+                Text(t("Sauvegarder maintenant"))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { message = null; askPassword = true }) { Text("Changer mot de passe / fichier") }
-                TextButton(onClick = { confirmOff = true }) { Text("Désactiver", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { message = null; askPassword = true }) { Text(t("Changer mot de passe / fichier")) }
+                TextButton(onClick = { confirmOff = true }) { Text(t("Désactiver"), color = MaterialTheme.colorScheme.error) }
             }
         }
         RestoreButton(outlined = true)
@@ -185,16 +184,16 @@ fun BackupSection() {
     if (confirmOff) {
         AlertDialog(
             onDismissRequest = { confirmOff = false },
-            title = { Text("Désactiver la sauvegarde ?") },
-            text = { Text("GoodLife arrête de mettre à jour le fichier. Le fichier déjà enregistré n'est pas supprimé : tu peux l'effacer toi-même si tu veux.") },
+            title = { Text(t("Désactiver la sauvegarde ?")) },
+            text = { Text(t("GoodLife arrête de mettre à jour le fichier. Le fichier déjà enregistré n'est pas supprimé : tu peux l'effacer toi-même si tu veux.")) },
             confirmButton = {
                 TextButton(onClick = {
                     Backup.releaseAccess(context, Uri.parse(settings.backupUri))
                     Repo.updateSettings { it.copy(backupUri = "", backupKey = "", backupName = "", lastBackupAt = 0L, backupError = "") }
                     confirmOff = false
-                }) { Text("Désactiver") }
+                }) { Text(t("Désactiver")) }
             },
-            dismissButton = { TextButton(onClick = { confirmOff = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { confirmOff = false }) { Text(t("Annuler")) } }
         )
     }
 }
@@ -210,21 +209,20 @@ private fun NewPasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Filled.Backup, null) },
-        title = { Text("Mot de passe de la sauvegarde") },
+        title = { Text(t("Mot de passe de la sauvegarde")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Il protège le fichier. Il sera demandé pour restaurer, par exemple sur un nouveau téléphone. " +
-                        "Note-le dans un endroit sûr : sans lui, la sauvegarde est perdue.",
+                    t("Il protège le fichier. Il sera demandé pour restaurer, par exemple sur un nouveau téléphone. Note-le dans un endroit sûr : sans lui, la sauvegarde est perdue."),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                PasswordField(pw, { pw = it }, "Mot de passe", show) { show = !show }
-                PasswordField(pw2, { pw2 = it }, "Confirmer", show) { show = !show }
+                PasswordField(pw, { pw = it }, t("Mot de passe"), show) { show = !show }
+                PasswordField(pw2, { pw2 = it }, t("Confirmer"), show) { show = !show }
                 Text(
                     when {
-                        pw.isNotEmpty() && !longEnough -> "Au moins ${Backup.MIN_PASSWORD} caractères."
-                        pw2.isNotEmpty() && !same -> "Les deux mots de passe sont différents."
-                        else -> "Ensuite, choisis où enregistrer le fichier (Google Drive conseillé)."
+                        pw.isNotEmpty() && !longEnough -> t("Au moins %1\$s caractères.", Backup.MIN_PASSWORD)
+                        pw2.isNotEmpty() && !same -> t("Les deux mots de passe sont différents.")
+                        else -> t("Ensuite, choisis où enregistrer le fichier (Google Drive conseillé).")
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = if ((pw.isNotEmpty() && !longEnough) || (pw2.isNotEmpty() && !same)) MaterialTheme.colorScheme.error
@@ -233,9 +231,9 @@ private fun NewPasswordDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit
             }
         },
         confirmButton = {
-            TextButton(enabled = longEnough && same, onClick = { onConfirm(pw) }) { Text("Choisir le fichier") }
+            TextButton(enabled = longEnough && same, onClick = { onConfirm(pw) }) { Text(t("Choisir le fichier")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }
 
@@ -250,7 +248,7 @@ private fun PasswordField(value: String, onChange: (String) -> Unit, label: Stri
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
             IconButton(onClick = onToggle) {
-                Icon(if (show) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (show) "Masquer" else "Afficher")
+                Icon(if (show) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (show) t("Masquer") else t("Afficher"))
             }
         },
         modifier = Modifier.fillMaxWidth()
@@ -293,10 +291,10 @@ fun RestoreButton(outlined: Boolean, modifier: Modifier = Modifier) {
                 }
                 file = null; decrypted = null; done = true
             }
-            .onFailure { error = it.message ?: "Restauration impossible." }
+            .onFailure { error = it.message ?: t("Restauration impossible.") }
     }
 
-    val label = "Restaurer une sauvegarde"
+    val label = t("Restaurer une sauvegarde")
     val onClick = { done = false; pick.launch(arrayOf("*/*")) }
     if (outlined) OutlinedButton(onClick = onClick, modifier = modifier) {
         Icon(Icons.Filled.Restore, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(label)
@@ -304,7 +302,7 @@ fun RestoreButton(outlined: Boolean, modifier: Modifier = Modifier) {
         Icon(Icons.Filled.Restore, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(label)
     }
     if (done && hasData) {
-        Text("Données restaurées.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        Text(t("Données restaurées."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
     }
 
     val uri = file
@@ -312,23 +310,23 @@ fun RestoreButton(outlined: Boolean, modifier: Modifier = Modifier) {
         AlertDialog(
             onDismissRequest = { if (!working) file = null },
             icon = { Icon(Icons.Filled.Restore, null) },
-            title = { Text("Restaurer") },
+            title = { Text(t("Restaurer")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Fichier : ${displayName(context, uri)}", style = MaterialTheme.typography.bodyMedium)
-                    PasswordField(pw, { pw = it; error = null }, "Mot de passe de la sauvegarde", show) { show = !show }
+                    Text(t("Fichier : %1\$s", displayName(context, uri)), style = MaterialTheme.typography.bodyMedium)
+                    PasswordField(pw, { pw = it; error = null }, t("Mot de passe de la sauvegarde"), show) { show = !show }
                     Row(
                         Modifier.fillMaxWidth().toggleable(keepAuto, role = Role.Checkbox) { keepAuto = it },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(checked = keepAuto, onCheckedChange = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Continuer la sauvegarde automatique dans ce fichier", style = MaterialTheme.typography.bodyMedium)
+                        Text(t("Continuer la sauvegarde automatique dans ce fichier"), style = MaterialTheme.typography.bodyMedium)
                     }
                     if (working) Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text("Déchiffrement…", style = MaterialTheme.typography.bodySmall)
+                        Text(t("Déchiffrement…"), style = MaterialTheme.typography.bodySmall)
                     }
                     if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -342,11 +340,11 @@ fun RestoreButton(outlined: Boolean, modifier: Modifier = Modifier) {
                         }
                         working = false
                         result.onSuccess { r -> if (hasData) decrypted = r else apply(r, uri) }
-                            .onFailure { error = it.message ?: "Fichier illisible." }
+                            .onFailure { error = it.message ?: t("Fichier illisible.") }
                     }
-                }) { Text("Restaurer") }
+                }) { Text(t("Restaurer")) }
             },
-            dismissButton = { TextButton(enabled = !working, onClick = { file = null }) { Text("Annuler") } }
+            dismissButton = { TextButton(enabled = !working, onClick = { file = null }) { Text(t("Annuler")) } }
         )
     }
 
@@ -356,15 +354,14 @@ fun RestoreButton(outlined: Boolean, modifier: Modifier = Modifier) {
         AlertDialog(
             onDismissRequest = { decrypted = null; file = null },
             icon = { Icon(Icons.Filled.Warning, null) },
-            title = { Text("Remplacer les données actuelles ?") },
+            title = { Text(t("Remplacer les données actuelles ?")) },
             text = {
                 Text(
-                    "Le profil, les repas, le sommeil, le planning et la progression de ce téléphone seront remplacés " +
-                        "par ceux de la sauvegarde. Tes réglages de sécurité, l'IA et ta clé restent comme ils sont."
+                    t("Le profil, les repas, le sommeil, le planning et la progression de ce téléphone seront remplacés par ceux de la sauvegarde. Tes réglages de sécurité, l'IA et ta clé restent comme ils sont.")
                 )
             },
-            confirmButton = { TextButton(onClick = { apply(ready, uri) }) { Text("Remplacer", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { decrypted = null; file = null }) { Text("Annuler") } }
+            confirmButton = { TextButton(onClick = { apply(ready, uri) }) { Text(t("Remplacer"), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { decrypted = null; file = null }) { Text(t("Annuler")) } }
         )
     }
 }

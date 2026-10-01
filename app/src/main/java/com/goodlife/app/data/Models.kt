@@ -1,23 +1,25 @@
 package com.goodlife.app.data
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.game.Game
 import org.json.JSONArray
 import org.json.JSONObject
 
-enum class Sex(val label: String) { HOMME("Homme"), FEMME("Femme") }
+enum class Sex(val label: String) { HOMME(t("Homme")), FEMME(t("Femme")) }
 
 enum class ActivityLevel(val label: String, val factor: Double) {
-    SEDENTAIRE("Sédentaire", 1.2),
-    LEGER("Léger", 1.375),
-    MODERE("Modéré", 1.55),
-    ACTIF("Actif", 1.725),
-    TRES_ACTIF("Très actif", 1.9)
+    SEDENTAIRE(t("Sédentaire"), 1.2),
+    LEGER(t("Léger"), 1.375),
+    MODERE(t("Modéré"), 1.55),
+    ACTIF(t("Actif"), 1.725),
+    TRES_ACTIF(t("Très actif"), 1.9)
 }
 
 enum class Goal(val label: String, val deltaKcal: Int) {
-    PERTE("Perdre du poids", -400),
-    MAINTIEN("Maintenir", 0),
-    PRISE("Prendre du poids", 300)
+    PERTE(t("Perdre du poids"), -400),
+    MAINTIEN(t("Maintenir"), 0),
+    PRISE(t("Prendre du poids"), 300)
 }
 
 private inline fun <reified T : Enum<T>> enumOr(value: String?, default: T): T =
@@ -132,19 +134,19 @@ data class MealSuggestion(
 )
 
 enum class MealSlot(val label: String) {
-    PETIT_DEJ("Petit-déjeuner"),
-    DEJEUNER("Déjeuner"),
-    COLLATION("Collation"),
-    DINER("Dîner");
+    PETIT_DEJ(t("Petit-déjeuner")),
+    DEJEUNER(t("Déjeuner")),
+    COLLATION(t("Collation")),
+    DINER(t("Dîner"));
 
     companion object {
         /** Devine le créneau à partir du « moment » renvoyé par l'IA. */
         fun guess(moment: String): MealSlot {
             val m = moment.lowercase()
             return when {
-                "petit" in m || "matin" in m -> PETIT_DEJ
+                "petit" in m || "matin" in m || "breakfast" in m -> PETIT_DEJ
                 "collation" in m || "goûter" in m || "gouter" in m || "snack" in m -> COLLATION
-                "dîner" in m || "diner" in m || "soir" in m -> DINER
+                "dîner" in m || "diner" in m || "soir" in m || "dinner" in m || "supper" in m -> DINER
                 else -> DEJEUNER
             }
         }
@@ -455,7 +457,7 @@ data class SportState(val program: SportProgram? = null, val done: Set<String> =
 }
 
 /** Type de sortie GPS. */
-enum class OutingType(val label: String, val emoji: String) { RUN("Course", "🏃"), WALK("Marche", "🚶"), BIKE("Vélo", "🚴") }
+enum class OutingType(val label: String, val emoji: String) { RUN(t("Course"), "🏃"), WALK(t("Marche"), "🚶"), BIKE(t("Vélo"), "🚴") }
 
 /** Point d'un tracé : latitude, longitude, altitude (m, NaN si inconnue), temps (ms). */
 data class TrackPoint(val lat: Double, val lng: Double, val alt: Double, val t: Long)

@@ -1,5 +1,7 @@
 package com.goodlife.app.widget
 
+import com.goodlife.app.i18n.t
+
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -60,23 +62,23 @@ object ChefWidgets {
         val freezes = Repo.game.value.freezes
         val streak = s?.streak ?: 0
         v.setTextViewText(R.id.widget_streak, buildString {
-            if (streak == 0) append(if (small) "🔥 0" else "🔥 Série à lancer")
+            if (streak == 0) append(if (small) "🔥 0" else t("🔥 Série à lancer"))
             else { append("🔥 ").append(streak); if (!small) append(if (streak > 1) " jours" else " jour") }
             if (freezes > 0) append("  ❄️ ").append(freezes)
         })
         if (!small) {
             if (s == null || p == null) {
                 v.setTextViewText(R.id.widget_line, "")
-                v.setTextViewText(R.id.widget_message, "Ouvre GoodLife pour commencer avec le chef !")
+                v.setTextViewText(R.id.widget_message, t("Ouvre GoodLife pour commencer avec le chef !"))
                 v.setProgressBar(R.id.widget_score, 100, 0, false)
             } else if (locked) {
-                v.setTextViewText(R.id.widget_line, "GoodLife est verrouillé")
-                v.setTextViewText(R.id.widget_message, "Ouvre l'app pour voir ta journée.")
+                v.setTextViewText(R.id.widget_line, t("GoodLife est verrouillé"))
+                v.setTextViewText(R.id.widget_message, t("Ouvre l'app pour voir ta journée."))
                 v.setProgressBar(R.id.widget_score, 100, 0, false)
             } else {
                 v.setProgressBar(R.id.widget_score, 100, s.today.score.coerceIn(0, 100), false)
                 v.setTextViewText(R.id.widget_line, buildString {
-                    append("Score ").append(s.today.score).append("/100 · ")
+                    append(t("Score ")).append(s.today.score).append("/100 · ")
                     append(Coach.fmt(s.today.kcal)).append(" / ").append(Coach.fmt(p.targetKcal)).append(" kcal")
                     if (s.today.stepGoal > 0) append(" · ").append(Coach.fmt(s.today.steps)).append(" pas")
                 })

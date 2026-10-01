@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -109,49 +111,51 @@ private fun ProfileContent(onOpenSettings: () -> Unit, onOpenDex: () -> Unit, on
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.align(Alignment.BottomEnd).size(26.dp)
                 ) {
-                    Icon(Icons.Filled.Edit, "Changer la photo", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(5.dp))
+                    Icon(Icons.Filled.Edit, t("Changer la photo"), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(5.dp))
                 }
                 DropdownMenu(expanded = avatarMenu, onDismissRequest = { avatarMenu = false }) {
                     DropdownMenuItem(
-                        text = { Text("Choisir une photo") },
+                        text = { Text(t("Choisir une photo")) },
                         onClick = {
                             avatarMenu = false
                             pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     )
                     if (avatar != null) {
-                        DropdownMenuItem(text = { Text("Retirer la photo") }, onClick = { avatarMenu = false; Repo.saveAvatar(null) })
+                        DropdownMenuItem(text = { Text(t("Retirer la photo")) }, onClick = { avatarMenu = false; Repo.saveAvatar(null) })
                     }
                 }
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(p.name.ifBlank { "Profil" }, style = MaterialTheme.typography.headlineSmall)
+                Text(p.name.ifBlank { t("Profil") }, style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "IMC ${"%.1f".format(Nutrition.bmi(p))}",
+                    t("IMC %1\$s", "%.1f".format(Nutrition.bmi(p))),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            FilledTonalIconButton(onClick = onOpenSettings) { Icon(Icons.Filled.Settings, "Paramètres") }
+            FilledTonalIconButton(onClick = onOpenSettings) { Icon(Icons.Filled.Settings, t("Paramètres")) }
         }
 
         NutridexCard(onOpen = onOpenDex)
         FriendsCard(onOpen = onOpenFriends)
 
-        SectionCard(title = "Objectif quotidien", icon = Icons.Filled.AutoAwesome) {
+        SectionCard(title = t("Objectif quotidien"), icon = Icons.Filled.AutoAwesome) {
             Text("${p.targetKcal} kcal", style = MaterialTheme.typography.displaySmall)
             Text(
-                "Protéines ${p.proteinG} g · Glucides ${p.carbsG} g · Lipides ${p.fatG} g",
+                t("Protéines %1\$s g · Glucides %2\$s g · Lipides %3\$s g", p.proteinG, p.carbsG, p.fatG),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                (if (p.targetSource == "ia") "Recommandé par l'IA : " else "") + p.targetExplanation,
+                // Calcul par formule : texte refait dans la langue de l'app (celui enregistré peut être dans l'autre langue)
+                (if (p.targetSource == "ia") t("Recommandé par l'IA : ") + p.targetExplanation
+                else if (p.targetSource == "formule") Nutrition.formulaTarget(p).targetExplanation else p.targetExplanation),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (p.targetSource == "ia") {
-                AiContentFooter("Objectif calorique : ${p.targetKcal} kcal\n${p.targetExplanation}")
+                AiContentFooter(t("Objectif calorique : %1\$s kcal\n%2\$s", p.targetKcal, p.targetExplanation))
             }
             if (aiError != null) Text(aiError!!, color = MaterialTheme.colorScheme.error)
             FilledTonalButton(
@@ -172,28 +176,28 @@ private fun ProfileContent(onOpenSettings: () -> Unit, onOpenDex: () -> Unit, on
                 if (aiLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Calculer avec l'IA")
+                Text(t("Calculer avec l'IA"))
             }
         }
 
-        SectionCard(title = "Mes infos", icon = Icons.Filled.Person) {
+        SectionCard(title = t("Mes infos"), icon = Icons.Filled.Person) {
             if (editing) {
-                ProfileForm(initial = p, saveLabel = "Enregistrer") { updated ->
+                ProfileForm(initial = p, saveLabel = t("Enregistrer")) { updated ->
                     Repo.saveProfile(Nutrition.formulaTarget(updated))
                     editing = false
                 }
-                TextButton(onClick = { editing = false }) { Text("Annuler") }
+                TextButton(onClick = { editing = false }) { Text(t("Annuler")) }
             } else {
-                InfoLine("Prénom", p.name.ifBlank { "—" })
-                InfoLine("Âge", "${p.age} ans")
-                InfoLine("Sexe", p.sex.label)
-                InfoLine("Poids", "${p.weightKg} kg")
-                InfoLine("Taille", "${p.heightCm} cm")
-                InfoLine("Activité", p.activity.label)
-                InfoLine("Objectif", p.goal.label)
-                InfoLine("Habitudes", p.habits.ifBlank { "—" })
-                InfoLine("Allergies", p.allergies.ifBlank { "—" })
-                OutlinedButton(onClick = { editing = true }) { Text("Modifier mes infos") }
+                InfoLine(t("Prénom"), p.name.ifBlank { "—" })
+                InfoLine(t("Âge"), t("%1\$s ans", p.age))
+                InfoLine(t("Sexe"), p.sex.label)
+                InfoLine(t("Poids"), "${p.weightKg} kg")
+                InfoLine(t("Taille"), "${p.heightCm} cm")
+                InfoLine(t("Activité"), p.activity.label)
+                InfoLine(t("Objectif"), p.goal.label)
+                InfoLine(t("Habitudes"), p.habits.ifBlank { "—" })
+                InfoLine(t("Allergies"), p.allergies.ifBlank { "—" })
+                OutlinedButton(onClick = { editing = true }) { Text(t("Modifier mes infos")) }
             }
         }
 
@@ -203,9 +207,9 @@ private fun ProfileContent(onOpenSettings: () -> Unit, onOpenDex: () -> Unit, on
                 Icon(Icons.Filled.Settings, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Paramètres", style = MaterialTheme.typography.titleMedium)
+                    Text(t("Paramètres"), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Thème, sons, empreinte, sauvegarde chiffrée, clé IA",
+                        t("Thème, sons, empreinte, sauvegarde chiffrée, clé IA"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

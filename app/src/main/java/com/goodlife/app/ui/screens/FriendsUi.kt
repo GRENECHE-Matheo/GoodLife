@@ -2,6 +2,9 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
+
 import android.graphics.Bitmap
 import android.graphics.Color as AColor
 import android.os.Build
@@ -115,19 +118,19 @@ import kotlin.random.Random
 private fun ago(ms: Long): String {
     val m = (System.currentTimeMillis() - ms) / 60_000
     return when {
-        m < 1 -> "à l'instant"
-        m < 60 -> "il y a $m min"
-        m < 24 * 60 -> "il y a ${m / 60} h"
-        else -> "il y a ${m / (24 * 60)} j"
+        m < 1 -> t("à l'instant")
+        m < 60 -> t("il y a %1\$s min", m)
+        m < 24 * 60 -> t("il y a %1\$s h", m / 60)
+        else -> t("il y a %1\$s j", m / (24 * 60))
     }
 }
 
 private fun resultText(e: SyncEvent): String = when (e.result) {
-    Repo.Received.NEW_FRIEND -> "${e.pseudo} est maintenant ton ami !"
-    Repo.Received.UPDATED -> "Carte de ${e.pseudo} mise à jour."
-    Repo.Received.NEW_ENCOUNTER -> "Nouvelle rencontre : ${e.pseudo}"
-    Repo.Received.SEEN_AGAIN -> "Tu as recroisé ${e.pseudo}."
-    Repo.Received.IGNORED -> "Carte ignorée."
+    Repo.Received.NEW_FRIEND -> t("%1\$s est maintenant ton ami !", e.pseudo)
+    Repo.Received.UPDATED -> t("Carte de %1\$s mise à jour.", e.pseudo)
+    Repo.Received.NEW_ENCOUNTER -> t("Nouvelle rencontre : %1\$s", e.pseudo)
+    Repo.Received.SEEN_AGAIN -> t("Tu as recroisé %1\$s.", e.pseudo)
+    Repo.Received.IGNORED -> t("Carte ignorée.")
 }
 
 /** Carte d'accès depuis le profil. */
@@ -141,11 +144,11 @@ fun FriendsCard(onOpen: () -> Unit) {
             Icon(Icons.Filled.Group, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text("Amis", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(t("Amis"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 Text(
                     buildString {
-                        append(if (friends == 0) "Ajoute des amis en collant vos téléphones" else "$friends ami${if (friends > 1) "s" else ""}")
-                        if (unread > 0) append(" · $unread encouragement${if (unread > 1) "s" else ""}")
+                        append(if (friends == 0) t("Ajoute des amis en collant vos téléphones") else tp(friends, "%1\$s ami", "%1\$s amis"))
+                        if (unread > 0) append(" · " + tp(unread, "%1\$s encouragement", "%1\$s encouragements"))
                     },
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -196,21 +199,21 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
         if (res.values.all { it }) {
             Repo.updateSettings { it.copy(streetPass = true) }
             StreetPass.sync(context)
-        } else message = "StreetPass a besoin de l'autorisation « Appareils à proximité »."
+        } else message = t("StreetPass a besoin de l'autorisation « Appareils à proximité ».")
     }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader("Amis", onBack)
+            SubScreenHeader(t("Amis"), onBack)
 
             // ---- Mon profil public ----
-            SectionCard(title = "Mon profil", icon = Icons.Filled.PhoneAndroid) {
+            SectionCard(title = t("Mon profil"), icon = Icons.Filled.PhoneAndroid) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(if (settings.publicProfile) "Profil public" else "Profil privé", style = MaterialTheme.typography.bodyLarge)
+                        Text(if (settings.publicProfile) t("Profil public") else t("Profil privé"), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            if (settings.publicProfile) "Tes amis reçoivent seulement ce que tu coches ci-dessous, quand vous vous synchronisez."
-                            else "Personne ne reçoit rien. Tu peux quand même recevoir la carte des autres.",
+                            if (settings.publicProfile) t("Tes amis reçoivent seulement ce que tu coches ci-dessous, quand vous vous synchronisez.")
+                            else t("Personne ne reçoit rien. Tu peux quand même recevoir la carte des autres."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -223,31 +226,31 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
                             pseudo, { pseudo = it.take(Identity.MAX_PSEUDO) },
-                            label = { Text("Pseudo") }, singleLine = true, modifier = Modifier.weight(1f),
-                            supportingText = { Text("Évite ton nom complet.") }
+                            label = { Text(t("Pseudo")) }, singleLine = true, modifier = Modifier.weight(1f),
+                            supportingText = { Text(t("Évite ton nom complet.")) }
                         )
                         TextButton(
                             enabled = Identity.cleanPseudo(pseudo).length >= 2 && Identity.cleanPseudo(pseudo) != settings.pseudo,
                             onClick = { Repo.updateSettings { it.copy(pseudo = Identity.cleanPseudo(pseudo)) }; StreetPass.sync(context) }
                         ) { Text("OK") }
                     }
-                    Text("Je partage :", style = MaterialTheme.typography.labelLarge)
-                    ShareBox("Mon niveau", settings.shareLevel) { v -> Repo.updateSettings { it.copy(shareLevel = v) } }
-                    ShareBox("Ma série", settings.shareStreak) { v -> Repo.updateSettings { it.copy(shareStreak = v) } }
-                    ShareBox("Mon $DEX_NAME (sans mes photos)", settings.shareDex) { v -> Repo.updateSettings { it.copy(shareDex = v) } }
-                    ShareBox("Mon défi de la semaine (jours validés, pas, XP)", settings.shareWeek) { v -> Repo.updateSettings { it.copy(shareWeek = v) } }
+                    Text(t("Je partage :"), style = MaterialTheme.typography.labelLarge)
+                    ShareBox(t("Mon niveau"), settings.shareLevel) { v -> Repo.updateSettings { it.copy(shareLevel = v) } }
+                    ShareBox(t("Ma série"), settings.shareStreak) { v -> Repo.updateSettings { it.copy(shareStreak = v) } }
+                    ShareBox(t("Mon %1\$s (sans mes photos)", DEX_NAME), settings.shareDex) { v -> Repo.updateSettings { it.copy(shareDex = v) } }
+                    ShareBox(t("Mon défi de la semaine (jours validés, pas, XP)"), settings.shareWeek) { v -> Repo.updateSettings { it.copy(shareWeek = v) } }
                     Text(
-                        "Jamais partagé : ton poids, tes repas, ton sommeil, tes photos.",
+                        t("Jamais partagé : ton poids, tes repas, ton sommeil, tes photos."),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             // ---- Encouragements reçus ----
-            if (unreadCheers.isNotEmpty()) SectionCard(title = "Encouragements", icon = Icons.Filled.Favorite,
+            if (unreadCheers.isNotEmpty()) SectionCard(title = t("Encouragements"), icon = Icons.Filled.Favorite,
                 container = MaterialTheme.colorScheme.tertiaryContainer) {
                 unreadCheers.forEach { c ->
-                    val from = social.people.firstOrNull { it.id == c.from }?.pseudo ?: "Un ami"
+                    val from = social.people.firstOrNull { it.id == c.from }?.pseudo ?: t("Un ami")
                     Text("$from : ${CHEERS.getOrElse(c.message) { "" }}", style = MaterialTheme.typography.bodyLarge)
                 }
             }
@@ -255,32 +258,31 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
             // ---- Ajouter ----
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = onTap, modifier = Modifier.weight(1f).height(56.dp)) {
-                    Icon(Icons.Filled.Contactless, null); Spacer(Modifier.width(8.dp)); Text("Tap to Sync")
+                    Icon(Icons.Filled.Contactless, null); Spacer(Modifier.width(8.dp)); Text(t("Tap to Sync"))
                 }
                 FilledTonalButton(onClick = onQr, modifier = Modifier.weight(1f).height(56.dp)) {
-                    Icon(Icons.Filled.QrCode2, null); Spacer(Modifier.width(8.dp)); Text("QR code")
+                    Icon(Icons.Filled.QrCode2, null); Spacer(Modifier.width(8.dp)); Text(t("QR code"))
                 }
             }
             // ---- À distance : la carte part par message, toujours sans serveur ----
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = {
                     val text = Social.shareText()
-                    if (text == null) message = "Active « Profil public » et choisis un pseudo pour partager ta carte."
+                    if (text == null) message = t("Active « Profil public » et choisis un pseudo pour partager ta carte.")
                     else runCatching {
                         context.startActivity(android.content.Intent.createChooser(
                             android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
-                                .putExtra(android.content.Intent.EXTRA_TEXT, text), "Partager ma carte"))
+                                .putExtra(android.content.Intent.EXTRA_TEXT, text), t("Partager ma carte")))
                     }
                 }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Partager ma carte")
+                    Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Partager ma carte"))
                 }
                 OutlinedButton(onClick = { pasteOpen = true }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Coller un code")
+                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Coller un code"))
                 }
             }
             Text(
-                "Pas à côté ? Envoie ta carte par message (WhatsApp, SMS…) : ton ami l'ouvre avec GoodLife. " +
-                    "Elle passe seulement par la messagerie que tu choisis, jamais par un serveur GoodLife.",
+                t("Pas à côté ? Envoie ta carte par message (WhatsApp, SMS…) : ton ami l'ouvre avec GoodLife. Elle passe seulement par la messagerie que tu choisis, jamais par un serveur GoodLife."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (info != null) Text(info!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
@@ -290,15 +292,15 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
 
             // ---- Classement entre amis ----
             val friends = social.people.filter { it.friend }
-            SectionCard(title = "Classement entre amis", icon = Icons.Filled.EmojiEvents) {
+            SectionCard(title = t("Classement entre amis"), icon = Icons.Filled.EmojiEvents) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(ranking == "level", { ranking = "level" }, label = { Text("Niveau") })
-                    FilterChip(ranking == "streak", { ranking = "streak" }, label = { Text("Série") })
+                    FilterChip(ranking == "level", { ranking = "level" }, label = { Text(t("Niveau")) })
+                    FilterChip(ranking == "streak", { ranking = "streak" }, label = { Text(t("Série")) })
                     FilterChip(ranking == "dex", { ranking = "dex" }, label = { Text(DEX_NAME) })
                 }
                 if (friends.isEmpty()) {
                     Text(
-                        "Pas encore d'amis. Collez vos téléphones avec Tap to Sync ou scannez son QR code.",
+                        t("Pas encore d'amis. Collez vos téléphones avec Tap to Sync ou scannez son QR code."),
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else Leaderboard(friends, ranking, onPerson)
@@ -308,10 +310,9 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
             if (StreetPass.supported(context) && StreetPass.allowedForAge()) SectionCard(title = "StreetPass", icon = Icons.Filled.Sensors) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Croiser d'autres joueurs", style = MaterialTheme.typography.bodyLarge)
+                        Text(t("Croiser d'autres joueurs"), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "En Bluetooth basse consommation, à quelques mètres. Une notification reste affichée " +
-                                "tant que c'est actif. Nécessite un profil public.",
+                            t("En Bluetooth basse consommation, à quelques mètres. Une notification reste affichée tant que c'est actif. Nécessite un profil public."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -332,26 +333,26 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                 }
                 val met = social.people.filter { !it.friend }.sortedByDescending { it.seenAt }
                 if (met.isNotEmpty()) {
-                    Text("Rencontres", style = MaterialTheme.typography.labelLarge)
+                    Text(t("Rencontres"), style = MaterialTheme.typography.labelLarge)
                     met.take(30).forEachIndexed { i, p ->
                         if (i > 0) HorizontalDivider()
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f).clickable { onPerson(p.id) }) {
                                 Text(p.pseudo, fontWeight = FontWeight.Medium)
                                 Text(
-                                    listOfNotNull(p.level?.let { "Niv. $it" }, "croisé ${p.encounters} fois", ago(p.seenAt)).joinToString(" · "),
+                                    listOfNotNull(p.level?.let { t("Niv. %1\$s", it) }, t("croisé %1\$s fois", p.encounters), ago(p.seenAt)).joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            TextButton(onClick = { Repo.setFriend(p.id, true) }) { Icon(Icons.Filled.PersonAdd, "Ajouter en ami") }
-                            TextButton(onClick = { Repo.blockPerson(p.id) }) { Icon(Icons.Filled.Block, "Masquer et bloquer") }
+                            TextButton(onClick = { Repo.setFriend(p.id, true) }) { Icon(Icons.Filled.PersonAdd, t("Ajouter en ami")) }
+                            TextButton(onClick = { Repo.blockPerson(p.id) }) { Icon(Icons.Filled.Block, t("Masquer et bloquer")) }
                         }
                     }
                 }
             }
             if (message != null) Text(message!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             if (social.blocked.isNotEmpty()) {
-                TextButton(onClick = { Repo.unblockAll() }) { Text("Débloquer les ${social.blocked.size} personne(s) bloquée(s)") }
+                TextButton(onClick = { Repo.unblockAll() }) { Text(t("Débloquer les %1\$s personne(s) bloquée(s)", social.blocked.size)) }
             }
         }
     }
@@ -377,13 +378,13 @@ private fun PasteCodeDialog(onDismiss: () -> Unit, onDone: (String) -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Coller un code d'ami") },
+        title = { Text(t("Coller un code d'ami")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Colle le message reçu (il contient un code qui commence par GL1:).", style = MaterialTheme.typography.bodyMedium)
+                Text(t("Colle le message reçu (il contient un code qui commence par GL1:)."), style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(text, { text = it.take(3000); error = null }, minLines = 3, maxLines = 5, modifier = Modifier.fillMaxWidth())
                 TextButton(onClick = { clipboard.getText()?.text?.let { text = it.take(3000) } }) {
-                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Coller le presse-papiers")
+                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Coller le presse-papiers"))
                 }
                 if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
@@ -391,11 +392,11 @@ private fun PasteCodeDialog(onDismiss: () -> Unit, onDone: (String) -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 val e = Social.receiveFromMessage(text)
-                if (e == null) error = "Ce message ne contient pas de carte GoodLife valide (ou elle a été modifiée)."
+                if (e == null) error = t("Ce message ne contient pas de carte GoodLife valide (ou elle a été modifiée).")
                 else onDone(resultText(e))
-            }) { Text("Ajouter") }
+            }) { Text(t("Ajouter")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }
 
@@ -408,17 +409,17 @@ private fun WeeklyChallenge(friends: List<Person>, myPseudo: String) {
     val week = Weekly.current()
     val kind = Weekly.kind(week)
     val mine = remember(meals, game, steps) { Weekly.myStats() }
-    SectionCard(title = "Défi de la semaine", icon = Icons.Filled.Flag) {
+    SectionCard(title = t("Défi de la semaine"), icon = Icons.Filled.Flag) {
         Text(kind.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
         val left = Weekly.daysLeft()
         Text(
-            "Encore $left jour${if (left > 1) "s" else ""} · les scores de tes amis arrivent à chaque échange de cartes (Tap to Sync, QR, StreetPass ou message).",
+            tp(left, "Encore %1\$s jour", "Encore %1\$s jours") + t(" · les scores de tes amis arrivent à chaque échange de cartes (Tap to Sync, QR, StreetPass ou message)."),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         data class R(val name: String, val value: Int, val me: Boolean)
         val synced = friends.filter { it.weekId == week }
         val rows = (synced.map { R(it.pseudo, Weekly.value(kind, it.weekDays, it.weekSteps, it.weekXp), false) } +
-            listOfNotNull(mine?.let { R(myPseudo.ifBlank { "Moi" } + " (moi)", Weekly.value(kind, it.days, it.steps, it.xp), true) }))
+            listOfNotNull(mine?.let { R(myPseudo.ifBlank { t("Moi") } + t(" (moi)"), Weekly.value(kind, it.days, it.steps, it.xp), true) }))
             .sortedByDescending { it.value }
         rows.forEachIndexed { i, r ->
             if (i > 0) HorizontalDivider()
@@ -430,8 +431,8 @@ private fun WeeklyChallenge(friends: List<Person>, myPseudo: String) {
         }
         val waiting = friends.filter { it.weekId != week }
         if (waiting.isNotEmpty()) Text(
-            "Pas encore de nouvelles cette semaine : " + waiting.take(6).joinToString { it.pseudo } +
-                (if (waiting.size > 6) "…" else "") + ". Échangez vos cartes pour voir leurs scores.",
+            t("Pas encore de nouvelles cette semaine : ") + waiting.take(6).joinToString { it.pseudo } +
+                (if (waiting.size > 6) "…" else "") + t(". Échangez vos cartes pour voir leurs scores."),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -451,7 +452,7 @@ private fun Leaderboard(friends: List<Person>, by: String, onPerson: (String) ->
     data class Row3(val id: String?, val name: String, val value: Int?)
     val rows = (friends.map {
         Row3(it.id, it.pseudo, when (by) { "streak" -> it.streak; "dex" -> it.dex?.size; else -> it.level })
-    } + Row3(null, settings.pseudo.ifBlank { "Moi" } + " (moi)", when (by) {
+    } + Row3(null, settings.pseudo.ifBlank { t("Moi") } + " (moi)", when (by) {
         "streak" -> me?.streak; "dex" -> dex.unlocked.size; else -> me?.level?.level
     })).sortedWith(compareByDescending<Row3> { it.value ?: -1 }.thenBy { it.name })
 
@@ -473,8 +474,8 @@ private fun Leaderboard(friends: List<Person>, by: String, onPerson: (String) ->
             )
             Text(
                 r.value?.let {
-                    when (by) { "streak" -> "$it j"; "dex" -> "$it/${Nutridex.ENTRIES.size}"; else -> "Niv. $it" }
-                } ?: "caché",
+                    when (by) { "streak" -> t("%1\$s j", it); "dex" -> "$it/${Nutridex.ENTRIES.size}"; else -> t("Niv. %1\$s", it) }
+                } ?: t("caché"),
                 style = MaterialTheme.typography.labelLarge,
                 color = if (r.value == null) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
             )
@@ -497,18 +498,18 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
         ScreenColumn {
             SubScreenHeader(p.pseudo, onBack)
             SectionCard {
-                Text(if (p.friend) "Ami" else "Rencontre StreetPass", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(if (p.friend) t("Ami") else t("Rencontre StreetPass"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Stat("Niveau", p.level?.let { "$it · ${Game.title(it)}" } ?: "caché", Modifier.weight(1f))
-                    Stat("Série", p.streak?.let { "$it j" } ?: "cachée", Modifier.weight(1f))
+                    Stat(t("Niveau"), p.level?.let { "$it · ${Game.title(it)}" } ?: t("caché"), Modifier.weight(1f))
+                    Stat(t("Série"), p.streak?.let { "$it j" } ?: t("cachée"), Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Stat("Record", p.bestStreak?.let { "$it j" } ?: "caché", Modifier.weight(1f))
-                    Stat(DEX_NAME, p.dex?.let { "${it.size}/${Nutridex.ENTRIES.size}" } ?: "caché", Modifier.weight(1f))
+                    Stat(t("Record"), p.bestStreak?.let { "$it j" } ?: t("caché"), Modifier.weight(1f))
+                    Stat(DEX_NAME, p.dex?.let { "${it.size}/${Nutridex.ENTRIES.size}" } ?: t("caché"), Modifier.weight(1f))
                 }
                 Text(
-                    "Dernière synchro ${ago(p.cardTime)} · ajouté par ${when (p.via) { "tap" -> "Tap to Sync"; "street" -> "StreetPass"; "code" -> "carte partagée"; else -> "QR code" }}. " +
-                        "Ses infos se mettent à jour à chaque nouvelle synchro.",
+                    t("Dernière synchro %1\$s · ajouté par %2\$s. Ses infos se mettent à jour à chaque nouvelle synchro.", ago(p.cardTime),
+                        when (p.via) { "tap" -> "Tap to Sync"; "street" -> "StreetPass"; "code" -> t("carte partagée"); else -> "QR code" }),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -516,53 +517,53 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
                 SectionCard(title = DEX_NAME) {
                     val both = theirs.intersect(myDex).size
                     val onlyThem = (theirs - myDex).size
-                    Text("Vous avez $both aliment(s) en commun. ${p.pseudo} en a $onlyThem que tu n'as pas encore.", style = MaterialTheme.typography.bodyMedium)
-                    OutlinedButton(onClick = { onDex(p.id) }) { Text("Voir son $DEX_NAME") }
+                    Text(t("Vous avez %1\$s aliment(s) en commun. %2\$s en a %3\$s que tu n'as pas encore.", both, p.pseudo, onlyThem), style = MaterialTheme.typography.bodyMedium)
+                    OutlinedButton(onClick = { onDex(p.id) }) { Text(t("Voir son %1\$s", DEX_NAME)) }
                 }
             }
             if (p.friend) {
                 Button(onClick = { cheer = true }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Filled.Favorite, null); Spacer(Modifier.width(8.dp)); Text("Encourager")
+                    Icon(Icons.Filled.Favorite, null); Spacer(Modifier.width(8.dp)); Text(t("Encourager"))
                 }
             } else {
                 Button(onClick = { Repo.setFriend(p.id, true) }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Filled.PersonAdd, null); Spacer(Modifier.width(8.dp)); Text("Ajouter en ami")
+                    Icon(Icons.Filled.PersonAdd, null); Spacer(Modifier.width(8.dp)); Text(t("Ajouter en ami"))
                 }
             }
             if (info != null) Text(info!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (p.friend) TextButton(onClick = { Repo.setFriend(p.id, false) }) { Text("Retirer des amis") }
-                TextButton(onClick = { confirmBlock = true }) { Text("Bloquer", color = MaterialTheme.colorScheme.error) }
+                if (p.friend) TextButton(onClick = { Repo.setFriend(p.id, false) }) { Text(t("Retirer des amis")) }
+                TextButton(onClick = { confirmBlock = true }) { Text(t("Bloquer"), color = MaterialTheme.colorScheme.error) }
             }
         }
     }
 
     if (cheer) AlertDialog(
         onDismissRequest = { cheer = false },
-        title = { Text("Encourager ${p.pseudo}") },
+        title = { Text(t("Encourager %1\$s", p.pseudo)) },
         text = {
             Column {
                 Text(
-                    "Il le recevra à votre prochaine synchro (Tap to Sync, QR code ou StreetPass). Un encouragement par jour.",
+                    t("Il le recevra à votre prochaine synchro (Tap to Sync, QR code ou StreetPass). Un encouragement par jour."),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 CHEERS.forEachIndexed { i, text ->
                     TextButton(onClick = {
-                        info = if (Repo.sendCheer(p.id, i, Identity.myId())) "Encouragement prêt : « $text »"
-                               else "Tu as déjà encouragé ${p.pseudo} aujourd'hui."
+                        info = if (Repo.sendCheer(p.id, i, Identity.myId())) t("Encouragement prêt : « %1\$s »", text)
+                               else t("Tu as déjà encouragé %1\$s aujourd'hui.", p.pseudo)
                         cheer = false
                     }) { Text(text) }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { cheer = false }) { Text("Annuler") } }
+        confirmButton = { TextButton(onClick = { cheer = false }) { Text(t("Annuler")) } }
     )
     if (confirmBlock) AlertDialog(
         onDismissRequest = { confirmBlock = false },
-        title = { Text("Bloquer ${p.pseudo} ?") },
-        text = { Text("Sa carte et ses encouragements seront ignorés. Tu pourras le débloquer depuis l'écran Amis.") },
-        confirmButton = { TextButton(onClick = { Repo.blockPerson(p.id); confirmBlock = false; onBack() }) { Text("Bloquer", color = MaterialTheme.colorScheme.error) } },
-        dismissButton = { TextButton(onClick = { confirmBlock = false }) { Text("Annuler") } }
+        title = { Text(t("Bloquer %1\$s ?", p.pseudo)) },
+        text = { Text(t("Sa carte et ses encouragements seront ignorés. Tu pourras le débloquer depuis l'écran Amis.")) },
+        confirmButton = { TextButton(onClick = { Repo.blockPerson(p.id); confirmBlock = false; onBack() }) { Text(t("Bloquer"), color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = { confirmBlock = false }) { Text(t("Annuler")) } }
     )
 }
 
@@ -614,7 +615,7 @@ private fun TapSyncScreen(onBack: () -> Unit) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader("Tap to Sync", onBack)
+            SubScreenHeader(t("Tap to Sync"), onBack)
             Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Filled.Contactless, null,
@@ -624,14 +625,14 @@ private fun TapSyncScreen(onBack: () -> Unit) {
             }
             Text(
                 when {
-                    !nfcOk -> "Ce téléphone n'a pas de NFC. Utilise le QR code à la place."
-                    !nfcOn -> "Active le NFC dans les réglages rapides du téléphone, puis reviens ici."
-                    else -> "Ouvre aussi cet écran sur le téléphone de ton ami, puis collez vos téléphones dos à dos quelques secondes."
+                    !nfcOk -> t("Ce téléphone n'a pas de NFC. Utilise le QR code à la place.")
+                    !nfcOn -> t("Active le NFC dans les réglages rapides du téléphone, puis reviens ici.")
+                    else -> t("Ouvre aussi cet écran sur le téléphone de ton ami, puis collez vos téléphones dos à dos quelques secondes.")
                 },
                 style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
             )
             if (!canShare) Text(
-                "Ton profil est privé (ou sans pseudo) : tu recevras sa carte, mais il ne recevra pas la tienne.",
+                t("Ton profil est privé (ou sans pseudo) : tu recevras sa carte, mais il ne recevra pas la tienne."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
             )
@@ -654,23 +655,22 @@ private fun QrScreen(onBack: () -> Unit) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader("QR code", onBack)
+            SubScreenHeader(t("QR code"), onBack)
             if (qr != null) SectionCard {
-                Text("Fais scanner ce code par ton ami", style = MaterialTheme.typography.titleMedium)
+                Text(t("Fais scanner ce code par ton ami"), style = MaterialTheme.typography.titleMedium)
                 Box(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(androidx.compose.ui.graphics.Color.White).padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(qr.asImageBitmap(), "Mon QR code", Modifier.fillMaxWidth())
+                    Image(qr.asImageBitmap(), t("Mon QR code"), Modifier.fillMaxWidth())
                 }
                 Text(
-                    "Il contient seulement ce que tu partages, signé par ton téléphone. Montre-le seulement à des personnes que tu connais.",
+                    t("Il contient seulement ce que tu partages, signé par ton téléphone. Montre-le seulement à des personnes que tu connais."),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else SectionCard {
                 Text(
-                    "Ton profil est privé (ou sans pseudo) : active « Profil public » dans l'écran Amis pour avoir un QR code. " +
-                        "Tu peux quand même scanner celui d'un ami.",
+                    t("Ton profil est privé (ou sans pseudo) : active « Profil public » dans l'écran Amis pour avoir un QR code. Tu peux quand même scanner celui d'un ami."),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -682,14 +682,14 @@ private fun QrScreen(onBack: () -> Unit) {
                     ).startScan()
                         .addOnSuccessListener { b ->
                             val e = b.rawValue?.let { Social.receiveText(it, "qr") }
-                            result = e?.let(::resultText) ?: "Ce QR code n'est pas une carte GoodLife valide."
+                            result = e?.let(::resultText) ?: t("Ce QR code n'est pas une carte GoodLife valide.")
                             if (e != null) Sounds.play(Sfx.LEVEL_UP)
                         }
-                        .addOnFailureListener { result = "Scanner indisponible : ${it.message ?: "réessaie"}" }
+                        .addOnFailureListener { result = t("Scanner indisponible : %1\$s", it.message ?: t("réessaie")) }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Icon(Icons.Filled.QrCodeScanner, null); Spacer(Modifier.width(8.dp)); Text("Scanner le QR d'un ami")
+                Icon(Icons.Filled.QrCodeScanner, null); Spacer(Modifier.width(8.dp)); Text(t("Scanner le QR d'un ami"))
             }
             if (result != null) SectionCard(container = MaterialTheme.colorScheme.primaryContainer) {
                 Text(result!!, style = MaterialTheme.typography.titleMedium)
@@ -697,11 +697,11 @@ private fun QrScreen(onBack: () -> Unit) {
             // Version de test uniquement : coller une carte à la main (l'émulateur ne peut pas scanner de QR)
             if (com.goodlife.app.BuildConfig.DEBUG) {
                 var paste by remember { mutableStateOf("") }
-                Text("Test : mon id ${Identity.myId()}", style = MaterialTheme.typography.labelSmall)
-                OutlinedTextField(paste, { paste = it }, label = { Text("Carte (test)") }, modifier = Modifier.fillMaxWidth())
+                Text(t("Test : mon id %1\$s", Identity.myId()), style = MaterialTheme.typography.labelSmall)
+                OutlinedTextField(paste, { paste = it }, label = { Text(t("Carte (test)")) }, modifier = Modifier.fillMaxWidth())
                 TextButton(onClick = {
-                    result = Social.receiveText(paste, "qr")?.let(::resultText) ?: "Carte refusée (invalide ou falsifiée)."
-                }) { Text("Importer (test)") }
+                    result = Social.receiveText(paste, "qr")?.let(::resultText) ?: t("Carte refusée (invalide ou falsifiée).")
+                }) { Text(t("Importer (test)")) }
             }
         }
     }

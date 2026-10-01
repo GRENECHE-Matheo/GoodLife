@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -48,11 +50,11 @@ import java.util.Locale
 
 /** Libellé court d'un jour AAAA-MM-JJ, ex. « Aujourd'hui », « Demain », « jeu. 2 oct. ». */
 fun dayLabel(date: String): String = when (date) {
-    localDay(0) -> "Aujourd'hui"
-    localDay(1) -> "Demain"
+    localDay(0) -> t("Aujourd'hui")
+    localDay(1) -> t("Demain")
     else -> runCatching {
         val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)!!
-        SimpleDateFormat("EEE d MMM", Locale.FRANCE).format(d)
+        SimpleDateFormat("EEE d MMM", com.goodlife.app.i18n.Lang.locale).format(d)
     }.getOrDefault(date)
 }
 
@@ -78,28 +80,28 @@ fun AddToPlanDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ajouter à l'emploi du temps") },
+        title = { Text(t("Ajouter à l'emploi du temps")) },
         text = {
             Column(
                 Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (editableName) {
-                    OutlinedTextField(name, { name = it }, label = { Text("Repas") }, singleLine = true)
+                    OutlinedTextField(name, { name = it }, label = { Text(t("Repas")) }, singleLine = true)
                 } else {
                     Text(name, style = MaterialTheme.typography.titleMedium)
                 }
                 OutlinedTextField(
-                    kcal, { kcal = it }, label = { Text("Calories (kcal)") }, singleLine = true,
+                    kcal, { kcal = it }, label = { Text(t("Calories (kcal)")) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-                Text("Jour", style = MaterialTheme.typography.labelLarge)
+                Text(t("Jour"), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     days.forEach { d ->
                         FilterChip(selected = date == d, onClick = { date = d }, label = { Text(dayLabel(d)) })
                     }
                 }
-                Text("Moment", style = MaterialTheme.typography.labelLarge)
+                Text(t("Moment"), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MealSlot.entries.forEach { s ->
                         FilterChip(selected = slot == s, onClick = { slot = s }, label = { Text(s.label) })
@@ -120,9 +122,9 @@ fun AddToPlanDialog(
                     onAdded()
                     onDismiss()
                 }
-            ) { Text("Ajouter") }
+            ) { Text(t("Ajouter")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }
 
@@ -154,7 +156,7 @@ fun RecipeDialog(
                 recipe = r
                 onLoaded(r)
             } catch (e: Exception) {
-                error = e.message ?: "Recette indisponible."
+                error = e.message ?: t("Recette indisponible.")
             }
         }
     }
@@ -171,13 +173,13 @@ fun RecipeDialog(
                 when {
                     r != null -> {
                         Text(
-                            "${r.servings} portion(s) · ${r.minutes} min · ~${r.kcalPerServing} kcal/portion",
+                            t("%1\$s portion(s) · %2\$s min · ~%3\$s kcal/portion", r.servings, r.minutes, r.kcalPerServing),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text("Ingrédients", fontWeight = FontWeight.Medium)
+                        Text(t("Ingrédients"), fontWeight = FontWeight.Medium)
                         r.ingredients.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
-                        Text("Préparation", fontWeight = FontWeight.Medium)
+                        Text(t("Préparation"), fontWeight = FontWeight.Medium)
                         r.steps.forEachIndexed { i, step ->
                             Text("${i + 1}. $step", style = MaterialTheme.typography.bodyMedium)
                         }
@@ -185,7 +187,7 @@ fun RecipeDialog(
                             Text(r.tip, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         }
                         AiContentFooter(
-                            "Recette : $name\n" + r.ingredients.joinToString("\n") + "\n" +
+                            t("Recette : %1\$s\n", name) + r.ingredients.joinToString("\n") + "\n" +
                                 r.steps.joinToString("\n") + "\n" + r.tip
                         )
                     }
@@ -193,24 +195,23 @@ fun RecipeDialog(
                     else -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(12.dp))
-                        Text("Recette en préparation…")
+                        Text(t("Recette en préparation…"))
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Fermer") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(t("Fermer")) } },
         dismissButton = {
-            if (error != null) TextButton(onClick = { attempt++ }) { Text("Réessayer") }
-            else if (recipe != null) TextButton(onClick = { chat = true }) { Text("Poser une question") }
+            if (error != null) TextButton(onClick = { attempt++ }) { Text(t("Réessayer")) }
+            else if (recipe != null) TextButton(onClick = { chat = true }) { Text(t("Poser une question")) }
         }
     )
     val r = recipe
     if (chat && r != null) {
         AiChatDialog(
             title = name,
-            context = "Recette de « $name » (${r.servings} portion(s), ${r.minutes} min, ~${r.kcalPerServing} kcal/portion). " +
-                "Ingrédients : ${r.ingredients.joinToString("; ")}. Étapes : ${r.steps.joinToString(" / ")}. Astuce : ${r.tip}",
-            suggestions = listOf("Par quoi remplacer un ingrédient ?", "Version végétarienne ?", "Pour 4 personnes ?", "Plus rapide ?"),
+            context = "Recette de « $name » (${r.servings} portion(s), ${r.minutes} min, ~${r.kcalPerServing} kcal/portion). Ingrédients : ${r.ingredients.joinToString("; ")}. Étapes : ${r.steps.joinToString(" / ")}. Astuce : ${r.tip}",
+            suggestions = listOf(t("Par quoi remplacer un ingrédient ?"), t("Version végétarienne ?"), t("Pour 4 personnes ?"), t("Plus rapide ?")),
             onDismiss = { chat = false }
         )
     }

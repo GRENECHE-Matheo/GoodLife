@@ -1,5 +1,7 @@
 package com.goodlife.app.news
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.localDay
 import org.json.JSONArray
@@ -259,7 +261,7 @@ object NewsBank {
         if (st.optString("day") == day) {
             val ins = INSOLITE.firstOrNull { it.title == st.optString("ins") }
             val dec = DECOUVERTES.firstOrNull { it.title == st.optString("dec") }
-            if (ins != null && dec != null) return DailyNews(ins, listOf(dec))
+            if (ins != null && dec != null) return DailyNews(ins.shown(), listOf(dec.shown()))
         }
         val seenI = st.optJSONArray("seenI")?.let { a -> (0 until a.length()).map { a.optString(it) } }?.toMutableList() ?: mutableListOf()
         val seenD = st.optJSONArray("seenD")?.let { a -> (0 until a.length()).map { a.optString(it) } }?.toMutableList() ?: mutableListOf()
@@ -280,8 +282,11 @@ object NewsBank {
             .put("day", day).put("ins", ins.title).put("dec", dec.title)
             .put("seenI", JSONArray(seenI)).put("seenD", JSONArray(seenD))
             .toString())
-        return DailyNews(ins, listOf(dec))
+        return DailyNews(ins.shown(), listOf(dec.shown()))
     }
+
+    /** Anecdote dans la langue de l'app (le titre français reste la clé de la mémoire des anecdotes lues). */
+    private fun Anecdote.shown() = Anecdote(t(title), t(text))
 
     private fun pickUnseen(list: List<Anecdote>, seen: MutableList<String>, rnd: Random): Anecdote {
         var fresh = list.filter { it.title !in seen }

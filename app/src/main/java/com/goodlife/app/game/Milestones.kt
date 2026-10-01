@@ -1,5 +1,7 @@
 package com.goodlife.app.game
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.localDay
 import org.json.JSONArray
@@ -23,17 +25,17 @@ object Milestones {
         val meals = Repo.meals.value
         val goal = st.waterGoalMl
         val list = mutableListOf(
-            Mission("repas", "🍽️", "Note ton premier repas", 20, meals.isNotEmpty()),
-            Mission("scan", "📸", "Ajoute un repas en photo ou par code-barres", 20, meals.any { it.source == "photo" || it.source == "code-barres" }),
-            Mission("quiz", "🧠", "Réponds au quiz du chef", 15, Repo.game.value.quizResults.isNotEmpty()),
-            Mission("eau", "💧", "Bois ${goal / 1000.0} L dans une journée".replace(".0 L", " L").replace('.', ','), 15, Repo.water.value.values.any { it >= goal }),
-            Mission("ressenti", "🙂", "Dis au chef comment tu te sens", 10, Repo.feelings.value.isNotEmpty()),
-            Mission("sport", "🏃", "Fais une sortie ou une séance de sport", 20, Repo.outings.value.isNotEmpty() || Repo.sport.value.done.isNotEmpty()),
-            Mission("ami", "👥", "Ajoute un ami", 20, Repo.social.value.people.any { it.friend }),
-            Mission("jour", "✅", "Valide une journée (score de 80 ou plus)", 30,
+            Mission("repas", "🍽️", t("Note ton premier repas"), 20, meals.isNotEmpty()),
+            Mission("scan", "📸", t("Ajoute un repas en photo ou par code-barres"), 20, meals.any { it.source == "photo" || it.source == "code-barres" }),
+            Mission("quiz", "🧠", t("Réponds au quiz du chef"), 15, Repo.game.value.quizResults.isNotEmpty()),
+            Mission("eau", "💧", t("Bois %1\$s L dans une journée", String.format(com.goodlife.app.i18n.Lang.locale, "%.1f", goal / 1000.0).removeSuffix(",0").removeSuffix(".0")), 15, Repo.water.value.values.any { it >= goal }),
+            Mission("ressenti", "🙂", t("Dis au chef comment tu te sens"), 10, Repo.feelings.value.isNotEmpty()),
+            Mission("sport", "🏃", t("Fais une sortie ou une séance de sport"), 20, Repo.outings.value.isNotEmpty() || Repo.sport.value.done.isNotEmpty()),
+            Mission("ami", "👥", t("Ajoute un ami"), 20, Repo.social.value.people.any { it.friend }),
+            Mission("jour", "✅", t("Valide une journée (score de 80 ou plus)"), 30,
                 s != null && (s.today.status == DayStatus.REUSSI || s.history.any { it.status == DayStatus.REUSSI }))
         )
-        if (st.stepsEnabled) list.add(5, Mission("pas", "👟", "Fais 5 000 pas dans une journée", 20, Repo.steps.value.days.values.any { it.steps >= 5000 }))
+        if (st.stepsEnabled) list.add(5, Mission("pas", "👟", t("Fais 5 000 pas dans une journée"), 20, Repo.steps.value.days.values.any { it.steps >= 5000 }))
         return list
     }
 
@@ -59,18 +61,18 @@ object Milestones {
         val friends = Repo.social.value.people.count { it.friend }
         val waterDays = Repo.water.value.values.count { it >= Repo.settings.value.waterGoalMl }
         val list = mutableListOf<Badge>()
-        listOf(3, 7, 14, 30, 60, 100).forEach { n -> list += Badge("serie$n", "🔥", "Série de $n jours", "Valide $n jours d'affilée", best >= n) }
-        listOf(10, 25, 50, 100, 161).forEach { n -> list += Badge("dex$n", "📖", if (n == 161) "Nutridex complet" else "$n aliments au Nutridex", "Débloque $n aliments en photo", dex >= n) }
-        list += Badge("quiz10", "🧠", "10 quiz", "Réponds à 10 quiz du chef", quiz.size >= 10)
-        list += Badge("quiz5", "⭐", "5 bonnes réponses", "Fais au moins 5 bonnes réponses à un quiz", quiz.values.any { it >= 5 })
-        list += Badge("pas10k", "👟", "10 000 pas", "Fais 10 000 pas dans une journée", steps.any { it.steps >= 10_000 })
-        list += Badge("sortie1", "🏃", "Première sortie", "Enregistre une sortie GPS", outs.isNotEmpty())
-        list += Badge("km5", "🎽", "5 km d'un coup", "Fais une sortie de 5 km ou plus", outs.any { it.distanceM >= 5000 })
-        list += Badge("km50", "🗺️", "50 km au total", "Cumule 50 km de sorties", outs.sumOf { it.distanceM } >= 50_000)
-        list += Badge("ami1", "🤝", "Premier ami", "Ajoute un ami", friends >= 1)
-        list += Badge("ami5", "👥", "5 amis", "Ajoute 5 amis", friends >= 5)
-        list += Badge("eau7", "💧", "Bien hydraté", "Atteins ton objectif d'eau 7 jours", waterDays >= 7)
-        list += Badge("gel", "❄️", "Sauvé par le gel", "Utilise un gel pour sauver ta série", Repo.game.value.freezeUsed.isNotEmpty())
+        listOf(3, 7, 14, 30, 60, 100).forEach { n -> list += Badge("serie$n", "🔥", t("Série de %1\$s jours", n), t("Valide %1\$s jours d'affilée", n), best >= n) }
+        listOf(10, 25, 50, 100, 161).forEach { n -> list += Badge("dex$n", "📖", if (n == 161) t("Nutridex complet") else t("%1\$s aliments au Nutridex", n), t("Débloque %1\$s aliments en photo", n), dex >= n) }
+        list += Badge("quiz10", "🧠", t("10 quiz"), t("Réponds à 10 quiz du chef"), quiz.size >= 10)
+        list += Badge("quiz5", "⭐", t("5 bonnes réponses"), t("Fais au moins 5 bonnes réponses à un quiz"), quiz.values.any { it >= 5 })
+        list += Badge("pas10k", "👟", t("10 000 pas"), t("Fais 10 000 pas dans une journée"), steps.any { it.steps >= 10_000 })
+        list += Badge("sortie1", "🏃", t("Première sortie"), t("Enregistre une sortie GPS"), outs.isNotEmpty())
+        list += Badge("km5", "🎽", t("5 km d'un coup"), t("Fais une sortie de 5 km ou plus"), outs.any { it.distanceM >= 5000 })
+        list += Badge("km50", "🗺️", t("50 km au total"), t("Cumule 50 km de sorties"), outs.sumOf { it.distanceM } >= 50_000)
+        list += Badge("ami1", "🤝", t("Premier ami"), t("Ajoute un ami"), friends >= 1)
+        list += Badge("ami5", "👥", t("5 amis"), t("Ajoute 5 amis"), friends >= 5)
+        list += Badge("eau7", "💧", t("Bien hydraté"), t("Atteins ton objectif d'eau 7 jours"), waterDays >= 7)
+        list += Badge("gel", "❄️", t("Sauvé par le gel"), t("Utilise un gel pour sauver ta série"), Repo.game.value.freezeUsed.isNotEmpty())
         return list
     }
 

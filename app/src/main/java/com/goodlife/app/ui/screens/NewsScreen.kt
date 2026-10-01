@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -90,15 +92,15 @@ fun NewsTeaser(onOpen: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(
                     when {
-                        headline?.kind == FeedItem.INSOLITE -> "Actu insolite du jour"
-                        headline != null -> "Actus du jour"
-                        anecdote != null -> "Le saviez-vous ?"
-                        else -> "Actus du jour"
+                        headline?.kind == FeedItem.INSOLITE -> t("Actu insolite du jour")
+                        headline != null -> t("Actus du jour")
+                        anecdote != null -> t("Le saviez-vous ?")
+                        else -> t("Actus du jour")
                     },
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    headline?.title ?: anecdote?.title ?: "Les actus du jour t'attendent",
+                    headline?.title ?: anecdote?.title ?: t("Les actus du jour t'attendent"),
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -134,9 +136,9 @@ fun NewsScreen(onBack: () -> Unit) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader("Actus du jour", onBack)
+            SubScreenHeader(t("Actus du jour"), onBack)
             // ---- Mes thèmes (0, 1 ou plusieurs) ----
-            Text("Mes thèmes", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(t("Mes thèmes"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 NEWS_THEMES.forEach { (id, label) ->
                     androidx.compose.material3.FilterChip(
@@ -150,7 +152,7 @@ fun NewsScreen(onBack: () -> Unit) {
                 }
             }
             if (chosen.isEmpty()) Text(
-                "Aucun thème choisi : les actus sont désactivées et n'apparaissent plus sur l'accueil. Choisis un thème pour les retrouver.",
+                t("Aucun thème choisi : les actus sont désactivées et n'apparaissent plus sur l'accueil. Choisis un thème pour les retrouver."),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if ("anecdote" in chosen) DailyAnecdote(today)
@@ -158,27 +160,27 @@ fun NewsScreen(onBack: () -> Unit) {
             // ---- Vraies actus (flux RSS publics, sans clé) ----
             val odd = feed?.firstOrNull { it.kind == FeedItem.INSOLITE }
             if (odd != null) {
-                Text("Actu insolite", style = MaterialTheme.typography.titleMedium)
+                Text(t("Actu insolite"), style = MaterialTheme.typography.titleMedium)
                 FeedCard(odd, highlight = true, onOpen = { runCatching { uri.openUri(odd.url) } },
                     onAsk = if (aiReady) ({ askAbout = odd }) else null,
                     onSummary = if (aiReady && odd.public) ({ summarize = odd }) else null)
             }
             val wantsNews = chosen.any { it in setOf("food", "sport", "health", "insolite") }
-            if (wantsNews) Text("À la une", style = MaterialTheme.typography.titleMedium)
+            if (wantsNews) Text(t("À la une"), style = MaterialTheme.typography.titleMedium)
             if (wantsNews) when {
                 loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
-                    Text("Chargement des actus…", style = MaterialTheme.typography.bodyMedium)
+                    Text(t("Chargement des actus…"), style = MaterialTheme.typography.bodyMedium)
                 }
                 error != null -> Column {
                     Text(error!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     TextButton(onClick = { retry++ }) {
-                        Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Réessayer")
+                        Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Réessayer"))
                     }
                 }
                 feed.isNullOrEmpty() -> Text(
-                    "Pas de nouvelle actu sur tes thèmes aujourd'hui. Reviens demain !",
+                    t("Pas de nouvelle actu sur tes thèmes aujourd'hui. Reviens demain !"),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 else -> feed!!.filter { it.kind != FeedItem.INSOLITE }.forEach { item ->
@@ -191,10 +193,7 @@ fun NewsScreen(onBack: () -> Unit) {
             // ---- Secours sans internet : anecdotes vérifiées de la banque intégrée (jamais deux fois la même) ----
             if (wantsNews && "anecdote" !in chosen && !loading && error != null) OfflineAnecdotes(today)
             Text(
-                "Actus trouvées chaque jour dans les flux publics de franceinfo, Sciences et Avenir, Futura, de l'Anses " +
-                    "et de Santé publique France, selon tes thèmes. Seuls le titre (et, pour les organismes " +
-                    "publics, un court extrait) sont affichés : l'article complet s'ouvre chez la source. Les articles " +
-                    "appartiennent à leurs éditeurs. Contenu d'information, pas un avis médical.",
+                t("Actus trouvées chaque jour dans les flux publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France, selon tes thèmes. Seuls le titre (et, pour les organismes publics, un court extrait) sont affichés : l'article complet s'ouvre chez la source. Les articles appartiennent à leurs éditeurs. Contenu d'information, pas un avis médical."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -205,12 +204,9 @@ fun NewsScreen(onBack: () -> Unit) {
     askAbout?.let { item ->
         AiChatDialog(
             title = item.title,
-            context = "Actualité publiée par ${item.source} : « ${item.title} »." +
-                (if (item.summary.isNotBlank()) " Extrait : ${item.summary}" else "") + " Lien : ${item.url}\n" +
-                "Utilise la recherche Google pour retrouver cet article et d'autres sources fiables, afin de savoir précisément " +
-                "de quoi il parle. Explique avec tes propres mots (sans recopier l'article), distingue bien les faits des avis, " +
-                "et invite à lire l'article complet chez la source.",
-            suggestions = listOf("De quoi parle cet article ?", "Qu'est-ce que ça change pour moi ?", "Est-ce que c'est fiable ?"),
+            context = t("Actualité publiée par %1\$s : « %2\$s ».", item.source, item.title) +
+                (if (item.summary.isNotBlank()) t(" Extrait : %1\$s", item.summary) else "") + t(" Lien : %1\$s\nUtilise la recherche Google pour retrouver cet article et d'autres sources fiables, afin de savoir précisément de quoi il parle. Explique avec tes propres mots (sans recopier l'article), distingue bien les faits des avis, et invite à lire l'article complet chez la source.", item.url),
+            suggestions = listOf(t("De quoi parle cet article ?"), t("Qu'est-ce que ça change pour moi ?"), t("Est-ce que c'est fiable ?")),
             onDismiss = { askAbout = null },
             webSearch = true
         )
@@ -219,8 +215,8 @@ fun NewsScreen(onBack: () -> Unit) {
 
 /** Thèmes d'actus proposés (l'anecdote vient de la banque intégrée, vérifiée). */
 val NEWS_THEMES = listOf(
-    "food" to "🥗 Alimentation", "sport" to "🏃 Sport", "health" to "🧘 Santé et bien-être",
-    "insolite" to "😮 Insolite", "anecdote" to "💡 Anecdote du jour"
+    "food" to t("🥗 Alimentation"), "sport" to t("🏃 Sport"), "health" to t("🧘 Santé et bien-être"),
+    "insolite" to t("😮 Insolite"), "anecdote" to t("💡 Anecdote du jour")
 )
 
 /** L'anecdote du jour : un fait vrai et vérifié sur la nourriture, jamais deux fois le même. */
@@ -232,7 +228,7 @@ private fun DailyAnecdote(today: String) {
             ChefMascot(size = 56.dp, mood = ChefMood.CLIN)
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("Le saviez-vous ?", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(t("Le saviez-vous ?"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 Text(news.insolite.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
         }
@@ -245,13 +241,13 @@ private fun DailyAnecdote(today: String) {
 private fun OfflineAnecdotes(today: String) {
     val news = remember(today) { NewsBank.today() }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Hors ligne : le saviez-vous ?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp))
+            Text(t("Hors ligne : le saviez-vous ?"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp))
             SectionCard(container = MaterialTheme.colorScheme.secondaryContainer) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChefMascot(size = 64.dp, mood = ChefMood.BRAVO)
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("Insolite", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(t("Insolite"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         Text(news.insolite.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
                     }
                 }
@@ -259,8 +255,7 @@ private fun OfflineAnecdotes(today: String) {
             }
             news.discoveries.forEach { DiscoveryCard(it) }
             Text(
-                "Anecdotes vérifiées intégrées à l'app (Anses, Programme national nutrition santé, OMS, faits établis), " +
-                    "affichées seulement quand les actus ne peuvent pas être chargées.",
+                t("Anecdotes vérifiées intégrées à l'app (Anses, Programme national nutrition santé, OMS, faits établis), affichées seulement quand les actus ne peuvent pas être chargées."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -278,7 +273,7 @@ private fun FeedCard(
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 if (item.time == NewsFeed.NO_DATE) item.source
-                else "${item.source} · ${SimpleDateFormat("d MMM", Locale.FRANCE).format(java.util.Date(item.time))}",
+                else "${item.source} · ${SimpleDateFormat("d MMM", com.goodlife.app.i18n.Lang.locale).format(java.util.Date(item.time))}",
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary
             )
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
@@ -288,10 +283,10 @@ private fun FeedCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(6.dp))
-                Text("Lire l'article", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                Text(t("Lire l'article"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f))
-                if (onSummary != null) TextButton(onClick = onSummary) { Text("Résumé du chef") }
-                else if (onAsk != null) TextButton(onClick = onAsk) { Text("Demander au chef") }
+                if (onSummary != null) TextButton(onClick = onSummary) { Text(t("Résumé du chef")) }
+                else if (onAsk != null) TextButton(onClick = onAsk) { Text(t("Demander au chef")) }
             }
         }
     }
@@ -316,7 +311,7 @@ private fun ArticleSummaryDialog(item: FeedItem, onOpen: () -> Unit, onDismiss: 
     }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Résumé du chef") },
+        title = { Text(t("Résumé du chef")) },
         text = {
             Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(item.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
@@ -325,23 +320,23 @@ private fun ArticleSummaryDialog(item: FeedItem, onOpen: () -> Unit, onDismiss: 
                     points == null -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text("Le chef lit l'article…")
+                        Text(t("Le chef lit l'article…"))
                     }
                     else -> {
                         points!!.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
                         Text(
-                            "Résumé généré par l'IA à partir de l'article de ${item.source}" +
-                                (if (item.time != NewsFeed.NO_DATE) " du ${SimpleDateFormat("d MMMM yyyy", Locale.FRANCE).format(java.util.Date(item.time))}" else "") +
-                                ". Il peut contenir des erreurs : l'article original fait foi.",
+                            t("Résumé généré par l'IA à partir de l'article de %1\$s", item.source) +
+                                (if (item.time != NewsFeed.NO_DATE) t(" du %1\$s", SimpleDateFormat("d MMMM yyyy", com.goodlife.app.i18n.Lang.locale).format(java.util.Date(item.time))) else "") +
+                                t(". Il peut contenir des erreurs : l'article original fait foi."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        com.goodlife.app.ui.AiContentFooter("Résumé d'article (${item.source}) : ${item.title}\n" + points!!.joinToString("\n"))
+                        com.goodlife.app.ui.AiContentFooter(t("Résumé d'article (%1\$s) : %2\$s\n", item.source, item.title) + points!!.joinToString("\n"))
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onOpen) { Text("Lire l'article") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer") } }
+        confirmButton = { TextButton(onClick = onOpen) { Text(t("Lire l'article")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Fermer")) } }
     )
 }
 

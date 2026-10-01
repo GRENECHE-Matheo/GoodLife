@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,10 +37,10 @@ fun QuickMeals() {
     if (favs.isEmpty() && frequent.isEmpty()) return
     var confirm by remember { mutableStateOf<Meal?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Refaire un repas", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(t("Refaire un repas"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            favs.forEach { m -> AssistChip(onClick = { confirm = m }, label = { Text("⭐ ${m.name} · ${m.kcal} kcal", maxLines = 1, overflow = TextOverflow.Ellipsis) }) }
-            frequent.forEach { m -> AssistChip(onClick = { confirm = m }, label = { Text("${m.name} · ${m.kcal} kcal", maxLines = 1, overflow = TextOverflow.Ellipsis) }) }
+            favs.forEach { m -> AssistChip(onClick = { confirm = m }, label = { Text(t("⭐ %1\$s · %2\$s kcal", m.name, m.kcal), maxLines = 1, overflow = TextOverflow.Ellipsis) }) }
+            frequent.forEach { m -> AssistChip(onClick = { confirm = m }, label = { Text(t("%1\$s · %2\$s kcal", m.name, m.kcal), maxLines = 1, overflow = TextOverflow.Ellipsis) }) }
         }
     }
     confirm?.let { m ->
@@ -47,8 +49,7 @@ fun QuickMeals() {
             title = { Text(m.name) },
             text = {
                 Text(
-                    "${m.kcal} kcal · protéines ${m.proteinG.roundToInt()} g · glucides ${m.carbsG.roundToInt()} g · lipides ${m.fatG.roundToInt()} g\n" +
-                        "Mêmes valeurs que la dernière fois. Ajouter ce repas maintenant ?",
+                    t("%1\$s kcal · protéines %2\$s g · glucides %3\$s g · lipides %4\$s g\nMêmes valeurs que la dernière fois. Ajouter ce repas maintenant ?", m.kcal, m.proteinG.roundToInt(), m.carbsG.roundToInt(), m.fatG.roundToInt()),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -57,9 +58,9 @@ fun QuickMeals() {
                     val now = System.currentTimeMillis()
                     Repo.addMeal(m.copy(id = now, timestamp = now, source = "refait"))
                     confirm = null
-                }) { Text("Ajouter") }
+                }) { Text(t("Ajouter")) }
             },
-            dismissButton = { TextButton(onClick = { confirm = null }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text(t("Annuler")) } }
         )
     }
 }

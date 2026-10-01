@@ -1,5 +1,7 @@
 package com.goodlife.app.track
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +86,7 @@ object OfflineMaps {
         val meta = runCatching { JSONObject(String(r.metadata, Charsets.UTF_8)) }.getOrNull()
         return OfflineZone(
             id = r.id,
-            name = meta?.optString("name")?.ifBlank { null } ?: "Zone",
+            name = meta?.optString("name")?.ifBlank { null } ?: t("Zone"),
             createdAt = meta?.optLong("createdAt") ?: 0L,
             sizeBytes = status?.completedResourceSize ?: 0L,
             progress = status?.let { if (it.requiredResourceCount > 0) it.completedResourceCount.toFloat() / it.requiredResourceCount else 0f } ?: 0f,
@@ -116,12 +118,12 @@ object OfflineMaps {
                     override fun onError(error: OfflineRegionError) = Unit   // erreurs passagères : MapLibre réessaie
                     override fun mapboxTileCountLimitExceeded(limit: Long) {
                         offlineRegion.setDownloadState(OfflineRegion.STATE_INACTIVE)
-                        onError("Zone trop grande ($limit tuiles maximum) : choisis une zone plus petite ou moins détaillée.")
+                        onError(t("Zone trop grande (%1\$s tuiles maximum) : choisis une zone plus petite ou moins détaillée.", limit))
                     }
                 })
                 offlineRegion.setDownloadState(OfflineRegion.STATE_ACTIVE)
             }
-            override fun onError(error: String) = onError("Téléchargement impossible : $error")
+            override fun onError(error: String) = onError(t("Téléchargement impossible : %1\$s", error))
         })
     }
 

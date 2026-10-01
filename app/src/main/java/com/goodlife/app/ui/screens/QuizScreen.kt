@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.ui.ScreenColumn
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -129,7 +131,7 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "Fermer") }
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, t("Fermer")) }
                 Spacer(Modifier.width(8.dp))
                 LinearProgressIndicator(
                     progress = { quizProgress },
@@ -172,8 +174,8 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                             ) {
                                 Column(Modifier.padding(14.dp)) {
                                     Text(
-                                        if (review) "Révision : on retente celle-ci"
-                                        else "Question ${pos + 1} sur ${questions.size}" + if (gelMode) " · gel ❄️" else "",
+                                        if (review) t("Révision : on retente celle-ci")
+                                        else t("Question %1\$s sur %2\$s", pos + 1, questions.size) + if (gelMode) t(" · gel ❄️") else "",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -222,10 +224,10 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
                                         when {
-                                            review && ok -> "Retenu ✓"
-                                            review -> "Pas encore… ça viendra !"
-                                            ok -> "Bien joué !"
-                                            else -> "Pas tout à fait… elle reviendra à la fin."
+                                            review && ok -> t("Retenu ✓")
+                                            review -> t("Pas encore… ça viendra !")
+                                            ok -> t("Bien joué !")
+                                            else -> t("Pas tout à fait… elle reviendra à la fin.")
                                         },
                                         fontWeight = FontWeight.Bold,
                                         color = if (ok) good else bad
@@ -240,7 +242,7 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                                 },
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
-                            ) { Text(if (!last) "Continuer" else "Voir le résultat") }
+                            ) { Text(if (!last) t("Continuer") else t("Voir le résultat")) }
                         }
                         }
                     }
@@ -353,7 +355,7 @@ private fun QuizResult(
         AnimatedVisibility(step >= 2, enter = fadeIn() + slideInVertically { it / 2 }) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "$correct / $total bonnes réponses",
+                    t("%1\$s / %2\$s bonnes réponses", correct, total),
                     style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
@@ -383,12 +385,11 @@ private fun QuizResult(
         AnimatedVisibility(step >= 3, enter = fadeIn() + slideInVertically { it / 2 }) {
             Text(
                 when {
-                    startDone -> "Entraînement terminé ! (L'XP du quiz n'est comptée qu'une fois par jour.)"
-                    rescued && gelMode -> "Gel utilisé ❄️ Ta série de ${days(startRecoverable)} continue !"
-                    rescued -> "Série sauvée ! Ta série de ${days(startRecoverable)} continue."
-                    startRecoverable > 0 -> "Il fallait ${QuizBank.PASS} bonnes réponses pour sauver ta série. " +
-                        "Elle repart de zéro, mais tu gagnes quand même de l'XP. Demain est un nouveau jour !"
-                    else -> "Reviens demain pour de nouvelles questions !"
+                    startDone -> t("Entraînement terminé ! (L'XP du quiz n'est comptée qu'une fois par jour.)")
+                    rescued && gelMode -> t("Gel utilisé ❄️ Ta série de %1\$s continue !", days(startRecoverable))
+                    rescued -> t("Série sauvée ! Ta série de %1\$s continue.", days(startRecoverable))
+                    startRecoverable > 0 -> t("Il fallait %1\$s bonnes réponses pour sauver ta série. Elle repart de zéro, mais tu gagnes quand même de l'XP. Demain est un nouveau jour !", QuizBank.PASS)
+                    else -> t("Reviens demain pour de nouvelles questions !")
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
@@ -401,7 +402,7 @@ private fun QuizResult(
                 XpGainCard(startXp = startXp, endXp = maxOf(startXp, endXp))
                 if (!startDone) {
                     Text(
-                        "Quiz : +${Game.quizXp(correct)} XP" + if (rescued) " · jour d'hier rattrapé" else "",
+                        t("Quiz : +%1\$s XP", Game.quizXp(correct)) + if (rescued) t(" · jour d'hier rattrapé") else "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -412,6 +413,6 @@ private fun QuizResult(
             onClick = onClose,
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(52.dp)
-        ) { Text("Terminer") }
+        ) { Text(t("Terminer")) }
     }
 }

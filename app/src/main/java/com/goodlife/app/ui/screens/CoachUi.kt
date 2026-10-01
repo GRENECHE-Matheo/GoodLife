@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.content.Intent
 import android.os.Build
@@ -79,10 +81,10 @@ fun rememberNotifPermission(onResult: (Boolean) -> Unit): () -> Unit {
 @Composable
 fun NotifChoices(p: NotifPrefs, onChange: (NotifPrefs) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        NotifLine("Bilan du matin", "Vers 8 h 30 : ton score d'hier, ta série, et des félicitations aux grands paliers.", p.morning) { onChange(p.copy(morning = it)) }
-        NotifLine("Le mot de midi", "Vers 11 h 45 : le repas prévu dans ton planning et un petit encouragement.", p.noon) { onChange(p.copy(noon = it)) }
-        NotifLine("Série en danger", "Vers 20 h, seulement si tu n'as rien noté de la journée et qu'une série est en cours.", p.evening) { onChange(p.copy(evening = it)) }
-        NotifLine("Bilan de la semaine", "Le dimanche vers 19 h : jours validés, pas, séances, et tes progrès.", p.weekly) { onChange(p.copy(weekly = it)) }
+        NotifLine(t("Bilan du matin"), t("Vers 8 h 30 : ton score d'hier, ta série, et des félicitations aux grands paliers."), p.morning) { onChange(p.copy(morning = it)) }
+        NotifLine(t("Le mot de midi"), t("Vers 11 h 45 : le repas prévu dans ton planning et un petit encouragement."), p.noon) { onChange(p.copy(noon = it)) }
+        NotifLine(t("Série en danger"), t("Vers 20 h, seulement si tu n'as rien noté de la journée et qu'une série est en cours."), p.evening) { onChange(p.copy(evening = it)) }
+        NotifLine(t("Bilan de la semaine"), t("Le dimanche vers 19 h : jours validés, pas, séances, et tes progrès."), p.weekly) { onChange(p.copy(weekly = it)) }
     }
 }
 
@@ -106,12 +108,12 @@ fun CoachCard(summary: GameSummary, profile: Profile, onOpen: () -> Unit) {
             ChefMascot(size = 56.dp, mood = mood)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Le mot du chef", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(t("Le mot du chef"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
                 Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
                     Spacer(Modifier.width(6.dp))
-                    Text("Parler au chef", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium,
+                    Text(t("Parler au chef"), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer)
                 }
             }
@@ -124,15 +126,14 @@ fun CoachCard(summary: GameSummary, profile: Profile, onOpen: () -> Unit) {
 fun NotifOptInCard() {
     val context = LocalContext.current
     val ask = rememberNotifPermission { granted -> saveNotifPrefs(context, if (granted) NotifPrefs.ALL else NotifPrefs(false, false, false, false)) }
-    SectionCard(title = "Le chef peut t'accompagner") {
+    SectionCard(title = t("Le chef peut t'accompagner")) {
         Text(
-            "Un bilan le matin, un petit mot à midi, un rappel le soir seulement si ta série est en danger, et un bilan le dimanche. " +
-                "Préparés sur ton téléphone, jamais plus d'un à la fois, et réglables dans Paramètres.",
+            t("Un bilan le matin, un petit mot à midi, un rappel le soir seulement si ta série est en danger, et un bilan le dimanche. Préparés sur ton téléphone, jamais plus d'un à la fois, et réglables dans Paramètres."),
             style = MaterialTheme.typography.bodyMedium
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = ask) { Text("Activer") }
-            TextButton(onClick = { saveNotifPrefs(context, NotifPrefs(false, false, false, false)) }) { Text("Non merci") }
+            Button(onClick = ask) { Text(t("Activer")) }
+            TextButton(onClick = { saveNotifPrefs(context, NotifPrefs(false, false, false, false)) }) { Text(t("Non merci")) }
         }
     }
 }
@@ -154,7 +155,7 @@ fun NotifSettingsBlock(settings: Settings) {
     }
     if (settings.anyNotif && !granted) {
         Text(
-            "Android bloque les notifications de GoodLife : autorise-les pour recevoir les messages du chef.",
+            t("Android bloque les notifications de GoodLife : autorise-les pour recevoir les messages du chef."),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error
         )
         TextButton(onClick = {
@@ -162,7 +163,7 @@ fun NotifSettingsBlock(settings: Settings) {
                 context.startActivity(Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
-        }) { Text("Ouvrir les réglages de notification") }
+        }) { Text(t("Ouvrir les réglages de notification")) }
     }
-    if (settings.anyNotif && granted) FilledTonalButton(onClick = { CoachNotifier.preview(context) }) { Text("Voir un exemple") }
+    if (settings.anyNotif && granted) FilledTonalButton(onClick = { CoachNotifier.preview(context) }) { Text(t("Voir un exemple")) }
 }

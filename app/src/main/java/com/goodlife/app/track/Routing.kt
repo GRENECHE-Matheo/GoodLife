@@ -1,5 +1,7 @@
 package com.goodlife.app.track
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.OutingType
 import com.goodlife.app.data.TrackPoint
 import com.goodlife.app.net.USER_AGENT
@@ -121,9 +123,9 @@ object Routing {
                 conn.outputStream.use { it.write(("data=" + URLEncoder.encode(q, "UTF-8")).toByteArray()) }
                 val code = conn.responseCode
                 if (code == 429 || code in 502..504) {
-                    lastError = IOException("Le service de chemins OpenStreetMap est surchargé. Réessaie dans une minute."); continue
+                    lastError = IOException(t("Le service de chemins OpenStreetMap est surchargé. Réessaie dans une minute.")); continue
                 }
-                if (code !in 200..299) throw IOException("Service OpenStreetMap indisponible ($code).")
+                if (code !in 200..299) throw IOException(t("Service OpenStreetMap indisponible (%1\$s).", code))
                 body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
                 break
             } catch (e: IOException) {
@@ -132,8 +134,8 @@ object Routing {
                 conn.disconnect()
             }
         }
-        val json = JSONObject(body ?: throw (lastError ?: IOException("Service OpenStreetMap indisponible.")))
-        val elements = json.optJSONArray("elements") ?: throw IOException("Pas de chemins trouvés ici.")
+        val json = JSONObject(body ?: throw (lastError ?: IOException(t("Service OpenStreetMap indisponible."))))
+        val elements = json.optJSONArray("elements") ?: throw IOException(t("Pas de chemins trouvés ici."))
         // 1. Nœuds
         val index = HashMap<Long, Int>()
         val la = ArrayList<Double>(); val lo = ArrayList<Double>()
@@ -157,7 +159,7 @@ object Routing {
                 if (a != b) { adj[a].add(b); fac[a].add(f); adj[b].add(a); fac[b].add(f) }
             }
         }
-        if (la.isEmpty()) throw IOException("Pas de chemins trouvés ici.")
+        if (la.isEmpty()) throw IOException(t("Pas de chemins trouvés ici."))
         val latA = la.toDoubleArray(); val lngA = lo.toDoubleArray()
         val g = Graph(
             latA, lngA,
@@ -206,13 +208,13 @@ object Routing {
     /** Itinéraire le plus court entre deux points (par les chemins et rues). */
     suspend fun toDestination(fromLat: Double, fromLng: Double, toLat: Double, toLng: Double, type: OutingType): PlannedRoute {
         val direct = Tracker.haversine(fromLat, fromLng, toLat, toLng)
-        if (direct > 25_000) throw IOException("Destination trop loin (plus de 25 km à vol d'oiseau).")
+        if (direct > 25_000) throw IOException(t("Destination trop loin (plus de 25 km à vol d'oiseau)."))
         val radius = (direct * 0.65 + 800).roundToInt().coerceIn(1000, 16_000)
         val g = graph((fromLat + toLat) / 2, (fromLng + toLng) / 2, radius, type == OutingType.BIKE)
         val path = withContext(Dispatchers.Default) { astar(g, g.nearest(fromLat, fromLng), g.nearest(toLat, toLng)) }
-            ?: throw IOException("Aucun chemin trouvé jusqu'à ce point.")
+            ?: throw IOException(t("Aucun chemin trouvé jusqu'à ce point."))
         val pts = toPoints(g, path)
-        return PlannedRoute(pts, Tracker.length(pts), "Vers la destination")
+        return PlannedRoute(pts, Tracker.length(pts), t("Vers la destination"))
     }
 
     /**
@@ -225,7 +227,7 @@ object Routing {
         return withContext(Dispatchers.Default) {
             val start = g.nearest(lat, lng)
             val result = ArrayList<PlannedRoute>()
-            val names = listOf("Boucle nord", "Boucle nord-est", "Boucle est", "Boucle sud-est", "Boucle sud", "Boucle sud-ouest", "Boucle ouest", "Boucle nord-ouest")
+            val names = listOf(t("Boucle nord"), t("Boucle nord-est"), t("Boucle est"), t("Boucle sud-est"), t("Boucle sud"), t("Boucle sud-ouest"), t("Boucle ouest"), t("Boucle nord-ouest"))
             val baseAngles = (0 until 8).map { it * 45.0 }.shuffled().take(count + 3)
             for (angle in baseAngles) {
                 if (result.size >= count) break
@@ -259,7 +261,7 @@ object Routing {
                     scale /= ratio.coerceIn(0.5, 2.0)
                 }
             }
-            if (result.isEmpty()) throw IOException("Pas assez de chemins ici pour une boucle de cette distance. Essaie une autre distance.")
+            if (result.isEmpty()) throw IOException(t("Pas assez de chemins ici pour une boucle de cette distance. Essaie une autre distance."))
             result.sortedBy { kotlin.math.abs(it.lengthM - targetM) }
         }
     }

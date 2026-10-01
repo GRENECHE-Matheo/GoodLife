@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -111,18 +113,18 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         if (uri != null) {
             exportMessage = runCatching {
                 context.contentResolver.openOutputStream(uri)?.use { it.write(Repo.exportJson().toByteArray()) }
-                "Données exportées."
-            }.getOrElse { "Export impossible : ${it.message}" }
+                t("Données exportées.")
+            }.getOrElse { t("Export impossible : %1\$s", it.message) }
         }
     }
 
 
     ScreenColumn {
-        SubScreenHeader("Paramètres", onBack)
+        SubScreenHeader(t("Paramètres"), onBack)
 
         // ---- Apparence ----
-        SectionCard(title = "Apparence et sons", icon = Icons.Filled.Palette) {
-            Text("Thème", style = MaterialTheme.typography.labelLarge)
+        SectionCard(title = t("Apparence et sons"), icon = Icons.Filled.Palette) {
+            Text(t("Thème"), style = MaterialTheme.typography.labelLarge)
             THEME_MODES.forEach { (id, label) ->
                 Row(
                     Modifier.fillMaxWidth().selectable(
@@ -137,7 +139,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                     Text(label)
                 }
             }
-            Text("Couleur", style = MaterialTheme.typography.labelLarge)
+            Text(t("Couleur"), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 THEME_COLORS.filter { it.first != "auto" || dynamicColorSupported }.forEach { (id, label) ->
                     FilterChip(
@@ -150,14 +152,29 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             }
             if (dynamicColorSupported) {
                 Text(
-                    "« Couleurs du téléphone » reprend les couleurs de ton fond d'écran (Material You).",
+                    t("« Couleurs du téléphone » reprend les couleurs de ton fond d'écran (Material You)."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Text(t("Langue"), style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("system" to t("Langue du téléphone"), "fr" to "Français", "en" to "English").forEach { (id, label) ->
+                    FilterChip(
+                        selected = settings.language == id,
+                        onClick = {
+                            if (settings.language != id) {
+                                Repo.updateSettings { it.copy(language = id) }
+                                restartApp(context)
+                            }
+                        },
+                        label = { Text(label) }
+                    )
+                }
+            }
             SettingSwitch(
-                title = "Sons",
-                subtitle = "Petits sons pendant le quiz et quand l'XP monte. Suivent le volume multimédia.",
+                title = t("Sons"),
+                subtitle = t("Petits sons pendant le quiz et quand l'XP monte. Suivent le volume multimédia."),
                 checked = settings.sounds,
                 onChange = { v ->
                     Repo.updateSettings { it.copy(sounds = v) }
@@ -167,43 +184,42 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Sécurité ----
-        SectionCard(title = "Coach et notifications", icon = Icons.Filled.Notifications) {
+        SectionCard(title = t("Coach et notifications"), icon = Icons.Filled.Notifications) {
             Text(
-                "Messages préparés sur ton téléphone (sans réseau ni IA), jamais plus d'un à la fois. " +
-                    "Sur l'écran verrouillé, seul « Un message du chef » s'affiche.",
+                t("Messages préparés sur ton téléphone (sans réseau ni IA), jamais plus d'un à la fois. Sur l'écran verrouillé, seul « Un message du chef » s'affiche."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             NotifSettingsBlock(settings)
             SettingSwitch(
-                "Rappel d'hydratation",
-                "Vers 15 h 30, seulement si tu as bu moins de la moitié de ton objectif d'eau.",
+                t("Rappel d'hydratation"),
+                t("Vers 15 h 30, seulement si tu as bu moins de la moitié de ton objectif d'eau."),
                 settings.notifWater
             ) { on -> Repo.updateSettings { it.copy(notifWater = on) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
-            Text("Objectif d'eau par jour", style = MaterialTheme.typography.labelLarge)
+            Text(t("Objectif d'eau par jour"), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(1500 to "1,5 L", 2000 to "2 L", 2500 to "2,5 L").forEach { (ml, label) ->
+                listOf(1500 to t("1,5 L"), 2000 to t("2 L"), 2500 to t("2,5 L")).forEach { (ml, label) ->
                     androidx.compose.material3.FilterChip(settings.waterGoalMl == ml, { Repo.updateSettings { it.copy(waterGoalMl = ml) } }, label = { Text(label) })
                 }
             }
-            Text("Repère pour un adulte : environ 1,5 L de boissons par jour, plus s'il fait chaud ou si tu fais du sport.",
+            Text(t("Repère pour un adulte : environ 1,5 L de boissons par jour, plus s'il fait chaud ou si tu fais du sport."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        SectionCard(title = "Sécurité", icon = Icons.Filled.Fingerprint) {
+        SectionCard(title = t("Sécurité"), icon = Icons.Filled.Fingerprint) {
             SettingSwitch(
-                title = "Verrouiller avec l'empreinte",
-                subtitle = "Empreinte, visage ou code du téléphone à l'ouverture et après 1 min en arrière-plan.",
+                title = t("Verrouiller avec l'empreinte"),
+                subtitle = t("Empreinte, visage ou code du téléphone à l'ouverture et après 1 min en arrière-plan."),
                 checked = settings.appLock,
                 onChange = { wanted ->
                     lockMessage = null
                     val activity = context.findFragmentActivity()
                     when {
-                        activity == null -> lockMessage = "Verrouillage indisponible."
+                        activity == null -> lockMessage = t("Verrouillage indisponible.")
                         wanted && !AppLock.isAvailable(context) ->
-                            lockMessage = "Ajoute d'abord une empreinte ou un code de verrouillage dans les réglages du téléphone."
+                            lockMessage = t("Ajoute d'abord une empreinte ou un code de verrouillage dans les réglages du téléphone.")
                         else -> AppLock.authenticate(
                             activity,
-                            if (wanted) "Activer le verrouillage" else "Désactiver le verrouillage",
+                            if (wanted) t("Activer le verrouillage") else t("Désactiver le verrouillage"),
                             onSuccess = { Repo.updateSettings { it.copy(appLock = wanted) } },
                             onError = { lockMessage = it }
                         )
@@ -211,8 +227,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 }
             )
             SettingSwitch(
-                title = "Bloquer les captures d'écran",
-                subtitle = "Empêche captures et enregistrement d'écran, masque l'aperçu dans les apps récentes.",
+                title = t("Bloquer les captures d'écran"),
+                subtitle = t("Empêche captures et enregistrement d'écran, masque l'aperçu dans les apps récentes."),
                 checked = settings.blockScreenshots,
                 onChange = { v -> Repo.updateSettings { it.copy(blockScreenshots = v) } }
             )
@@ -226,55 +242,53 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         BackupSection()
 
         // ---- IA ----
-        SectionCard(title = "Intelligence artificielle", icon = Icons.Filled.VpnKey) {
+        SectionCard(title = t("Intelligence artificielle"), icon = Icons.Filled.VpnKey) {
             SettingSwitch(
-                title = "Fonctions IA (Google Gemini)",
-                subtitle = if (settings.aiEnabled) "Activées. Pour chaque demande, la photo et les infos nécessaires sont envoyées à Google avec ta clé."
-                           else "Désactivées. Aucune donnée n'est envoyée à Google.",
+                title = t("Fonctions IA (Google Gemini)"),
+                subtitle = if (settings.aiEnabled) t("Activées. Pour chaque demande, la photo et les infos nécessaires sont envoyées à Google avec ta clé.")
+                           else t("Désactivées. Aucune donnée n'est envoyée à Google."),
                 checked = settings.aiEnabled,
                 onChange = { on -> if (on) askAiConsent = true else disableAi() }
             )
             if (settings.aiEnabled) {
                 Text(
-                    "Chaque utilisateur utilise sa propre clé Gemini, créée chez Google (tu acceptes alors ses conditions ; " +
-                        "l'éventuelle facturation se fait entre toi et Google). Elle est chiffrée sur ce téléphone, " +
-                        "conservée lors des mises à jour de l'app, et n'est envoyée qu'à Google avec tes demandes.",
+                    t("Chaque utilisateur utilise sa propre clé Gemini, créée chez Google (tu acceptes alors ses conditions ; l'éventuelle facturation se fait entre toi et Google). Elle est chiffrée sur ce téléphone, conservée lors des mises à jour de l'app, et n'est envoyée qu'à Google avec tes demandes."),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
-                    Text("Créer ma clé chez Google")
+                    Text(t("Créer ma clé chez Google"))
                 }
                 if (settings.apiKey.isNotBlank() && !replacingKey) {
                     // Clé déjà enregistrée : on ne montre que sa fin, pour la reconnaître
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(if (keySaved) "Clé enregistrée" else "Clé enregistrée et chiffrée", style = MaterialTheme.typography.bodyLarge)
+                            Text(if (keySaved) t("Clé enregistrée") else t("Clé enregistrée et chiffrée"), style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                "Se termine par …${settings.apiKey.takeLast(4)} · elle n'est plus affichée par sécurité",
+                                t("Se termine par …%1\$s · elle n'est plus affichée par sécurité", settings.apiKey.takeLast(4)),
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { replacingKey = true; keyDraft = ""; showKey = false; keySaved = false }) {
-                            Text("Remplacer la clé")
+                            Text(t("Remplacer la clé"))
                         }
                         TextButton(onClick = { Repo.updateSettings { it.copy(apiKey = "") }; keySaved = false }) {
-                            Text("Retirer ma clé", color = MaterialTheme.colorScheme.error)
+                            Text(t("Retirer ma clé"), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 } else {
                     OutlinedTextField(
                         value = keyDraft,
                         onValueChange = { keyDraft = it.trim(); keySaved = false },
-                        label = { Text(if (replacingKey) "Nouvelle clé API Gemini" else "Clé API Gemini") },
+                        label = { Text(if (replacingKey) t("Nouvelle clé API Gemini") else t("Clé API Gemini")) },
                         singleLine = true,
                         visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             // L'œil ne montre que ce qui est en train d'être tapé, jamais la clé enregistrée
                             IconButton(onClick = { showKey = !showKey }) {
-                                Icon(if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (showKey) "Masquer" else "Afficher")
+                                Icon(if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (showKey) t("Masquer") else t("Afficher"))
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -283,13 +297,13 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                         FilledTonalButton(enabled = keyDraft.length >= 20, onClick = {
                             Repo.updateSettings { it.copy(apiKey = keyDraft) }
                             keyDraft = ""; showKey = false; keySaved = true; replacingKey = false
-                        }) { Text("Enregistrer la clé") }
-                        if (replacingKey) TextButton(onClick = { replacingKey = false; keyDraft = "" }) { Text("Annuler") }
+                        }) { Text(t("Enregistrer la clé")) }
+                        if (replacingKey) TextButton(onClick = { replacingKey = false; keyDraft = "" }) { Text(t("Annuler")) }
                     }
                 }
                 // Choix du modèle : uniquement quand une clé personnelle est enregistrée.
                 if (settings.apiKey.isNotBlank()) {
-                    Text("Modèle (avec ta clé)", style = MaterialTheme.typography.labelLarge)
+                    Text(t("Modèle (avec ta clé)"), style = MaterialTheme.typography.labelLarge)
                     Gemini.KNOWN_MODELS.forEach { (id, desc) ->
                         Row(
                             Modifier.fillMaxWidth().selectable(
@@ -315,17 +329,17 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Mises à jour (version GitHub uniquement ; sur Google Play, c'est le Play Store) ----
-        if (BuildConfig.SELF_UPDATE) SectionCard(title = "Mises à jour", icon = Icons.Filled.SystemUpdate) {
+        if (BuildConfig.SELF_UPDATE) SectionCard(title = t("Mises à jour"), icon = Icons.Filled.SystemUpdate) {
             SettingSwitch(
-                title = "Me prévenir des nouvelles versions",
-                subtitle = "À chaque ouverture de l'app (au plus toutes les 30 min), vérifie les versions publiées sur GitHub.",
+                title = t("Me prévenir des nouvelles versions"),
+                subtitle = t("À chaque ouverture de l'app (au plus toutes les 30 min), vérifie les versions publiées sur GitHub."),
                 checked = settings.checkUpdates,
                 onChange = { v -> Repo.updateSettings { it.copy(checkUpdates = v) } }
             )
             val update = Updater.availableUpdate()
             Text(
-                if (update != null) "Nouvelle version ${update.tag} disponible (tu as la ${BuildConfig.VERSION_NAME})."
-                else "Tu as la version ${BuildConfig.VERSION_NAME}.",
+                if (update != null) t("Nouvelle version %1\$s disponible (tu as la %2\$s).", update.tag, BuildConfig.VERSION_NAME)
+                else t("Tu as la version %1\$s.", BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodyMedium
             )
             OutlinedButton(
@@ -334,55 +348,51 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                     checking = true; updateMessage = null
                     scope.launch {
                         val err = Updater.check(force = true)
-                        updateMessage = err?.let { "Vérification impossible : $it" }
-                            ?: if (Updater.availableUpdate() == null) "Tu as la dernière version." else null
+                        updateMessage = err?.let { t("Vérification impossible : %1\$s", it) }
+                            ?: if (Updater.availableUpdate() == null) t("Tu as la dernière version.") else null
                         checking = false
                     }
                 }
-            ) { Text(if (checking) "Vérification…" else "Vérifier les mises à jour") }
+            ) { Text(if (checking) t("Vérification…") else t("Vérifier les mises à jour")) }
             if (update != null) UpdatePanel(update, showDismiss = false)
             if (updateMessage != null) Text(updateMessage!!, style = MaterialTheme.typography.bodySmall)
         }
 
         // ---- Confidentialité ----
-        SectionCard(title = "Ce qui quitte ton téléphone", icon = Icons.Filled.Lock) {
+        SectionCard(title = t("Ce qui quitte ton téléphone"), icon = Icons.Filled.Lock) {
             DataFlowSummary()
             Text(
-                if (settings.aiEnabled) "IA : activée." else "IA : désactivée, rien n'est envoyé à Google.",
+                if (settings.aiEnabled) t("IA : activée.") else t("IA : désactivée, rien n'est envoyé à Google."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
-            TextButton(onClick = onOpenPolicy) { Text("Lire la politique de confidentialité") }
+            TextButton(onClick = onOpenPolicy) { Text(t("Lire la politique de confidentialité")) }
             OutlinedButton(onClick = { exportLauncher.launch("goodlife-export.json") }) {
-                Text("Exporter mes données (JSON)")
+                Text(t("Exporter mes données (JSON)"))
             }
             if (exportMessage != null) {
                 Text(exportMessage!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             OutlinedButton(onClick = { confirmWipe = true }) {
-                Text("Effacer toutes mes données", color = MaterialTheme.colorScheme.error)
+                Text(t("Effacer toutes mes données"), color = MaterialTheme.colorScheme.error)
             }
         }
 
         // ---- À propos ----
-        SectionCard(title = "À propos", icon = Icons.Filled.Info) {
-            Text("GoodLife v${BuildConfig.VERSION_NAME}", fontWeight = FontWeight.Medium)
+        SectionCard(title = t("À propos"), icon = Icons.Filled.Info) {
+            Text(t("GoodLife v%1\$s", BuildConfig.VERSION_NAME), fontWeight = FontWeight.Medium)
             Text(
-                "Projet développé avec l'assistance d'une IA (Claude, Anthropic). " +
-                    "GoodLife est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite " +
-                    "ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis " +
-                    "d'un professionnel de santé.",
+                t("Projet développé avec l'assistance d'une IA (Claude, Anthropic). GoodLife est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis d'un professionnel de santé."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "Données nutritionnelles : Anses, table de composition nutritionnelle des aliments Ciqual 2025 " +
-                    "(mise à jour du 19/11/2025, Licence Ouverte Etalab 2.0) ; Open Food Facts (licence ODbL).",
+                t("Données nutritionnelles : Anses, table de composition nutritionnelle des aliments Ciqual 2025 (mise à jour du 19/11/2025, Licence Ouverte Etalab 2.0) ; Open Food Facts (licence ODbL)."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = { uri.openUri("mailto:${BuildConfig.CONTACT_EMAIL}") }) {
-                Text("Contact : ${BuildConfig.CONTACT_EMAIL}")
+                Text(t("Contact : %1\$s", BuildConfig.CONTACT_EMAIL))
             }
         }
     }
@@ -392,8 +402,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
     if (confirmWipe) {
         AlertDialog(
             onDismissRequest = { confirmWipe = false },
-            title = { Text("Tout effacer ?") },
-            text = { Text("Profil, repas, sommeil, clé API et réglages seront supprimés définitivement de ce téléphone. Un fichier de sauvegarde déjà enregistré ailleurs n'est pas effacé.") },
+            title = { Text(t("Tout effacer ?")) },
+            text = { Text(t("Profil, repas, sommeil, clé API et réglages seront supprimés définitivement de ce téléphone. Un fichier de sauvegarde déjà enregistré ailleurs n'est pas effacé.")) },
             confirmButton = {
                 TextButton(onClick = {
                     SleepTracker.unsubscribe(context)
@@ -401,9 +411,9 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                     Repo.wipeAll()
                     confirmWipe = false
                     onBack()
-                }) { Text("Effacer", color = MaterialTheme.colorScheme.error) }
+                }) { Text(t("Effacer"), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { confirmWipe = false }) { Text(t("Annuler")) } }
         )
     }
 }
@@ -420,4 +430,15 @@ private fun SettingSwitch(title: String, subtitle: String, checked: Boolean, onC
         }
         Switch(checked = checked, onCheckedChange = onChange)
     }
+}
+
+/** Redémarre l'app pour appliquer une nouvelle langue partout (textes, notifications, widgets). */
+private fun restartApp(context: android.content.Context) {
+    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+    } ?: return
+    Repo.flush()
+    context.startActivity(intent)
+    (context as? android.app.Activity)?.finishAffinity()
+    Runtime.getRuntime().exit(0)
 }

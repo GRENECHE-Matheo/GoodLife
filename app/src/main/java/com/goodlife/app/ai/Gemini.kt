@@ -1,5 +1,7 @@
 package com.goodlife.app.ai
 
+import com.goodlife.app.i18n.t
+
 import android.util.Base64
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.FoodAnalysis
@@ -25,7 +27,7 @@ import kotlin.math.roundToInt
 class AiException(message: String) : Exception(message)
 
 /** Nom affiché d'un repas : nombre et aliment (« 2× Banane »). Les calories affichées à côté sont le total. */
-fun mealName(count: Int, name: String): String = "${count.coerceAtLeast(1)}× ${name.trim()}"
+fun mealName(count: Int, name: String): String = t("%1\$s× %2\$s", count.coerceAtLeast(1), name.trim())
 
 /** Un message de conversation avec l'IA. */
 data class ChatMessage(val fromUser: Boolean, val text: String)
@@ -57,13 +59,13 @@ class Gemini(private val apiKey: String, private val model: String) {
     private fun guard() {
         // Garde-fou RGPD : aucune donnée n'est envoyée sans consentement explicite.
         if (!Repo.settings.value.aiEnabled) {
-            throw AiException("Les fonctions IA sont désactivées. Tu peux les activer dans Paramètres › Intelligence artificielle.")
+            throw AiException(t("Les fonctions IA sont désactivées. Tu peux les activer dans Paramètres › Intelligence artificielle."))
         }
         if ((Repo.profile.value?.age ?: 0) < 18) {
-            throw AiException("Les fonctions IA (Google Gemini) sont réservées aux personnes de 18 ans et plus.")
+            throw AiException(t("Les fonctions IA (Google Gemini) sont réservées aux personnes de 18 ans et plus."))
         }
         if (apiKey.isBlank()) {
-            throw AiException("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle.")
+            throw AiException(t("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle."))
         }
     }
 
@@ -95,7 +97,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
             .put("contents", contents)
             .put("generationConfig", JSONObject().put("temperature", 0.5).put("maxOutputTokens", 900))
-        text(send(body)).trim().ifBlank { throw AiException("L'IA n'a pas répondu. Reformule ta question.") }
+        text(send(body)).trim().ifBlank { throw AiException(t("L'IA n'a pas répondu. Reformule ta question.")) }
     }
 
     /**
@@ -116,7 +118,7 @@ class Gemini(private val apiKey: String, private val model: String) {
                 .put("temperature", 0.6)
                 .put("maxOutputTokens", 2000))
         val o = extractJson(text(send(body)))
-        val reply = o.optString("reply").trim().ifBlank { throw AiException("Le chef n'a pas répondu. Reformule ta question.") }
+        val reply = o.optString("reply").trim().ifBlank { throw AiException(t("Le chef n'a pas répondu. Reformule ta question.")) }
         val today = com.goodlife.app.data.localDay(0)
         val last = com.goodlife.app.data.localDay(13)
         val meals = o.optJSONArray("meals")?.mapObjects { m ->
@@ -149,7 +151,7 @@ class Gemini(private val apiKey: String, private val model: String) {
         """.trimIndent()
         val o = call(prompt, null)
         return o.optJSONArray("points")?.strings()?.map { it.trim().take(300) }?.filter { it.isNotBlank() }?.take(6)
-            ?.ifEmpty { null } ?: throw AiException("L'IA n'a pas pu résumer cet article.")
+            ?.ifEmpty { null } ?: throw AiException(t("L'IA n'a pas pu résumer cet article."))
     }
 
     /** Liste de courses regroupée par rayon pour les repas prévus ([people] personnes). */
@@ -169,7 +171,7 @@ class Gemini(private val apiKey: String, private val model: String) {
         """.trimIndent()
         val o = call(prompt, null)
         return o.optJSONArray("articles")?.mapObjects {
-            ShopItem(it.optString("nom").trim().take(60), it.optString("quantite").trim().take(30), it.optString("rayon").trim().ifBlank { "Autres" }.take(30))
+            ShopItem(it.optString("nom").trim().take(60), it.optString("quantite").trim().take(30), it.optString("rayon").trim().ifBlank { t("Autres") }.take(30))
         }?.filter { it.name.isNotBlank() }?.take(80) ?: emptyList()
     }
 
@@ -223,17 +225,17 @@ class Gemini(private val apiKey: String, private val model: String) {
             val (code, response) = post(m, body)
             when {
                 code in 200..299 -> {
-                    val txt = text(response).trim().ifBlank { throw AiException("L'IA n'a pas répondu. Reformule ta question.") }
+                    val txt = text(response).trim().ifBlank { throw AiException(t("L'IA n'a pas répondu. Reformule ta question.")) }
                     val meta = JSONObject(response).optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("groundingMetadata")
                     val sources = meta?.optJSONArray("groundingChunks")?.mapObjects { c ->
-                        c.optJSONObject("web")?.let { w -> w.optString("title").ifBlank { "Source" } to w.optString("uri") }
+                        c.optJSONObject("web")?.let { w -> w.optString("title").ifBlank { t("Source") } to w.optString("uri") }
                     }?.filterNotNull()?.filter { it.second.startsWith("https://") }?.distinctBy { it.second }?.take(5) ?: emptyList()
                     val html = meta?.optJSONObject("searchEntryPoint")?.optString("renderedContent")?.takeIf { it.isNotBlank() }
                     return@withContext Grounded(txt, sources, html, meta != null)
                 }
                 code == 404 -> continue
-                code == 429 -> throw AiException("Quota de ta clé atteint pour le moment. Réessaie dans une minute.")
-                code == 401 || code == 403 -> throw AiException("Clé API refusée (${errorMessage(response)}). Vérifie-la dans Paramètres.")
+                code == 429 -> throw AiException(t("Quota de ta clé atteint pour le moment. Réessaie dans une minute."))
+                code == 401 || code == 403 -> throw AiException(t("Clé API refusée (%1\$s). Vérifie-la dans Paramètres.", errorMessage(response)))
                 else -> break   // recherche non disponible pour ce modèle ou cette clé : réponse sans recherche
             }
         }
@@ -257,16 +259,16 @@ class Gemini(private val apiKey: String, private val model: String) {
     /** Envoie la requête ; si un modèle n'existe plus, essaie les suivants. Renvoie la réponse brute. */
     private fun send(body: JSONObject): String {
         val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
-        var lastError = "Erreur inconnue"
+        var lastError = t("Erreur inconnue")
         for (m in models) {
             val (code, response) = post(m, body)
             when {
                 code in 200..299 -> return response
-                code == 404 -> { lastError = "Modèle $m indisponible"; continue }
-                code == 429 -> throw AiException("Quota de ta clé atteint pour le moment. Réessaie dans une minute.")
+                code == 404 -> { lastError = t("Modèle %1\$s indisponible", m); continue }
+                code == 429 -> throw AiException(t("Quota de ta clé atteint pour le moment. Réessaie dans une minute."))
                 code == 400 || code == 401 || code == 403 ->
-                    throw AiException("Clé API refusée (${errorMessage(response)}). Vérifie-la dans Paramètres.")
-                else -> { lastError = "Erreur serveur $code : ${errorMessage(response)}"; continue }
+                    throw AiException(t("Clé API refusée (%1\$s). Vérifie-la dans Paramètres.", errorMessage(response)))
+                else -> { lastError = t("Erreur serveur %1\$s : %2\$s", code, errorMessage(response)); continue }
             }
         }
         throw AiException(lastError)
@@ -282,28 +284,43 @@ class Gemini(private val apiKey: String, private val model: String) {
             setRequestProperty("x-goog-api-key", apiKey)
         }
         return try {
-            conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            conn.outputStream.use { it.write(withLanguage(body).toString().toByteArray(Charsets.UTF_8)) }
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             code to (stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "")
         } catch (e: java.io.IOException) {
-            throw AiException(com.goodlife.app.net.networkError("Google Gemini", e).message ?: "Problème réseau.")
+            throw AiException(com.goodlife.app.net.networkError("Google Gemini", e).message ?: t("Problème réseau."))
         } finally {
             conn.disconnect()
         }
     }
 
+    /**
+     * App en anglais : les consignes restent en français (l'IA les comprend), mais on lui demande d'écrire
+     * en anglais tout ce que la personne lira. Les valeurs imposées (moments, rayons…) restent celles demandées.
+     */
+    private fun withLanguage(body: JSONObject): JSONObject {
+        if (!com.goodlife.app.i18n.Lang.en) return body
+        val note = "LANGUAGE: the person uses the app in English. Write every text they will read (answers, dish and " +
+            "recipe names, descriptions, ingredients, steps, advice, exercise names) in English. Keep JSON keys and any " +
+            "value whose allowed list is given in the instructions exactly as written there."
+        val copy = JSONObject(body.toString())
+        val sys = copy.optJSONObject("systemInstruction") ?: JSONObject().put("parts", JSONArray()).also { copy.put("systemInstruction", it) }
+        (sys.optJSONArray("parts") ?: JSONArray().also { sys.put("parts", it) }).put(JSONObject().put("text", note))
+        return copy
+    }
+
     private fun errorMessage(body: String): String = runCatching {
         JSONObject(body).getJSONObject("error").optString("message")
-    }.getOrNull()?.take(160) ?: "réponse invalide"
+    }.getOrNull()?.take(160) ?: t("réponse invalide")
 
     /** Texte de la réponse (sans les « pensées » du modèle). */
     private fun text(body: String): String {
         val root = JSONObject(body)
         val candidates = root.optJSONArray("candidates")
-            ?: throw AiException("L'IA n'a pas répondu (contenu bloqué ?).")
+            ?: throw AiException(t("L'IA n'a pas répondu (contenu bloqué ?)."))
         val parts = candidates.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
-            ?: throw AiException("Réponse IA vide.")
+            ?: throw AiException(t("Réponse IA vide."))
         return buildString {
             for (i in 0 until parts.length()) {
                 val p = parts.optJSONObject(i) ?: continue
@@ -316,15 +333,15 @@ class Gemini(private val apiKey: String, private val model: String) {
     private fun extractJson(text: String): JSONObject {
         val start = text.indexOf('{')
         val end = text.lastIndexOf('}')
-        if (start < 0 || end <= start) throw AiException("Réponse IA illisible.")
+        if (start < 0 || end <= start) throw AiException(t("Réponse IA illisible."))
         return runCatching { JSONObject(text.substring(start, end + 1)) }
-            .getOrElse { throw AiException("Réponse IA illisible.") }
+            .getOrElse { throw AiException(t("Réponse IA illisible.")) }
     }
 
     // ------------------------------------------------------------------
 
     suspend fun analyzeFood(jpeg: ByteArray, profile: Profile?): FoodAnalysis {
-        val allergies = profile?.allergies?.takeIf { it.isNotBlank() } ?: "aucune connue"
+        val allergies = profile?.allergies?.takeIf { it.isNotBlank() } ?: t("aucune connue")
         val prompt = """
             Tu aides à estimer les calories d'un repas (usage bien-être, pas d'avis médical). Analyse la photo de nourriture.
             Identifie chaque aliment, estime les portions visibles (en grammes) et les calories.
@@ -355,7 +372,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             p.optString("nom").trim().take(40).takeIf { it.isNotBlank() }?.let { mealName(n, it) }
         }?.filterNotNull()?.take(6) ?: emptyList()
         return FoodAnalysis(
-            dish = portions.joinToString(", ").take(80).ifBlank { mealName(1, o.optString("plat", "Repas").ifBlank { "Repas" }) },
+            dish = portions.joinToString(", ").take(80).ifBlank { mealName(1, o.optString("plat", t("Repas")).ifBlank { t("Repas") }) },
             kcal = o.optDouble("kcal", 0.0).roundToInt().coerceIn(0, Repo.MAX_MEAL_KCAL),
             proteinG = o.optDouble("proteines_g", 0.0).coerceIn(0.0, 1000.0),
             carbsG = o.optDouble("glucides_g", 0.0).coerceIn(0.0, 1000.0),
@@ -449,7 +466,7 @@ class Gemini(private val apiKey: String, private val model: String) {
                 costEur = m.optDouble("cout_eur", 0.0).takeUnless { it.isNaN() }?.coerceIn(0.0, 500.0) ?: 0.0
             )
         }?.filterNotNull() ?: emptyList()
-        if (meals.isEmpty()) throw AiException("L'IA n'a pas proposé de planning. Réessaie.")
+        if (meals.isEmpty()) throw AiException(t("L'IA n'a pas proposé de planning. Réessaie."))
         return meals to o.optString("conseil")
     }
 
@@ -492,7 +509,7 @@ class Gemini(private val apiKey: String, private val model: String) {
         val sessions = o.optJSONArray("seances")?.mapObjects { se ->
             SportSession(
                 day = se.optInt("jour", 1).coerceIn(1, 7),
-                title = se.optString("titre").take(60).ifBlank { "Séance" },
+                title = se.optString("titre").take(60).ifBlank { t("Séance") },
                 minutes = se.optInt("minutes", minutes).coerceIn(5, 180),
                 warmup = se.optString("echauffement").take(300),
                 exercises = se.optJSONArray("exercices")?.mapObjects { ex ->
@@ -501,7 +518,7 @@ class Gemini(private val apiKey: String, private val model: String) {
                 cooldown = se.optString("retour_au_calme").take(300)
             )
         }?.filter { it.exercises.isNotEmpty() }?.sortedBy { it.day }?.take(7) ?: emptyList()
-        if (sessions.isEmpty()) throw AiException("L'IA n'a pas proposé de programme. Réessaie.")
+        if (sessions.isEmpty()) throw AiException(t("L'IA n'a pas proposé de programme. Réessaie."))
         return SportProgram(
             System.currentTimeMillis(), goal, level, equipment, daysPerWeek, minutes, likes, limits,
             sessions, o.optString("conseil").take(400)
@@ -518,7 +535,7 @@ class Gemini(private val apiKey: String, private val model: String) {
         p: Profile, average: Int,
         week: List<Pair<String, com.goodlife.app.data.StepDay>> = emptyList(), previous: Int = 0
     ): Pair<Int, String> {
-        val detail = week.joinToString("; ") { (d, s) -> "$d : ${s.steps} pas (objectif ${s.goal})" }.ifBlank { "pas d'historique" }
+        val detail = week.joinToString("; ") { (d, s) -> t("%1\$s : %2\$s pas (objectif %3\$s)", d, s.steps, s.goal) }.ifBlank { t("pas d'historique") }
         val met = week.count { it.second.goal > 0 && it.second.steps >= it.second.goal }
         val prompt = """
             Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose l'objectif de pas
@@ -540,9 +557,9 @@ class Gemini(private val apiKey: String, private val model: String) {
     suspend fun suggestMeals(p: Profile, today: List<Meal>, slot: MealSlot? = null, avoid: List<String> = emptyList()): List<MealSuggestion> {
         val eaten = today.sumOf { it.kcal }
         val remaining = (p.targetKcal - eaten).coerceAtLeast(0)
-        val list = today.joinToString("; ") { "${it.name} (${it.kcal} kcal)" }.ifBlank { "rien encore" }
-        val what = if (slot == null) "4 idées de repas simples pour la suite de la journée ou demain"
-                   else "4 idées de ${slot.label.lowercase()} simples (toutes pour ce repas, « moment » = « ${slot.label.lowercase()} »)"
+        val list = today.joinToString("; ") { t("%1\$s (%2\$s kcal)", it.name, it.kcal) }.ifBlank { t("rien encore") }
+        val what = if (slot == null) t("4 idées de repas simples pour la suite de la journée ou demain")
+                   else t("4 idées de %1\$s simples (toutes pour ce repas, « moment » = « %2\$s »)", slot.label.lowercase(), slot.label.lowercase())
         val avoidLine = if (avoid.isEmpty()) "" else "Ne propose PAS ces plats déjà suggérés : ${avoid.joinToString(", ")}. Varie vraiment."
         val prompt = """
             Tu es un coach nutrition. Propose $what.
@@ -604,9 +621,9 @@ class Gemini(private val apiKey: String, private val model: String) {
 
         /** Modèles proposés dans les paramètres : id → description. */
         val KNOWN_MODELS = listOf(
-            "gemini-3.5-flash-lite" to "Rapide et économique (recommandé)",
-            "gemini-3.8-flash" to "Plus précis, quota plus petit",
-            "gemini-2.5-flash" to "Ancien modèle, en secours"
+            "gemini-3.5-flash-lite" to t("Rapide et économique (recommandé)"),
+            "gemini-3.8-flash" to t("Plus précis, quota plus petit"),
+            "gemini-2.5-flash" to t("Ancien modèle, en secours")
         )
     }
 }

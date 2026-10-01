@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.content.Intent
 import android.graphics.Bitmap
@@ -88,7 +90,7 @@ object Shopping {
 
     fun load(): List<ShopItem> = runCatching {
         val a = JSONObject(Repo.getExtra(KEY) ?: "{}").optJSONArray("items") ?: JSONArray()
-        (0 until a.length()).map { i -> a.getJSONObject(i).let { ShopItem(it.optString("n"), it.optString("q"), it.optString("r", "Autres"), it.optBoolean("c")) } }
+        (0 until a.length()).map { i -> a.getJSONObject(i).let { ShopItem(it.optString("n"), it.optString("q"), it.optString("r", t("Autres")), it.optBoolean("c")) } }
     }.getOrDefault(emptyList())
 
     fun save(items: List<ShopItem>) {
@@ -105,11 +107,11 @@ object Shopping {
 
     /** Sans IA : ingrédients des recettes enregistrées, et le nom des repas qui n'en ont pas. */
     fun fromRecipes(meals: List<PlannedMeal>): List<ShopItem> =
-        meals.flatMap { m -> m.recipe?.ingredients?.map { ShopItem(it, "", "D'après tes recettes") } ?: listOf(ShopItem("Pour « ${m.name} »", "", "Repas sans recette")) }
+        meals.flatMap { m -> m.recipe?.ingredients?.map { ShopItem(it, "", t("D'après tes recettes")) } ?: listOf(ShopItem(t("Pour « %1\$s »", m.name), "", t("Repas sans recette"))) }
             .distinctBy { it.name.lowercase() }
 
-    fun text(items: List<ShopItem>): String = "Liste de courses GoodLife 🛒\n" + items.groupBy { it.aisle }.entries.joinToString("\n") { (aisle, list) ->
-        "\n$aisle :\n" + list.joinToString("\n") { "${if (it.checked) "☑" else "☐"} ${it.name}${if (it.qty.isNotBlank()) " — ${it.qty}" else ""}" }
+    fun text(items: List<ShopItem>): String = t("Liste de courses GoodLife 🛒\n") + items.groupBy { it.aisle }.entries.joinToString("\n") { (aisle, list) ->
+        t("\n%1\$s :\n", aisle) + list.joinToString("\n") { "${if (it.checked) "☑" else "☐"} ${it.name}${if (it.qty.isNotBlank()) " — ${it.qty}" else ""}" }
     }
 }
 
@@ -132,15 +134,15 @@ fun ShoppingScreen(onBack: () -> Unit) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader("Liste de courses", onBack)
-            SectionCard(title = "Pour les 7 prochains jours", icon = Icons.Filled.ShoppingCart) {
+            SubScreenHeader(t("Liste de courses"), onBack)
+            SectionCard(title = t("Pour les 7 prochains jours"), icon = Icons.Filled.ShoppingCart) {
                 Text(
-                    if (upcoming.isEmpty()) "Aucun repas prévu : ajoute des repas dans le planning, ou écris tes articles ci-dessous."
-                    else "${upcoming.size} repas prévus" + if (cost > 0) " · budget estimé lors du planning : ${"%.2f".format(cost).replace('.', ',')} €" else "",
+                    if (upcoming.isEmpty()) t("Aucun repas prévu : ajoute des repas dans le planning, ou écris tes articles ci-dessous.")
+                    else t("%1\$s repas prévus", upcoming.size) + if (cost > 0) t(" · budget estimé lors du planning : %1\$s €", "%.2f".format(cost).let { if (com.goodlife.app.i18n.Lang.en) it else it.replace('.', ',') }) else "",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (upcoming.isNotEmpty()) {
-                    Text("Pour combien de personnes ?", style = MaterialTheme.typography.labelLarge)
+                    Text(t("Pour combien de personnes ?"), style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         (1..4).forEach { n -> FilterChip(people == n, { people = n }, label = { Text("$n") }) }
                     }
@@ -153,21 +155,21 @@ fun ShoppingScreen(onBack: () -> Unit) {
                             }
                         }) {
                             if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp)); Text("Préparer avec l'IA")
+                            Spacer(Modifier.width(6.dp)); Text(t("Préparer avec l'IA"))
                         }
-                        OutlinedButton(onClick = { update(Shopping.fromRecipes(upcoming)) }) { Text(if (aiReady) "Sans IA" else "Préparer") }
+                        OutlinedButton(onClick = { update(Shopping.fromRecipes(upcoming)) }) { Text(if (aiReady) t("Sans IA") else t("Préparer")) }
                     }
                     Text(
-                        if (aiReady) "L'IA additionne les ingrédients des repas prévus et les range par rayon (quantités estimées)."
-                        else "Sans IA : les ingrédients des recettes enregistrées dans ton planning.",
+                        if (aiReady) t("L'IA additionne les ingrédients des repas prévus et les range par rayon (quantités estimées).")
+                        else t("Sans IA : les ingrédients des recettes enregistrées dans ton planning."),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(extra, { extra = it.take(60) }, label = { Text("Ajouter un article") }, singleLine = true, modifier = Modifier.weight(1f))
-                TextButton(enabled = extra.isNotBlank(), onClick = { update(items + ShopItem(extra.trim(), "", "Ajouté par toi")); extra = "" }) { Text("Ajouter") }
+                OutlinedTextField(extra, { extra = it.take(60) }, label = { Text(t("Ajouter un article")) }, singleLine = true, modifier = Modifier.weight(1f))
+                TextButton(enabled = extra.isNotBlank(), onClick = { update(items + ShopItem(extra.trim(), "", t("Ajouté par toi"))); extra = "" }) { Text(t("Ajouter")) }
             }
             if (items.isNotEmpty()) {
                 items.groupBy { it.aisle }.forEach { (aisle, list) ->
@@ -180,7 +182,7 @@ fun ShoppingScreen(onBack: () -> Unit) {
                                         color = if (it2.checked) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
                                     if (it2.qty.isNotBlank()) Text(it2.qty, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                IconButton(onClick = { update(items - it2) }) { Icon(Icons.Filled.Delete, "Retirer") }
+                                IconButton(onClick = { update(items - it2) }) { Icon(Icons.Filled.Delete, t("Retirer")) }
                             }
                         }
                     }
@@ -189,11 +191,11 @@ fun ShoppingScreen(onBack: () -> Unit) {
                     FilledTonalButton(onClick = {
                         runCatching {
                             context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain")
-                                .putExtra(Intent.EXTRA_TEXT, Shopping.text(items)), "Partager la liste"))
+                                .putExtra(Intent.EXTRA_TEXT, Shopping.text(items)), t("Partager la liste")))
                         }
-                    }) { Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Partager") }
-                    TextButton(onClick = { update(items.filter { !it.checked }) }) { Text("Retirer les cochés") }
-                    TextButton(onClick = { update(emptyList()) }) { Text("Tout effacer") }
+                    }) { Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Partager")) }
+                    TextButton(onClick = { update(items.filter { !it.checked }) }) { Text(t("Retirer les cochés")) }
+                    TextButton(onClick = { update(emptyList()) }) { Text(t("Tout effacer")) }
                 }
             }
         }
@@ -249,7 +251,7 @@ private fun FridgeContent(onClose: () -> Unit) {
         }
     }
     val askCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) takePhoto.launch(shotUri) else error = "Sans l'accès à la caméra, choisis plutôt une photo dans ta galerie."
+        if (ok) takePhoto.launch(shotUri) else error = t("Sans l'accès à la caméra, choisis plutôt une photo dans ta galerie.")
     }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) scope.launch { photo = withContext(Dispatchers.IO) { readPhoto(context, uri) } }
@@ -259,31 +261,31 @@ private fun FridgeContent(onClose: () -> Unit) {
     val aiReady = Repo.aiAllowed() && settings.apiKey.isNotBlank()
 
     ScreenColumn {
-        SubScreenHeader("J'ai ça dans mon frigo", onClose)
+        SubScreenHeader(t("J'ai ça dans mon frigo"), onClose)
         if (!aiReady) {
-            Text("Cette fonction utilise l'IA : active-la et ajoute ta clé Gemini dans Profil › Paramètres (18 ans et plus).",
+            Text(t("Cette fonction utilise l'IA : active-la et ajoute ta clé Gemini dans Profil › Paramètres (18 ans et plus)."),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return@ScreenColumn
         }
         SectionCard {
-            Text("Prends en photo ton frigo ou tes placards, et/ou écris ce que tu as. Le chef te propose des recettes anti-gaspi.",
+            Text(t("Prends en photo ton frigo ou tes placards, et/ou écris ce que tu as. Le chef te propose des recettes anti-gaspi."),
                 style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton(onClick = {
                     if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) takePhoto.launch(shotUri)
                     else askCamera.launch(Manifest.permission.CAMERA)
-                }) { Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Photo") }
+                }) { Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Photo")) }
                 OutlinedButton(onClick = { pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Galerie")
+                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Galerie"))
                 }
             }
             photo?.let { bytes ->
                 val bmp = remember(bytes) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
-                if (bmp != null) Image(bmp, "Photo du frigo", Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
-                TextButton(onClick = { photo = null }) { Text("Retirer la photo") }
+                if (bmp != null) Image(bmp, t("Photo du frigo"), Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+                TextButton(onClick = { photo = null }) { Text(t("Retirer la photo")) }
             }
-            OutlinedTextField(written, { written = it.take(400) }, label = { Text("Ce que tu as (facultatif)") },
-                placeholder = { Text("Ex : 3 œufs, épinards, riz, une tomate…") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(written, { written = it.take(400) }, label = { Text(t("Ce que tu as (facultatif)")) },
+                placeholder = { Text(t("Ex : 3 œufs, épinards, riz, une tomate…")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
             Button(enabled = !loading && (photo != null || written.isNotBlank()), onClick = {
                 loading = true; error = null; result = null
                 scope.launch {
@@ -292,28 +294,28 @@ private fun FridgeContent(onClose: () -> Unit) {
                 }
             }) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp)); Text("Que cuisiner ?")
+                Spacer(Modifier.width(6.dp)); Text(t("Que cuisiner ?"))
             }
-            Text("La photo et ta liste sont envoyées à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée.",
+            Text(t("La photo et ta liste sont envoyées à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
         result?.let { r ->
-            if (r.seen.isNotEmpty()) SectionCard(title = "Le chef a repéré") { Text(r.seen.joinToString(", "), style = MaterialTheme.typography.bodyMedium) }
+            if (r.seen.isNotEmpty()) SectionCard(title = t("Le chef a repéré")) { Text(r.seen.joinToString(", "), style = MaterialTheme.typography.bodyMedium) }
             r.ideas.forEach { idea ->
                 SectionCard(title = idea.name) {
-                    Text("${idea.moment.replaceFirstChar { it.uppercase() }} · ${idea.kcal} kcal · ${idea.minutes} min",
+                    Text(t("%1\$s · %2\$s kcal · %3\$s min", idea.moment.replaceFirstChar { it.uppercase() }, idea.kcal, idea.minutes),
                         style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    if (idea.uses.isNotEmpty()) Text("Avec : ${idea.uses.joinToString(", ")}", style = MaterialTheme.typography.bodyMedium)
-                    if (idea.missing.isNotEmpty()) Text("Il te manque : ${idea.missing.joinToString(", ")}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    if (idea.uses.isNotEmpty()) Text(t("Avec : %1\$s", idea.uses.joinToString(", ")), style = MaterialTheme.typography.bodyMedium)
+                    if (idea.missing.isNotEmpty()) Text(t("Il te manque : %1\$s", idea.missing.joinToString(", ")), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     idea.steps.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodySmall) }
                     AiContentFooter("Recette du frigo : ${idea.name}\n${idea.steps.joinToString("\n")}")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledTonalButton(onClick = { planFor = idea }) { Text("Planifier") }
+                        FilledTonalButton(onClick = { planFor = idea }) { Text(t("Planifier")) }
                         if (idea.missing.isNotEmpty()) TextButton(onClick = {
-                            Shopping.add(idea.missing.map { ShopItem(it, "", "Pour « ${idea.name} »") })
-                            info = "Ajouté à ta liste de courses : ${idea.missing.joinToString(", ")}"
-                        }) { Text("Ajouter les manquants à la liste") }
+                            Shopping.add(idea.missing.map { ShopItem(it, "", t("Pour « %1\$s »", idea.name)) })
+                            info = t("Ajouté à ta liste de courses : %1\$s", idea.missing.joinToString(", "))
+                        }) { Text(t("Ajouter les manquants à la liste")) }
                     }
                 }
             }
@@ -325,7 +327,7 @@ private fun FridgeContent(onClose: () -> Unit) {
     planFor?.let { idea ->
         AddToPlanDialog(
             initialName = idea.name, initialKcal = idea.kcal, initialSlot = MealSlot.guess(idea.moment),
-            description = "Avec : " + idea.uses.joinToString(", "),
+            description = t("Avec : ") + idea.uses.joinToString(", "),
             recipe = Recipe(1, idea.minutes, idea.kcal, idea.uses + idea.missing, idea.steps, ""),
             editableName = false, onDismiss = { planFor = null }
         )

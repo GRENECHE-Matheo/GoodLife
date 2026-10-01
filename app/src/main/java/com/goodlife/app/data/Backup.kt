@@ -1,5 +1,7 @@
 package com.goodlife.app.data
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,8 +36,8 @@ object Backup {
     const val MIME = "application/octet-stream"
     const val FILE_NAME = "GoodLife-sauvegarde.goodlife"
 
-    class WrongPassword : Exception("Mot de passe incorrect, ou fichier abîmé.")
-    class NotABackup : Exception("Ce fichier n'est pas une sauvegarde GoodLife.")
+    class WrongPassword : Exception(t("Mot de passe incorrect, ou fichier abîmé."))
+    class NotABackup : Exception(t("Ce fichier n'est pas une sauvegarde GoodLife."))
 
     /** Clé dérivée + paramètres nécessaires pour que le fichier soit relisible avec le mot de passe. */
     data class DerivedKey(val key: ByteArray, val salt: ByteArray, val iterations: Int) {
@@ -94,13 +96,13 @@ object Backup {
 
     fun read(context: Context, uri: Uri): ByteArray =
         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw IllegalStateException("Fichier illisible.")
+            ?: throw IllegalStateException(t("Fichier illisible."))
 
     fun write(context: Context, uri: Uri, bytes: ByteArray) {
         // « wt » vide le fichier avant d'écrire ; certains services (ex. Drive) ne connaissent que « w ».
         val out = runCatching { context.contentResolver.openOutputStream(uri, "wt") }.getOrNull()
             ?: context.contentResolver.openOutputStream(uri, "w")
-            ?: throw IllegalStateException("Impossible d'écrire le fichier.")
+            ?: throw IllegalStateException(t("Impossible d'écrire le fichier."))
         out.use { it.write(bytes) }
     }
 
@@ -135,7 +137,7 @@ object Backup {
         val result = runCatching {
             write(context, Uri.parse(s.backupUri), encrypt(Repo.backupJson(), key))
         }
-        Repo.onBackupDone(revision, result.exceptionOrNull()?.let { "La dernière sauvegarde a échoué : ${it.message ?: "fichier inaccessible"}" })
+        Repo.onBackupDone(revision, result.exceptionOrNull()?.let { t("La dernière sauvegarde a échoué : %1\$s", it.message ?: t("fichier inaccessible")) })
     }
 
     private fun randomBytes(n: Int) = ByteArray(n).also { SecureRandom().nextBytes(it) }

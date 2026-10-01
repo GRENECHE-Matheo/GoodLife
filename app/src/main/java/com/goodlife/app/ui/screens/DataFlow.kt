@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,49 +46,42 @@ private fun FlowLine(icon: ImageVector, title: String, body: String) {
 fun DataFlowSummary(showAi: Boolean = true) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
-            "Par défaut, rien ne quitte ton téléphone. Seules ces fonctions envoient des données, et uniquement quand tu les utilises :",
+            t("Par défaut, rien ne quitte ton téléphone. Seules ces fonctions envoient des données, et uniquement quand tu les utilises :"),
             style = MaterialTheme.typography.bodyMedium
         )
         if (showAi) {
             FlowLine(
-                Icons.Filled.AutoAwesome, "IA (si tu l'actives) → Google Gemini",
-                "Photo du repas (ou du frigo) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, " +
-                    "objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres " +
-                    "de la semaine (scores, pas, sport, poids) et ton planning. Envoyé avec ta propre clé. " +
-                    "Jamais ton prénom, ton sommeil ni tes positions."
+                Icons.Filled.AutoAwesome, t("IA (si tu l'actives) → Google Gemini"),
+                t("Photo du repas (ou du frigo) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres de la semaine (scores, pas, sport, poids) et ton planning. Envoyé avec ta propre clé. Jamais ton prénom, ton sommeil ni tes positions.")
             )
         }
         FlowLine(
-            Icons.Filled.QrCodeScanner, "Scan de code-barres → Open Food Facts",
-            "Uniquement le numéro du code-barres. L'image est analysée sur le téléphone."
+            Icons.Filled.QrCodeScanner, t("Scan de code-barres → Open Food Facts"),
+            t("Uniquement le numéro du code-barres. L'image est analysée sur le téléphone.")
         )
         if (BuildConfig.SELF_UPDATE) FlowLine(
-            Icons.Filled.SystemUpdate, "Mises à jour → GitHub",
-            "Ton adresse IP, comme pour n'importe quel site, pour savoir s'il existe une nouvelle version."
+            Icons.Filled.SystemUpdate, t("Mises à jour → GitHub"),
+            t("Ton adresse IP, comme pour n'importe quel site, pour savoir s'il existe une nouvelle version.")
         )
         FlowLine(
-            Icons.Filled.Map, "Carte → OpenFreeMap et OpenStreetMap",
-            "La zone affichée, et celle où tu cherches des clubs, des boucles ou un itinéraire. Ta position exacte et tes tracés GPS restent sur le téléphone."
+            Icons.Filled.Map, t("Carte → OpenFreeMap et OpenStreetMap"),
+            t("La zone affichée, et celle où tu cherches des clubs, des boucles ou un itinéraire. Ta position exacte et tes tracés GPS restent sur le téléphone.")
         )
         FlowLine(
-            Icons.Filled.Newspaper, "Actus du jour → sites d'actualité",
-            "Une fois par jour, l'app lit les flux publics de franceinfo, Sciences et Avenir, Futura, Anses et Santé publique " +
-                "France. Ces sites voient ton adresse IP, rien d'autre. Un article ne s'ouvre chez eux que si tu le touches. " +
-                "Avec l'IA, le « Résumé du chef » d'un article public envoie seulement le texte de cet article à Gemini."
+            Icons.Filled.Newspaper, t("Actus du jour → sites d'actualité"),
+            t("Une fois par jour, l'app lit les flux publics de franceinfo, Sciences et Avenir, Futura, Anses et Santé publique France. Ces sites voient ton adresse IP, rien d'autre. Un article ne s'ouvre chez eux que si tu le touches. Avec l'IA, le « Résumé du chef » d'un article public envoie seulement le texte de cet article à Gemini.")
         )
         FlowLine(
-            Icons.Filled.Group, "Amis (si ton profil est public) → le téléphone de tes amis",
-            "Seulement ton pseudo et ce que tu choisis (niveau, série, Nutridex, bilan de la semaine), de téléphone à téléphone, " +
-                "ou par un message que tu envoies toi-même. Jamais par un serveur GoodLife."
+            Icons.Filled.Group, t("Amis (si ton profil est public) → le téléphone de tes amis"),
+            t("Seulement ton pseudo et ce que tu choisis (niveau, série, Nutridex, bilan de la semaine), de téléphone à téléphone, ou par un message que tu envoies toi-même. Jamais par un serveur GoodLife.")
         )
         FlowLine(
-            Icons.Filled.Backup, "Sauvegarde (si tu l'actives) → l'endroit que tu choisis",
-            "Un fichier chiffré avec ton mot de passe, illisible sans lui (même pour Google Drive ou le développeur)."
+            Icons.Filled.Backup, t("Sauvegarde (si tu l'actives) → l'endroit que tu choisis"),
+            t("Un fichier chiffré avec ton mot de passe, illisible sans lui (même pour Google Drive ou le développeur).")
         )
         FlowLine(
-            Icons.Filled.Block, "Aucune revente",
-            "Aucune donnée n'est vendue, louée ou utilisée pour de la publicité. GoodLife n'a pas de serveur : " +
-                "le développeur ne reçoit rien."
+            Icons.Filled.Block, t("Aucune revente"),
+            t("Aucune donnée n'est vendue, louée ou utilisée pour de la publicité. GoodLife n'a pas de serveur : le développeur ne reçoit rien.")
         )
     }
 }

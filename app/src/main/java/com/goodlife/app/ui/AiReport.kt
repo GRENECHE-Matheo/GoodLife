@@ -1,5 +1,7 @@
 package com.goodlife.app.ui
 
+import com.goodlife.app.i18n.t
+
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -34,10 +36,10 @@ import androidx.compose.ui.unit.dp
 import com.goodlife.app.BuildConfig
 
 private val REASONS = listOf(
-    "Faux ou dangereux pour la santé",
-    "Allergène non signalé",
-    "Choquant ou offensant",
-    "Autre"
+    t("Faux ou dangereux pour la santé"),
+    t("Allergène non signalé"),
+    t("Choquant ou offensant"),
+    t("Autre")
 )
 
 /**
@@ -55,7 +57,7 @@ fun AiContentFooter(content: String, modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            "Généré par l'IA · peut contenir des erreurs",
+            t("Généré par l'IA · peut contenir des erreurs"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
@@ -63,7 +65,7 @@ fun AiContentFooter(content: String, modifier: Modifier = Modifier) {
         TextButton(onClick = { open = true }) {
             Icon(Icons.Outlined.Flag, null, Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Signaler", style = MaterialTheme.typography.labelMedium)
+            Text(t("Signaler"), style = MaterialTheme.typography.labelMedium)
         }
     }
     if (open) AiReportDialog(content, onDismiss = { open = false })
@@ -79,7 +81,7 @@ private fun AiReportDialog(content: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Outlined.Flag, null) },
-        title = { Text("Signaler ce contenu") },
+        title = { Text(t("Signaler ce contenu")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 REASONS.forEach { r ->
@@ -94,12 +96,11 @@ private fun AiReportDialog(content: String, onDismiss: () -> Unit) {
                 }
                 OutlinedTextField(
                     comment, { comment = it.take(500) },
-                    label = { Text("Précision (facultatif)") },
+                    label = { Text(t("Précision (facultatif)")) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "Un e-mail est préparé avec le motif et le texte signalé (sans tes données de santé). " +
-                        "Tu le relis et l'envoies toi-même.",
+                    t("Un e-mail est préparé avec le motif et le texte signalé (sans tes données de santé). Tu le relis et l'envoies toi-même."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -109,26 +110,26 @@ private fun AiReportDialog(content: String, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 val body = buildString {
-                    appendLine("Motif : $reason")
-                    if (comment.isNotBlank()) appendLine("Précision : ${comment.trim()}")
+                    appendLine(t("Motif : %1\$s", reason))
+                    if (comment.isNotBlank()) appendLine(t("Précision : %1\$s", comment.trim()))
                     appendLine()
-                    appendLine("Contenu signalé :")
+                    appendLine(t("Contenu signalé :"))
                     appendLine(content.take(2000))
                     appendLine()
                     append("GoodLife ${BuildConfig.VERSION_NAME} (${if (BuildConfig.SELF_UPDATE) "GitHub" else "Google Play"})")
                 }
                 val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
                     .putExtra(Intent.EXTRA_EMAIL, arrayOf(BuildConfig.CONTACT_EMAIL))
-                    .putExtra(Intent.EXTRA_SUBJECT, "GoodLife – signalement d'un contenu IA")
+                    .putExtra(Intent.EXTRA_SUBJECT, t("GoodLife – signalement d'un contenu IA"))
                     .putExtra(Intent.EXTRA_TEXT, body)
                 try {
                     context.startActivity(intent)
                     onDismiss()
                 } catch (e: ActivityNotFoundException) {
-                    error = "Aucune application e-mail trouvée. Tu peux écrire à ${BuildConfig.CONTACT_EMAIL}."
+                    error = t("Aucune application e-mail trouvée. Tu peux écrire à %1\$s.", BuildConfig.CONTACT_EMAIL)
                 }
-            }) { Text("Préparer l'e-mail") }
+            }) { Text(t("Préparer l'e-mail")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }

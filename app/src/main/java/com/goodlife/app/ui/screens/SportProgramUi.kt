@@ -2,6 +2,9 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -74,13 +77,13 @@ import com.goodlife.app.ui.theme.successColor
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-private val GOALS = listOf("Me remettre en forme", "Perdre du poids", "Me muscler", "Endurance / cardio", "Souplesse et mobilité", "Santé et bien-être")
-private val LEVELS = listOf("Débutant", "Intermédiaire", "Confirmé")
+private val GOALS = listOf(t("Me remettre en forme"), t("Perdre du poids"), t("Me muscler"), t("Endurance / cardio"), t("Souplesse et mobilité"), t("Santé et bien-être"))
+private val LEVELS = listOf(t("Débutant"), t("Intermédiaire"), t("Confirmé"))
 private val EQUIPMENT = listOf(
-    "Haltères", "Élastiques", "Barre de traction", "Kettlebell", "Tapis", "Corde à sauter",
-    "Banc", "Vélo (dehors)", "Vélo d'appartement", "Salle de sport"
+    t("Haltères"), t("Élastiques"), t("Barre de traction"), t("Kettlebell"), t("Tapis"), t("Corde à sauter"),
+    t("Banc"), t("Vélo (dehors)"), t("Vélo d'appartement"), t("Salle de sport")
 )
-private val DAYS = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+private val DAYS = listOf(t("Lundi"), t("Mardi"), t("Mercredi"), t("Jeudi"), t("Vendredi"), t("Samedi"), t("Dimanche"))
 
 /** Jour de la semaine d'aujourd'hui : 1 = lundi … 7 = dimanche. */
 private fun todayIndex(): Int = ((Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7) + 1
@@ -96,16 +99,15 @@ fun ProgramTab() {
 
     val program = sport.program
     when {
-        !adult -> SectionCard(title = "Programme sportif", icon = Icons.Filled.FitnessCenter) {
+        !adult -> SectionCard(title = t("Programme sportif"), icon = Icons.Filled.FitnessCenter) {
             Text(
-                "Le programme sur mesure est créé par l'IA, réservée aux 18 ans et plus. En attendant, les sorties " +
-                    "(onglet Sorties) et tes pas comptent pour ton score et ton XP !",
+                t("Le programme sur mesure est créé par l'IA, réservée aux 18 ans et plus. En attendant, les sorties (onglet Sorties) et tes pas comptent pour ton score et ton XP !"),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        !settings.aiEnabled -> SectionCard(title = "Programme sportif", icon = Icons.Filled.FitnessCenter) {
+        !settings.aiEnabled -> SectionCard(title = t("Programme sportif"), icon = Icons.Filled.FitnessCenter) {
             Text(
-                "Un programme sur mesure (but, niveau, matériel, envies) créé par l'IA. Active l'IA dans Paramètres pour l'utiliser.",
+                t("Un programme sur mesure (but, niveau, matériel, envies) créé par l'IA. Active l'IA dans Paramètres pour l'utiliser."),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -115,16 +117,15 @@ fun ProgramTab() {
                 ChefMascot(size = 72.dp, mood = ChefMood.BRAVO)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Ton programme sur mesure", style = MaterialTheme.typography.titleMedium)
+                    Text(t("Ton programme sur mesure"), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Dis ce que tu veux, ce que tu aimes et le matériel que tu as : l'IA prépare ta semaine. " +
-                            "Chaque séance faite rapporte ${Game.SESSION_XP} XP.",
+                        t("Dis ce que tu veux, ce que tu aimes et le matériel que tu as : l'IA prépare ta semaine. Chaque séance faite rapporte %1\$s XP.", Game.SESSION_XP),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
             Button(onClick = { setup = true }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Créer mon programme")
+                Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(t("Créer mon programme"))
             }
         }
         else -> ProgramView(program, sport.done, onNew = { setup = true })
@@ -148,48 +149,47 @@ private fun ProgramSetup(onDone: () -> Unit, onCancel: () -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    SectionCard(title = "Mon programme", icon = Icons.Filled.FitnessCenter) {
-        Label("Ce que je veux")
+    SectionCard(title = t("Mon programme"), icon = Icons.Filled.FitnessCenter) {
+        Label(t("Ce que je veux"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             GOALS.forEach { g -> FilterChip(goal == g, { goal = g }, label = { Text(g) }) }
         }
-        Label("Mon niveau")
+        Label(t("Mon niveau"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             LEVELS.forEach { l -> FilterChip(level == l, { level = l }, label = { Text(l) }) }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Séances par semaine", Modifier.weight(1f))
-            IconButton(enabled = days > 1, onClick = { days-- }) { Icon(Icons.Filled.Remove, "Moins") }
+            Text(t("Séances par semaine"), Modifier.weight(1f))
+            IconButton(enabled = days > 1, onClick = { days-- }) { Icon(Icons.Filled.Remove, t("Moins")) }
             Text("$days", style = MaterialTheme.typography.titleMedium)
-            IconButton(enabled = days < 6, onClick = { days++ }) { Icon(Icons.Filled.Add, "Plus") }
+            IconButton(enabled = days < 6, onClick = { days++ }) { Icon(Icons.Filled.Add, t("Plus")) }
         }
-        Label("Durée d'une séance")
+        Label(t("Durée d'une séance"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(15, 20, 30, 45, 60).forEach { m -> FilterChip(minutes == m, { minutes = m }, label = { Text("$m min") }) }
         }
-        Label("Mon matériel (rien coché = sans matériel)")
+        Label(t("Mon matériel (rien coché = sans matériel)"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(equipment.isEmpty(), { equipment = emptySet() }, label = { Text("Sans matériel") })
+            FilterChip(equipment.isEmpty(), { equipment = emptySet() }, label = { Text(t("Sans matériel")) })
             EQUIPMENT.forEach { e ->
                 FilterChip(e in equipment, { equipment = if (e in equipment) equipment - e else equipment + e }, label = { Text(e) })
             }
         }
         OutlinedTextField(
-            likes, { likes = it.take(200) }, label = { Text("Ce que j'aime (facultatif)") },
-            placeholder = { Text("Ex : danser, jeux, dehors, musique… je déteste courir") },
+            likes, { likes = it.take(200) }, label = { Text(t("Ce que j'aime (facultatif)")) },
+            placeholder = { Text(t("Ex : danser, jeux, dehors, musique… je déteste courir")) },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
-            limits, { limits = it.take(200) }, label = { Text("Douleurs ou limites (facultatif)") },
-            placeholder = { Text("Ex : genou fragile, mal au dos") },
+            limits, { limits = it.take(200) }, label = { Text(t("Douleurs ou limites (facultatif)")) },
+            placeholder = { Text(t("Ex : genou fragile, mal au dos")) },
             modifier = Modifier.fillMaxWidth()
         )
         Row(Modifier.fillMaxWidth().toggleable(safe, role = Role.Checkbox) { safe = it }, verticalAlignment = Alignment.Top) {
             Checkbox(checked = safe, onCheckedChange = null)
             Spacer(Modifier.width(8.dp))
             Text(
-                "Je n'ai pas de problème de santé connu qui m'interdit le sport (cœur, malaise, douleur à l'effort, " +
-                    "grossesse…). Sinon, je demande d'abord l'avis d'un médecin.",
+                t("Je n'ai pas de problème de santé connu qui m'interdit le sport (cœur, malaise, douleur à l'effort, grossesse…). Sinon, je demande d'abord l'avis d'un médecin."),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -217,9 +217,9 @@ private fun ProgramSetup(onDone: () -> Unit, onCancel: () -> Unit) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(if (loading) "L'IA prépare ta semaine…" else "Créer mon programme")
+                Text(if (loading) t("L'IA prépare ta semaine…") else t("Créer mon programme"))
             }
-            TextButton(enabled = !loading, onClick = onCancel) { Text("Annuler") }
+            TextButton(enabled = !loading, onClick = onCancel) { Text(t("Annuler")) }
         }
     }
 }
@@ -239,13 +239,13 @@ private fun ProgramView(program: SportProgram, done: Set<String>, onNew: () -> U
     val doneThisWeek = done.count { it.substringBefore('#') in weekDays }
 
     SectionCard(container = MaterialTheme.colorScheme.primaryContainer) {
-        Text(program.goal, style = MaterialTheme.typography.titleLarge)
+        Text(t(program.goal), style = MaterialTheme.typography.titleLarge)
         Text(
-            "${program.level} · ${program.sessions.size} séances · ~${program.minutes} min · " +
-                if (program.equipment.isEmpty()) "sans matériel" else program.equipment.joinToString(", "),
+            t("%1\$s · %2\$s séances · ~%3\$s min · ", t(program.level), program.sessions.size, program.minutes) +
+                if (program.equipment.isEmpty()) t("sans matériel") else program.equipment.joinToString(", ") { t(it) },
             style = MaterialTheme.typography.bodySmall
         )
-        Text("Cette semaine : $doneThisWeek / ${program.sessions.size} séances", style = MaterialTheme.typography.labelLarge)
+        Text(t("Cette semaine : %1\$s / %2\$s séances", doneThisWeek, program.sessions.size), style = MaterialTheme.typography.labelLarge)
         LinearProgressIndicator(
             progress = { (doneThisWeek.toFloat() / program.sessions.size.coerceAtLeast(1)).coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth().height(8.dp), strokeCap = StrokeCap.Round
@@ -261,34 +261,33 @@ private fun ProgramView(program: SportProgram, done: Set<String>, onNew: () -> U
                 val xp = Repo.markSessionDone(i)
                 if (xp != null) {
                     Sounds.play(Sfx.LEVEL_UP)
-                    reward = if (xp > 0) "Bravo ! +$xp XP" else "Bravo ! (XP sport du jour déjà au maximum)"
+                    reward = if (xp > 0) t("Bravo ! +%1\$s XP", xp) else t("Bravo ! (XP sport du jour déjà au maximum)")
                 }
             }
         )
     }
-    AiContentFooter("Programme sportif : " + program.sessions.joinToString(" | ") { "${it.title} : " + it.exercises.joinToString(", ") { e -> e.name } })
+    AiContentFooter(t("Programme sportif : ") + program.sessions.joinToString(" | ") { "${it.title} : " + it.exercises.joinToString(", ") { e -> e.name } })
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilledTonalButton(onClick = { chat = true }) {
-            Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Poser une question")
+            Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Poser une question"))
         }
-        OutlinedButton(onClick = { confirmNew = true }) { Text("Nouveau programme") }
+        OutlinedButton(onClick = { confirmNew = true }) { Text(t("Nouveau programme")) }
     }
 
     if (chat) AiChatDialog(
-        title = "Mon programme : ${program.goal}",
-        context = "Programme sportif de l'utilisateur (${program.level}, matériel : ${program.equipment.ifEmpty { listOf("aucun") }.joinToString(", ")}, " +
-            "limites : ${program.limits.ifBlank { "aucune" }}). " + program.sessions.joinToString(" ") { s ->
-                "${DAYS[s.day - 1]} « ${s.title} » (${s.minutes} min) : " + s.exercises.joinToString("; ") { "${it.name} ${it.detail}" } + "."
+        title = t("Mon programme : %1\$s", program.goal),
+        context = "Programme sportif de l'utilisateur (${program.level}, matériel : ${program.equipment.ifEmpty { listOf("aucun") }.joinToString(", ")}, limites : ${program.limits.ifBlank { "aucune" }}). " + program.sessions.joinToString(" ") { s ->
+                t("%1\$s « %2\$s » (%3\$s min) : ", DAYS[s.day - 1], s.title, s.minutes) + s.exercises.joinToString("; ") { "${it.name} ${it.detail}" } + "."
             },
-        suggestions = listOf("Remplacer un exercice", "Plus facile ?", "Je n'ai que 10 min", "Que manger après ?"),
+        suggestions = listOf(t("Remplacer un exercice"), t("Plus facile ?"), t("Je n'ai que 10 min"), t("Que manger après ?")),
         onDismiss = { chat = false }
     )
     if (confirmNew) AlertDialog(
         onDismissRequest = { confirmNew = false },
-        title = { Text("Nouveau programme ?") },
-        text = { Text("Ton programme actuel sera remplacé. Les séances déjà faites et l'XP gagnée restent.") },
-        confirmButton = { TextButton(onClick = { confirmNew = false; onNew() }) { Text("Continuer") } },
-        dismissButton = { TextButton(onClick = { confirmNew = false }) { Text("Annuler") } }
+        title = { Text(t("Nouveau programme ?")) },
+        text = { Text(t("Ton programme actuel sera remplacé. Les séances déjà faites et l'XP gagnée restent.")) },
+        confirmButton = { TextButton(onClick = { confirmNew = false; onNew() }) { Text(t("Continuer")) } },
+        dismissButton = { TextButton(onClick = { confirmNew = false }) { Text(t("Annuler")) } }
     )
 }
 
@@ -302,18 +301,18 @@ private fun SessionCard(s: SportSession, isToday: Boolean, doneToday: Boolean, o
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    DAYS[s.day - 1] + if (isToday) " · aujourd'hui" else "",
+                    DAYS[s.day - 1] + if (isToday) t(" · aujourd'hui") else "",
                     style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary
                 )
                 Text(s.title, style = MaterialTheme.typography.titleMedium)
-                Text("${s.minutes} min · ${s.exercises.size} exercice${if (s.exercises.size > 1) "s" else ""}", style = MaterialTheme.typography.bodySmall)
+                Text("${s.minutes} min · " + tp(s.exercises.size, "%1\$s exercice", "%1\$s exercices"), style = MaterialTheme.typography.bodySmall)
             }
-            if (doneToday) Icon(Icons.Filled.CheckCircle, "Faite", tint = successColor)
+            if (doneToday) Icon(Icons.Filled.CheckCircle, t("Faite"), tint = successColor)
             Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
         }
         AnimatedVisibility(open) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (s.warmup.isNotBlank()) Text("Échauffement : ${s.warmup}", style = MaterialTheme.typography.bodyMedium)
+                if (s.warmup.isNotBlank()) Text(t("Échauffement : %1\$s", s.warmup), style = MaterialTheme.typography.bodyMedium)
                 s.exercises.forEachIndexed { i, e ->
                     if (i > 0) HorizontalDivider()
                     Row {
@@ -328,10 +327,10 @@ private fun SessionCard(s: SportSession, isToday: Boolean, doneToday: Boolean, o
                         }
                     }
                 }
-                if (s.cooldown.isNotBlank()) Text("Retour au calme : ${s.cooldown}", style = MaterialTheme.typography.bodyMedium)
+                if (s.cooldown.isNotBlank()) Text(t("Retour au calme : %1\$s", s.cooldown), style = MaterialTheme.typography.bodyMedium)
                 Button(enabled = !doneToday, onClick = onDone, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                     Icon(Icons.Filled.CheckCircle, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
-                    Text(if (doneToday) "Faite aujourd'hui" else "Séance faite (+${Game.SESSION_XP} XP)")
+                    Text(if (doneToday) t("Faite aujourd'hui") else t("Séance faite (+%1\$s XP)", Game.SESSION_XP))
                 }
             }
         }

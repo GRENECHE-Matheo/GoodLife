@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -67,7 +69,7 @@ fun SleepScreen(showTitle: Boolean = true) {
 
     val askActivity = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) SleepTracker.subscribe(context) { ok, err -> message = if (ok) null else err }
-        else message = "Sans l'autorisation « Activité physique », la détection automatique ne peut pas fonctionner."
+        else message = t("Sans l'autorisation « Activité physique », la détection automatique ne peut pas fonctionner.")
     }
 
     // Durée de sommeil par jour (attribuée au jour du réveil)
@@ -79,30 +81,30 @@ fun SleepScreen(showTitle: Boolean = true) {
     val lastNight = perDay.last()
 
     ScreenColumn {
-        if (showTitle) ScreenTitle("Sommeil", "Objectif : 7 à 9 h par nuit")
-        else Text("Objectif : 7 à 9 h par nuit", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (showTitle) ScreenTitle(t("Sommeil"), t("Objectif : 7 à 9 h par nuit"))
+        else Text(t("Objectif : 7 à 9 h par nuit"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        SectionCard(title = "Cette nuit", icon = Icons.Filled.NightsStay) {
+        SectionCard(title = t("Cette nuit"), icon = Icons.Filled.NightsStay) {
             Text(
-                if (lastNight > 0) formatDuration(lastNight) else "Pas encore de données",
+                if (lastNight > 0) formatDuration(lastNight) else t("Pas encore de données"),
                 style = MaterialTheme.typography.displaySmall
             )
             Text(
                 when {
-                    lastNight == 0L -> "La nuit apparaîtra ici après ton réveil."
-                    lastNight < 6 * 60 -> "Nuit courte. Essaie de te coucher un peu plus tôt ce soir."
-                    lastNight <= 9 * 60 -> "Belle nuit, c'est dans la zone recommandée."
-                    else -> "Nuit longue. Si c'est fréquent, surveille ta fatigue."
+                    lastNight == 0L -> t("La nuit apparaîtra ici après ton réveil.")
+                    lastNight < 6 * 60 -> t("Nuit courte. Essaie de te coucher un peu plus tôt ce soir.")
+                    lastNight <= 9 * 60 -> t("Belle nuit, c'est dans la zone recommandée.")
+                    else -> t("Nuit longue. Si c'est fréquent, surveille ta fatigue.")
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        SectionCard(title = "Détection automatique", icon = Icons.Filled.PhoneAndroid) {
+        SectionCard(title = t("Détection automatique"), icon = Icons.Filled.PhoneAndroid) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Détecter mon sommeil automatiquement",
+                    t("Détecter mon sommeil automatiquement"),
                     Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge
                 )
                 Switch(
@@ -117,9 +119,7 @@ fun SleepScreen(showTitle: Boolean = true) {
                 )
             }
             Text(
-                "Utilise la Sleep API de Google (comme Google Fit) : le téléphone combine ses mouvements, " +
-                    "la lumière ambiante et l'utilisation de l'écran pour savoir quand tu dors. " +
-                    "Laisse le téléphone près de toi la nuit. Les nuits sont ajoutées quelques heures après le réveil.",
+                t("Utilise la Sleep API de Google (comme Google Fit) : le téléphone combine ses mouvements, la lumière ambiante et l'utilisation de l'écran pour savoir quand tu dors. Laisse le téléphone près de toi la nuit. Les nuits sont ajoutées quelques heures après le réveil."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -127,25 +127,24 @@ fun SleepScreen(showTitle: Boolean = true) {
                 now - settings.lastSleepConfidenceAt < 2 * 3600_000L
             ) {
                 Text(
-                    "Probabilité de sommeil détectée à ${formatTime(settings.lastSleepConfidenceAt)} : " +
-                        "${settings.lastSleepConfidence} %",
+                    t("Probabilité de sommeil détectée à %1\$s : %2\$s %%", formatTime(settings.lastSleepConfidenceAt), settings.lastSleepConfidence),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             if (message != null) Text(message!!, color = MaterialTheme.colorScheme.error)
         }
 
-        SectionCard(title = "Mode manuel", icon = Icons.Filled.WbSunny) {
+        SectionCard(title = t("Mode manuel"), icon = Icons.Filled.WbSunny) {
             val start = settings.manualSleepStart
             if (start > 0) {
-                Text("Au lit depuis ${formatTime(start)} (${formatDuration((now - start) / 60_000)})")
+                Text(t("Au lit depuis %1\$s (%2\$s)", formatTime(start), formatDuration((now - start) / 60_000)))
                 Button(onClick = {
                     Repo.addSleep(SleepSession(start = start, end = System.currentTimeMillis(), source = "manuel"))
                     Repo.updateSettings { it.copy(manualSleepStart = 0L) }
-                }) { Text("Je me réveille") }
+                }) { Text(t("Je me réveille")) }
             } else {
                 Text(
-                    "Pratique si la détection auto n'est pas dispo sur ton téléphone.",
+                    t("Pratique si la détection auto n'est pas dispo sur ton téléphone."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -154,25 +153,25 @@ fun SleepScreen(showTitle: Boolean = true) {
                 }) {
                     Icon(Icons.Filled.NightsStay, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Je vais dormir")
+                    Text(t("Je vais dormir"))
                 }
             }
         }
 
-        SectionCard(title = "7 derniers jours", icon = Icons.Filled.History) {
+        SectionCard(title = t("7 derniers jours"), icon = Icons.Filled.History) {
             val labels = days.map { d -> formatDay(Repo.dayBounds(d).first).take(3).replaceFirstChar { it.uppercase() } }
             WeekBars(perDay.map { it / 60f }, 8f, labels, MaterialTheme.colorScheme.secondary)
             val withData = perDay.filter { it > 0 }
             Text(
-                if (withData.isEmpty()) "Aucune nuit enregistrée pour l'instant."
-                else "Moyenne : ${formatDuration(withData.average().toLong())} · la ligne jaune = 8 h",
+                if (withData.isEmpty()) t("Aucune nuit enregistrée pour l'instant.")
+                else t("Moyenne : %1\$s · la ligne jaune = 8 h", formatDuration(withData.average().toLong())),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         if (sessions.isNotEmpty()) {
-            SectionCard(title = "Historique") {
+            SectionCard(title = t("Historique")) {
                 sessions.take(14).forEachIndexed { i, s ->
                     if (i > 0) HorizontalDivider()
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -185,7 +184,7 @@ fun SleepScreen(showTitle: Boolean = true) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        IconButton(onClick = { Repo.deleteSleep(s.id) }) { Icon(Icons.Filled.Delete, "Supprimer") }
+                        IconButton(onClick = { Repo.deleteSleep(s.id) }) { Icon(Icons.Filled.Delete, t("Supprimer")) }
                     }
                 }
             }

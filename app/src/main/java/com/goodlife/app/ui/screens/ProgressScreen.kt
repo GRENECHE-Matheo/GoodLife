@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -66,10 +68,10 @@ import androidx.compose.animation.core.tween
 val FLAME = Color(0xFFFF8A00)
 
 fun statusLabel(s: DayStatus) = when (s) {
-    DayStatus.REUSSI -> "Réussi"
-    DayStatus.RATTRAPE -> "Rattrapé"
-    DayStatus.RATE -> "Hors objectif"
-    DayStatus.VIDE -> "Rien noté"
+    DayStatus.REUSSI -> t("Réussi")
+    DayStatus.RATTRAPE -> t("Rattrapé")
+    DayStatus.RATE -> t("Hors objectif")
+    DayStatus.VIDE -> t("Rien noté")
 }
 
 @Composable
@@ -83,7 +85,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader("Mes progrès", onBack)
+            SubScreenHeader(t("Mes progrès"), onBack)
 
             // ---- Niveau ----
             SectionCard(container = MaterialTheme.colorScheme.primaryContainer) {
@@ -91,7 +93,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                     ChefMascot(size = 84.dp, mood = ChefMood.CONTENT)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Niveau ${lvl.level}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(t("Niveau %1\$s", lvl.level), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text(lvl.title, style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
                         val animated by animateFloatAsState(lvl.progress, tween(900, easing = FastOutSlowInEasing), label = "level")
@@ -101,7 +103,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                             strokeCap = StrokeCap.Round
                         )
                         Text(
-                            "${lvl.xpInLevel} / ${lvl.xpForNext} XP · ${lvl.totalXp} XP au total",
+                            t("%1\$s / %2\$s XP · %3\$s XP au total", lvl.xpInLevel, lvl.xpForNext, lvl.totalXp),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -109,7 +111,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
             }
 
             // ---- Série ----
-            SectionCard(title = "Série", icon = Icons.Filled.LocalFireDepartment) {
+            SectionCard(title = t("Série"), icon = Icons.Filled.LocalFireDepartment) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.LocalFireDepartment, null, tint = FLAME, modifier = Modifier.padding(end = 8.dp))
                     Text(
@@ -117,14 +119,14 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                         style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold
                     )
                 }
-                Text("Record : ${days(summary.bestStreak)}", style = MaterialTheme.typography.bodyMedium)
+                Text(t("Record : %1\$s", days(summary.bestStreak)), style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "Aujourd'hui : ${summary.today.kcal} / ${p.targetKcal} kcal · score ${summary.today.score}/100 " +
-                        if (summary.today.status == DayStatus.REUSSI) "(dans l'objectif pour l'instant)" else "",
+                    t("Aujourd'hui : %1\$s / %2\$s kcal · score %3\$s/100 ", summary.today.kcal, p.targetKcal, summary.today.score) +
+                        if (summary.today.status == DayStatus.REUSSI) t("(dans l'objectif pour l'instant)") else "",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    Game.rulesText(p.goal) + " Chaque jour est validé à minuit.",
+                    Game.rulesText(p.goal) + t(" Chaque jour est validé à minuit."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -136,21 +138,20 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                     ChefMascot(size = 64.dp, mood = if (summary.recoverableStreak > 0) ChefMood.TRISTE else ChefMood.QUESTION)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Quiz du jour", style = MaterialTheme.typography.titleMedium)
+                        Text(t("Quiz du jour"), style = MaterialTheme.typography.titleMedium)
                         Text(
                             when {
                                 summary.recoverableStreak > 0 ->
-                                    "Ta série de ${days(summary.recoverableStreak)} s'est arrêtée hier. " +
-                                        "${QuizBank.PASS} bonnes réponses sur ${QuizBank.PER_DAY} pour la sauver !"
-                                summary.quizDoneToday -> "Fait aujourd'hui : ${game.quizResults[summary.today.date] ?: 0}/${QuizBank.PER_DAY}. Nouvelles questions demain." +
-                                    (if (game.freezes > 0) " Gels de série : ${game.freezes} ❄️" else "")
-                                else -> "${QuizBank.PER_DAY} questions sur l'alimentation, jusqu'à ${Game.quizXp(QuizBank.PER_DAY)} XP."
+                                    t("Ta série de %1\$s s'est arrêtée hier. %2\$s bonnes réponses sur %3\$s pour la sauver !", days(summary.recoverableStreak), QuizBank.PASS, QuizBank.PER_DAY)
+                                summary.quizDoneToday -> t("Fait aujourd'hui : %1\$s/%2\$s. Nouvelles questions demain.", game.quizResults[summary.today.date] ?: 0, QuizBank.PER_DAY) +
+                                    (if (game.freezes > 0) t(" Gels de série : %1\$s ❄️", game.freezes) else "")
+                                else -> t("%1\$s questions sur l'alimentation, jusqu'à %2\$s XP.", QuizBank.PER_DAY, Game.quizXp(QuizBank.PER_DAY))
                             },
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
-                Button(onClick = onQuiz) { Text(if (summary.quizDoneToday) "Rejouer (entraînement)" else "Commencer le quiz") }
+                Button(onClick = onQuiz) { Text(if (summary.quizDoneToday) t("Rejouer (entraînement)") else t("Commencer le quiz")) }
             }
 
             BadgesSection(summary)
@@ -158,7 +159,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
 
             // ---- Score quotidien ----
             val last14 = (summary.history.takeLast(13) + summary.today)
-            SectionCard(title = "Score par jour", icon = Icons.AutoMirrored.Filled.ShowChart) {
+            SectionCard(title = t("Score par jour"), icon = Icons.AutoMirrored.Filled.ShowChart) {
                 LineChart(
                     values = last14.map { if (it.kcal > 0) it.score.toFloat() else null },
                     labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
@@ -166,14 +167,14 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                     minY = 0f, maxY = 100f
                 )
                 Text(
-                    "100 = pile dans ton objectif. Le dernier point est aujourd'hui (en cours).",
+                    t("100 = pile dans ton objectif. Le dernier point est aujourd'hui (en cours)."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             // ---- Calories ----
-            SectionCard(title = "Calories", icon = Icons.AutoMirrored.Filled.ShowChart) {
+            SectionCard(title = t("Calories"), icon = Icons.AutoMirrored.Filled.ShowChart) {
                 LineChart(
                     values = last14.map { if (it.kcal > 0) it.kcal.toFloat() else null },
                     labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
@@ -182,7 +183,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                     reference = p.targetKcal.toFloat()
                 )
                 Text(
-                    "Pointillés : ton objectif (${p.targetKcal} kcal).",
+                    t("Pointillés : ton objectif (%1\$s kcal).", p.targetKcal),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -191,7 +192,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
             // ---- Pas ----
             val stepsData by Repo.steps.collectAsState()
             if (stepsData.days.isNotEmpty()) {
-                SectionCard(title = "Pas", icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
+                SectionCard(title = t("Pas"), icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
                     val stepDays = last14.map { stepsData.days[it.date] }
                     LineChart(
                         values = stepDays.map { it?.steps?.toFloat() },
@@ -201,7 +202,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                         reference = com.goodlife.app.steps.Steps.goal().toFloat()
                     )
                     Text(
-                        "Pointillés : ton objectif du jour (${formatSteps(com.goodlife.app.steps.Steps.goal())} pas).",
+                        t("Pointillés : ton objectif du jour (%1\$s pas).", formatSteps(com.goodlife.app.steps.Steps.goal())),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -209,7 +210,7 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
             }
 
             // ---- Poids ----
-            SectionCard(title = "Poids", icon = Icons.Filled.FitnessCenter) {
+            SectionCard(title = t("Poids"), icon = Icons.Filled.FitnessCenter) {
                 val w = game.weights.takeLast(20)
                 if (w.size >= 2) {
                     LineChart(
@@ -219,25 +220,24 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                     )
                     val diff = w.last().second - w.first().second
                     Text(
-                        "Depuis le ${w.first().first.substring(8)}/${w.first().first.substring(5, 7)} : " +
-                            "${if (diff >= 0) "+" else ""}${"%.1f".format(diff)} kg",
+                        t("Depuis le %1\$s : %2\$s kg", w.first().first.substring(8) + "/" + w.first().first.substring(5, 7), (if (diff >= 0) "+" else "") + "%.1f".format(diff)),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
                     Text(
-                        "Ajoute tes pesées pour voir ta courbe (une par semaine suffit).",
+                        t("Ajoute tes pesées pour voir ta courbe (une par semaine suffit)."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                FilledTonalButton(onClick = { weighIn = true }) { Text("Nouvelle pesée") }
+                FilledTonalButton(onClick = { weighIn = true }) { Text(t("Nouvelle pesée")) }
             }
 
             // ---- Historique ----
-            SectionCard(title = "7 derniers jours") {
+            SectionCard(title = t("7 derniers jours")) {
                 val week = summary.history.takeLast(7).reversed()
                 if (week.isEmpty()) {
-                    Text("Ton historique apparaîtra ici dès demain.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t("Ton historique apparaîtra ici dès demain."), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 week.forEachIndexed { i, d ->
                     if (i > 0) HorizontalDivider()
@@ -245,8 +245,8 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                         Column(Modifier.weight(1f)) {
                             Text(dayLabel(d.date).replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Medium)
                             Text(
-                                "${d.kcal} kcal" + (if (d.stepGoal > 0) " · ${formatSteps(d.steps)} pas" else "") +
-                                    " · score ${d.score} · +${d.xp} XP",
+                                "${d.kcal} kcal" + (if (d.stepGoal > 0) t(" · %1\$s pas", formatSteps(d.steps)) else "") +
+                                    t(" · score %1\$s · +%2\$s XP", d.score, d.xp),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -271,10 +271,10 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
         val v = kg.toNumber()
         AlertDialog(
             onDismissRequest = { weighIn = false },
-            title = { Text("Nouvelle pesée") },
+            title = { Text(t("Nouvelle pesée")) },
             text = {
                 OutlinedTextField(
-                    kg, { kg = it }, label = { Text("Poids (kg)") }, singleLine = true,
+                    kg, { kg = it }, label = { Text(t("Poids (kg)")) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
             },
@@ -288,9 +288,9 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                         Repo.logWeight(v)
                         weighIn = false
                     }
-                ) { Text("Enregistrer") }
+                ) { Text(t("Enregistrer")) }
             },
-            dismissButton = { TextButton(onClick = { weighIn = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { weighIn = false }) { Text(t("Annuler")) } }
         )
     }
 }

@@ -1,5 +1,7 @@
 package com.goodlife.app.net
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -12,7 +14,7 @@ import java.net.URL
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
-internal val USER_AGENT = "GoodLife-Android/${BuildConfig.VERSION_NAME} (github.com/${BuildConfig.UPDATE_REPO})"
+internal val USER_AGENT = t("GoodLife-Android/%1\$s (github.com/%2\$s)", BuildConfig.VERSION_NAME, BuildConfig.UPDATE_REPO)
 
 /** Contexte de l'app, pour savoir si le téléphone a vraiment internet (renseigné au démarrage). */
 @Volatile internal var appContext: Context? = null
@@ -36,29 +38,23 @@ internal fun networkError(host: String, e: IOException): IOException {
     val msg = when {
         // Android répond « aucun réseau » aussi quand l'accès internet de l'app est bloqué dans les réglages
         state == NetState.NONE ->
-            "Android ne donne pas accès à internet à GoodLife. Si les autres applis marchent, l'accès réseau de GoodLife " +
-                "est sûrement bloqué : Réglages › Applis › GoodLife › Données mobiles et Wi-Fi (ou « Utilisation des données »), " +
-                "économiseur de données, ou pare-feu / contrôle parental."
+            t("Android ne donne pas accès à internet à GoodLife. Si les autres applis marchent, l'accès réseau de GoodLife est sûrement bloqué : Réglages › Applis › GoodLife › Données mobiles et Wi-Fi (ou « Utilisation des données »), économiseur de données, ou pare-feu / contrôle parental.")
         state == NetState.NOT_VALIDATED ->
-            "Le téléphone est connecté, mais Android indique que ce réseau n'a pas accès à internet : DNS privé mal " +
-                "réglé (Réglages › Réseau › DNS privé), portail de connexion Wi-Fi à valider, ou réseau limité."
+            t("Le téléphone est connecté, mais Android indique que ce réseau n'a pas accès à internet : DNS privé mal réglé (Réglages › Réseau › DNS privé), portail de connexion Wi-Fi à valider, ou réseau limité.")
         e is UnknownHostException ->
-            "Impossible de joindre $host. Internet marche, mais ce site est bloqué ou l'app n'a pas accès au réseau : " +
-                "vérifie le DNS privé / bloqueur de pubs / VPN, les autorisations réseau de GoodLife (Wi-Fi et données mobiles), " +
-                "ou essaie un autre réseau (certains réseaux d'école ou de travail bloquent GitHub)."
+            t("Impossible de joindre %1\$s. Internet marche, mais ce site est bloqué ou l'app n'a pas accès au réseau : vérifie le DNS privé / bloqueur de pubs / VPN, les autorisations réseau de GoodLife (Wi-Fi et données mobiles), ou essaie un autre réseau (certains réseaux d'école ou de travail bloquent GitHub).", host)
         e is SSLException ->
-            "Connexion sécurisée refusée avec $host. Vérifie que la date et l'heure du téléphone sont automatiques, " +
-                "et qu'aucun VPN ou antivirus n'intercepte les connexions."
-        e is SocketTimeoutException -> "$host met trop de temps à répondre. Réessaie dans un moment ou sur un autre réseau."
-        e is ConnectException -> "Connexion refusée par le réseau vers $host (réseau restreint, VPN ou pare-feu ?)."
-        else -> "Problème réseau vers $host."
+            t("Connexion sécurisée refusée avec %1\$s. Vérifie que la date et l'heure du téléphone sont automatiques, et qu'aucun VPN ou antivirus n'intercepte les connexions.", host)
+        e is SocketTimeoutException -> t("%1\$s met trop de temps à répondre. Réessaie dans un moment ou sur un autre réseau.", host)
+        e is ConnectException -> t("Connexion refusée par le réseau vers %1\$s (réseau restreint, VPN ou pare-feu ?).", host)
+        else -> t("Problème réseau vers %1\$s.", host)
     }
     return IOException("$msg (${e.javaClass.simpleName})", e)
 }
 
 /** GET simple en HTTPS. Renvoie (code, corps). */
 internal fun httpGet(url: String, accept: String = "application/json"): Pair<Int, String> {
-    require(url.startsWith("https://")) { "HTTPS obligatoire" }
+    require(url.startsWith("https://")) { t("HTTPS obligatoire") }
     val u = URL(url)
     val conn = (u.openConnection() as HttpURLConnection).apply {
         connectTimeout = 15_000

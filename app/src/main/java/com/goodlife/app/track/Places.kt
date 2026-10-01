@@ -1,5 +1,7 @@
 package com.goodlife.app.track
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.net.USER_AGENT
 import com.goodlife.app.net.networkError
 import kotlinx.coroutines.Dispatchers
@@ -35,13 +37,13 @@ object Places {
     private val cache = HashMap<String, Pair<Long, List<SportPlace>>>()
 
     private fun kindLabel(tags: JSONObject): String = when {
-        tags.optString("leisure") == "fitness_centre" -> "Salle de sport"
-        tags.optString("leisure") == "swimming_pool" -> "Piscine"
-        tags.optString("leisure") == "stadium" -> "Stade"
-        tags.optString("leisure") == "sports_hall" -> "Gymnase"
-        tags.optString("leisure") == "sports_centre" -> "Centre sportif"
-        tags.optString("club") == "sport" -> "Club sportif"
-        else -> "Sport"
+        tags.optString("leisure") == "fitness_centre" -> t("Salle de sport")
+        tags.optString("leisure") == "swimming_pool" -> t("Piscine")
+        tags.optString("leisure") == "stadium" -> t("Stade")
+        tags.optString("leisure") == "sports_hall" -> t("Gymnase")
+        tags.optString("leisure") == "sports_centre" -> t("Centre sportif")
+        tags.optString("club") == "sport" -> t("Club sportif")
+        else -> t("Sport")
     }
 
     private val SPORTS_FR = mapOf(
@@ -91,10 +93,10 @@ object Places {
                 conn.outputStream.use { it.write(("data=" + URLEncoder.encode(q, "UTF-8")).toByteArray()) }
                 val code = conn.responseCode
                 if (code == 429 || code in 502..504) {
-                    lastError = IOException("Le service de données OpenStreetMap est surchargé. Réessaie dans une minute.")
+                    lastError = IOException(t("Le service de données OpenStreetMap est surchargé. Réessaie dans une minute."))
                     continue
                 }
-                if (code !in 200..299) throw IOException("Service OpenStreetMap indisponible ($code).")
+                if (code !in 200..299) throw IOException(t("Service OpenStreetMap indisponible (%1\$s).", code))
                 body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
                 break
             } catch (e: IOException) {
@@ -104,7 +106,7 @@ object Places {
                 conn.disconnect()
             }
         }
-        if (body == null) throw lastError ?: IOException("Service OpenStreetMap indisponible.")
+        if (body == null) throw lastError ?: IOException(t("Service OpenStreetMap indisponible."))
         val elements = JSONObject(body).optJSONArray("elements") ?: return@withContext emptyList()
         val list = (0 until elements.length()).mapNotNull { i ->
             val e = elements.optJSONObject(i) ?: return@mapNotNull null
@@ -113,10 +115,10 @@ object Places {
             if (name.isEmpty()) return@mapNotNull null
             val la = if (e.has("lat")) e.optDouble("lat") else e.optJSONObject("center")?.optDouble("lat") ?: return@mapNotNull null
             val lo = if (e.has("lon")) e.optDouble("lon") else e.optJSONObject("center")?.optDouble("lon") ?: return@mapNotNull null
-            val sports = tags.optString("sport").split(';').mapNotNull { s -> s.trim().takeIf { it.isNotBlank() }?.let { SPORTS_FR[it] ?: it } }
+            val sports = tags.optString("sport").split(';').mapNotNull { s -> s.trim().takeIf { it.isNotBlank() }?.let { if (com.goodlife.app.i18n.Lang.en) it.replace('_', ' ') else SPORTS_FR[it] ?: it } }
             val price = listOf(tags.optString("charge"), tags.optString("fee:conditional"))
                 .firstOrNull { it.isNotBlank() }
-                ?: when (tags.optString("fee")) { "no" -> "Gratuit"; "yes" -> "Payant (tarif non renseigné)"; else -> "" }
+                ?: when (tags.optString("fee")) { "no" -> t("Gratuit"); "yes" -> t("Payant (tarif non renseigné)"); else -> "" }
             SportPlace(
                 id = "${e.optString("type")}/${e.optLong("id")}",
                 lat = la, lng = lo,

@@ -1,5 +1,7 @@
 package com.goodlife.app.news
 
+import com.goodlife.app.i18n.t
+
 import android.util.Xml
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.localDay
@@ -139,7 +141,7 @@ object NewsFeed {
         val all = coroutineScope {
             SOURCES.map { s -> async(Dispatchers.IO) { runCatching { fetch(s) }.getOrDefault(emptyList()) } }.awaitAll().flatten()
         }
-        if (all.isEmpty()) throw IOException("Impossible de charger les actus pour le moment. Vérifie ta connexion et réessaie.")
+        if (all.isEmpty()) throw IOException(t("Impossible de charger les actus pour le moment. Vérifie ta connexion et réessaie."))
         val st = state()
         val seen = st.optJSONArray("seen")?.let { a -> (0 until a.length()).map { a.optString(it) } }?.toMutableList() ?: mutableListOf()
         val now = System.currentTimeMillis()
@@ -189,14 +191,14 @@ object NewsFeed {
      */
     suspend fun articleText(url: String): String = withContext(Dispatchers.IO) {
         val u = URL(url)
-        if (u.protocol != "https" || u.host !in PUBLIC_HOSTS) throw NotReusable("Résumé possible seulement pour l'Anses et Santé publique France.")
+        if (u.protocol != "https" || u.host !in PUBLIC_HOSTS) throw NotReusable(t("Résumé possible seulement pour l'Anses et Santé publique France."))
         val conn = (u.openConnection() as HttpURLConnection).apply {
             connectTimeout = 12_000; readTimeout = 20_000
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "text/html")
         }
         val page = try {
-            if (conn.responseCode !in 200..299) throw IOException("Article indisponible (${conn.responseCode}).")
+            if (conn.responseCode !in 200..299) throw IOException(t("Article indisponible (%1\$s).", conn.responseCode))
             conn.inputStream.use { it.readBytes().take(2_000_000).toByteArray() }.toString(Charsets.UTF_8)
         } catch (e: NotReusable) {
             throw e
@@ -213,9 +215,9 @@ object NewsFeed {
         val text = paragraphs.joinToString("\n")
         val lower = text.lowercase()
         if ("creative commons" in lower || "republié à partir de" in lower || "the conversation" in lower) {
-            throw NotReusable("Cet article est republié d'un autre média sous une licence qui ne permet pas de le modifier : lis-le directement chez la source.")
+            throw NotReusable(t("Cet article est republié d'un autre média sous une licence qui ne permet pas de le modifier : lis-le directement chez la source."))
         }
-        if (text.length < 200) throw IOException("Impossible de lire cet article. Ouvre-le chez la source.")
+        if (text.length < 200) throw IOException(t("Impossible de lire cet article. Ouvre-le chez la source."))
         text.take(9000)
     }
 

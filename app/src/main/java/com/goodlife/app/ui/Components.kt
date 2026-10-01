@@ -1,5 +1,8 @@
 package com.goodlife.app.ui
 
+import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -147,7 +150,7 @@ fun CalorieRing(consumed: Int, target: Int, size: Dp = 180.dp, stepsProgress: Fl
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("$shown", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
             Text(
-                "sur $target kcal",
+                t("sur %1\$s kcal", target),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -161,7 +164,7 @@ fun MacroBar(label: String, value: Double, target: Int, color: Color) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.bodyMedium)
             Text(
-                "${value.toInt()} / $target g",
+                t("%1\$s / %2\$s g", value.toInt(), target),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -232,15 +235,15 @@ fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 fun SubScreenHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, t("Retour")) }
         Spacer(Modifier.width(4.dp))
         Text(title, style = MaterialTheme.typography.headlineSmall)
     }
 }
 
-fun formatTime(ms: Long): String = SimpleDateFormat("HH:mm", Locale.FRANCE).format(Date(ms))
-fun formatDay(ms: Long): String = SimpleDateFormat("EEE d MMM", Locale.FRANCE).format(Date(ms))
+fun formatTime(ms: Long): String = SimpleDateFormat("HH:mm", com.goodlife.app.i18n.Lang.locale).format(Date(ms))
+fun formatDay(ms: Long): String = SimpleDateFormat("EEE d MMM", com.goodlife.app.i18n.Lang.locale).format(Date(ms))
 /** « 1 jour », « 3 jours ». */
-fun days(n: Int): String = if (n > 1) "$n jours" else "$n jour"
+fun days(n: Int): String = tp(n, "%1\$s jour", "%1\$s jours")
 fun formatDuration(min: Long): String = "${min / 60} h ${"%02d".format(min % 60)}"
 fun String.toNumber(): Double? = replace(',', '.').trim().toDoubleOrNull()

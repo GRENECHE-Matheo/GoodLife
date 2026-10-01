@@ -1,5 +1,7 @@
 package com.goodlife.app
 
+import com.goodlife.app.i18n.t
+
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.WindowManager
@@ -141,9 +143,9 @@ class MainActivity : FragmentActivity() {
         android.widget.Toast.makeText(
             this,
             when {
-                e == null -> "Ce message ne contient pas de carte GoodLife valide."
-                e.result == Repo.Received.IGNORED -> "Carte ignorée."
-                else -> "${e.pseudo} est dans tes amis !"
+                e == null -> t("Ce message ne contient pas de carte GoodLife valide.")
+                e.result == Repo.Received.IGNORED -> t("Carte ignorée.")
+                else -> t("%1\$s est dans tes amis !", e.pseudo)
             },
             android.widget.Toast.LENGTH_LONG
         ).show()
@@ -188,11 +190,11 @@ private const val KEY_SAVED_AT = "goodlife_saved_at"
 private data class Tab(val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab("Accueil", Icons.Filled.Home),
-    Tab("Scanner", Icons.Filled.PhotoCamera),
-    Tab("Planning", Icons.Filled.DateRange),
-    Tab("Forme", Icons.Filled.FitnessCenter),
-    Tab("Profil", Icons.Filled.Person)
+    Tab(t("Accueil"), Icons.Filled.Home),
+    Tab(t("Scanner"), Icons.Filled.PhotoCamera),
+    Tab(t("Planning"), Icons.Filled.DateRange),
+    Tab(t("Forme"), Icons.Filled.FitnessCenter),
+    Tab(t("Profil"), Icons.Filled.Person)
 )
 
 @OptIn(ExperimentalLayoutApi::class)

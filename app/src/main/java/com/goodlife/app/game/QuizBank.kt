@@ -1,5 +1,6 @@
 package com.goodlife.app.game
 
+import com.goodlife.app.i18n.t
 import android.content.Context
 import com.goodlife.app.data.Repo
 import com.goodlife.app.data.localDay
@@ -185,7 +186,9 @@ object QuizBank {
         val day = localDay(0)
         val st = runCatching { JSONObject(Repo.getExtra(KEY) ?: "{}") }.getOrElse { JSONObject() }
         // Questions déjà tirées aujourd'hui : gardées (et complétées si un gel demande 10 questions)
-        val already = if (st.optString("day") == day) st.optJSONArray("qs")?.let { a ->
+        // Questions déjà tirées aujourd'hui (dans la même langue : sinon on en tire de nouvelles, traduites)
+        val lang = if (com.goodlife.app.i18n.Lang.en) "en" else "fr"
+        val already = if (st.optString("day") == day && st.optString("lang", "fr") == lang) st.optJSONArray("qs")?.let { a ->
             (0 until a.length()).map { i ->
                 val o = a.getJSONObject(i)
                 val opts = o.getJSONArray("o").let { oa -> (0 until oa.length()).map { oa.getString(it) } }
@@ -239,6 +242,7 @@ object QuizBank {
         picked.shuffle(rnd)
         val all = already + picked
         st.put("day", day)
+            .put("lang", lang)
             .put("qs", JSONArray().apply {
                 all.forEach { q -> put(JSONObject().put("q", q.question).put("o", JSONArray(q.options)).put("c", q.correctIndex).put("e", q.explanation)) }
             })
@@ -249,10 +253,12 @@ object QuizBank {
         return all
     }
 
+    /** Question classique, dans la langue de l'app (le français sert de clé au dictionnaire). */
     private fun classicQuestion(i: Int, rnd: Random): DailyQuestion {
         val q = Q[i]
-        val opts = q.answers.shuffled(rnd)
-        return DailyQuestion(q.question, opts, opts.indexOf(q.answers[0]), q.explanation)
+        val answers = q.answers.map { t(it) }
+        val opts = answers.shuffled(rnd)
+        return DailyQuestion(t(q.question), opts, opts.indexOf(answers[0]), t(q.explanation))
     }
 
     /** Empreinte courte d'une question (8 caractères) pour la mémoire des questions posées. */

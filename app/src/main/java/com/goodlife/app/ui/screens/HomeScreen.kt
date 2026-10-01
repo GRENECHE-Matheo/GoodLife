@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -177,7 +179,7 @@ private fun HomeContent(
     }
 
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    val hello = if (hour < 18) "Bonjour" else "Bonsoir"
+    val hello = if (hour < 18) t("Bonjour") else t("Bonsoir")
 
     ScreenColumn {
         // En-tête : photo, salutation, série et accès au quiz
@@ -213,7 +215,7 @@ private fun HomeContent(
                         infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "flameScale"
                     )
                     Icon(
-                        Icons.Filled.LocalFireDepartment, "Série", tint = FLAME,
+                        Icons.Filled.LocalFireDepartment, t("Série"), tint = FLAME,
                         modifier = Modifier.size(20.dp).graphicsLayer { scaleX = scale; scaleY = scale }
                     )
                     Text("${summary.streak}", fontWeight = FontWeight.Bold, color = FLAME)
@@ -240,22 +242,20 @@ private fun HomeContent(
                     ChefMascot(size = 64.dp, mood = ChefMood.TRISTE)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Ta série de ${days(summary.recoverableStreak)} s'est arrêtée hier", style = MaterialTheme.typography.titleSmall)
+                        Text(t("Ta série de %1\$s s'est arrêtée hier", days(summary.recoverableStreak)), style = MaterialTheme.typography.titleSmall)
                         Text(
-                            if (game.freezes > 0) "Utilise un gel ❄️ : réponds aux ${Game.FREEZE_QUESTIONS} questions du chef, " +
-                                "et ta série est sauvée, quel que soit ton score (il t'en reste ${game.freezes})."
-                            else "Réponds au quiz du chef (${QuizBank.PASS}/${QuizBank.PER_DAY}) aujourd'hui pour la sauver. " +
-                                "Astuce : tous les ${Game.FREEZE_EVERY} jours de série, tu gagnes un gel.",
+                            if (game.freezes > 0) t("Utilise un gel ❄️ : réponds aux %1\$s questions du chef, et ta série est sauvée, quel que soit ton score (il t'en reste %2\$s).", Game.FREEZE_QUESTIONS, game.freezes)
+                            else t("Réponds au quiz du chef (%1\$s/%2\$s) aujourd'hui pour la sauver. Astuce : tous les %3\$s jours de série, tu gagnes un gel.", QuizBank.PASS, QuizBank.PER_DAY, Game.FREEZE_EVERY),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
                 if (game.freezes > 0) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onGel) { Text("Utiliser un gel ❄️") }
-                        TextButton(onClick = onQuiz) { Text("Quiz classique (${QuizBank.PASS}/${QuizBank.PER_DAY})") }
+                        Button(onClick = onGel) { Text(t("Utiliser un gel ❄️")) }
+                        TextButton(onClick = onQuiz) { Text(t("Quiz classique (%1\$s/%2\$s)", QuizBank.PASS, QuizBank.PER_DAY)) }
                     }
-                } else Button(onClick = onQuiz) { Text("Sauver ma série") }
+                } else Button(onClick = onQuiz) { Text(t("Sauver ma série")) }
             }
         }
 
@@ -264,11 +264,11 @@ private fun HomeContent(
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Niveau ${summary.level.level} · ${summary.level.title}",
+                        t("Niveau %1\$s · %2\$s", summary.level.level, summary.level.title),
                         style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium,
                         modifier = Modifier.weight(1f)
                     )
-                    Text("Score du jour : ${summary.today.score}", style = MaterialTheme.typography.labelLarge)
+                    Text(t("Score du jour : %1\$s", summary.today.score), style = MaterialTheme.typography.labelLarge)
                 }
                 val xp by animateFloatAsState(summary.level.progress, tween(900, easing = FastOutSlowInEasing), label = "xp")
                 LinearProgressIndicator(
@@ -277,7 +277,7 @@ private fun HomeContent(
                     strokeCap = StrokeCap.Round
                 )
                 Text(
-                    "${summary.level.xpForNext - summary.level.xpInLevel} XP avant le niveau ${summary.level.level + 1} · voir mes progrès",
+                    t("%1\$s XP avant le niveau %2\$s · voir mes progrès", summary.level.xpForNext - summary.level.xpInLevel, summary.level.level + 1),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -286,7 +286,7 @@ private fun HomeContent(
         val update = if (settings.checkUpdates) Updater.availableUpdate() else null
         if (update != null && update.tag != settings.dismissedTag) {
             SectionCard(
-                title = "Nouvelle version ${update.tag} disponible",
+                title = t("Nouvelle version %1\$s disponible", update.tag),
                 icon = Icons.Filled.SystemUpdate,
                 container = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -308,15 +308,15 @@ private fun HomeContent(
                 )
             }
             Text(
-                if (remaining >= 0) "Il te reste $remaining kcal aujourd'hui"
-                else "Objectif dépassé de ${-remaining} kcal",
+                if (remaining >= 0) t("Il te reste %1\$s kcal aujourd'hui", remaining)
+                else t("Objectif dépassé de %1\$s kcal", -remaining),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             StepsLine()
-            MacroBar("Protéines", today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
-            MacroBar("Glucides", today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
-            MacroBar("Lipides", today.sumOf { it.fatG }, p.fatG, GoogleGreen)
+            MacroBar(t("Protéines"), today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
+            MacroBar(t("Glucides"), today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
+            MacroBar(t("Lipides"), today.sumOf { it.fatG }, p.fatG, GoogleGreen)
         }
         WaterCard()
         FeelingCard()
@@ -325,20 +325,20 @@ private fun HomeContent(
             Button(onClick = onScan, modifier = Modifier.weight(1f).height(52.dp)) {
                 Icon(Icons.Filled.PhotoCamera, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Scanner")
+                Text(t("Scanner"))
             }
             FilledTonalButton(onClick = { showAdd = true }, modifier = Modifier.weight(1f).height(52.dp)) {
                 Icon(Icons.Filled.Add, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Saisir")
+                Text(t("Saisir"))
             }
         }
         QuickMeals()
 
-        SectionCard(title = "Repas du jour", icon = Icons.Filled.Restaurant) {
+        SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
             if (today.isEmpty()) {
                 Text(
-                    "Aucun repas enregistré. Prends ton assiette en photo pour commencer.",
+                    t("Aucun repas enregistré. Prends ton assiette en photo pour commencer."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -348,22 +348,22 @@ private fun HomeContent(
             }
         }
 
-        SectionCard(title = "Idées de repas", icon = Icons.Filled.AutoAwesome) {
+        SectionCard(title = t("Idées de repas"), icon = Icons.Filled.AutoAwesome) {
             if (!settings.aiEnabled) {
                 Text(
-                    "Les idées de repas utilisent l'IA (désactivée). Tu peux l'activer dans Paramètres.",
+                    t("Les idées de repas utilisent l'IA (désactivée). Tu peux l'activer dans Paramètres."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    "Selon ce qu'il te reste, tes habitudes et tes allergies. Touche une idée pour les détails.",
+                    t("Selon ce qu'il te reste, tes habitudes et tes allergies. Touche une idée pour les détails."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 // Pour quel repas ?
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(selected = sugSlot == null, onClick = { sugSlot = null }, label = { Text("Toute la journée") })
+                    FilterChip(selected = sugSlot == null, onClick = { sugSlot = null }, label = { Text(t("Toute la journée")) })
                     MealSlot.entries.forEach { slot ->
                         FilterChip(selected = sugSlot == slot, onClick = { sugSlot = slot }, label = { Text(slot.label) })
                     }
@@ -400,21 +400,21 @@ private fun HomeContent(
                         if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         else Icon(if (suggestions.isEmpty()) Icons.Filled.AutoAwesome else Icons.Filled.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(if (suggestions.isEmpty()) "Proposer des repas" else "Régénérer")
+                        Text(if (suggestions.isEmpty()) t("Proposer des repas") else t("Régénérer"))
                     }
-                    TextButton(onClick = { fridgeOpen = true }) { Text("🧊 Mon frigo") }
+                    TextButton(onClick = { fridgeOpen = true }) { Text(t("🧊 Mon frigo")) }
                     if (suggestions.isNotEmpty()) {
                         TextButton(enabled = !sugLoading, onClick = { ask(append = true) }) {
                             Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Plus d'idées")
+                            Text(t("Plus d'idées"))
                         }
                     }
                 }
             }
         }
 
-        SectionCard(title = "7 derniers jours", icon = Icons.Filled.BarChart) {
+        SectionCard(title = t("7 derniers jours"), icon = Icons.Filled.BarChart) {
             val days = (-6..0).toList()
             val values = days.map { d -> Repo.mealsOfDay(meals, d).sumOf { it.kcal }.toFloat() }
             val labels = days.map { d ->
@@ -422,7 +422,7 @@ private fun HomeContent(
             }
             WeekBars(values, p.targetKcal.toFloat(), labels, MaterialTheme.colorScheme.primary)
             Text(
-                "Moyenne : ${values.average().toInt()} kcal/jour · la ligne jaune = ton objectif",
+                t("Moyenne : %1\$s kcal/jour · la ligne jaune = ton objectif", values.average().toInt()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -481,17 +481,17 @@ private fun SuggestionRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                AiContentFooter("Idée de repas : ${s.name} (${s.kcal} kcal)\n${s.description}\n${s.why}")
+                AiContentFooter(t("Idée de repas : %1\$s (%2\$s kcal)\n%3\$s\n%4\$s", s.name, s.kcal, s.description, s.why))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilledTonalButton(onClick = onPlan) {
                         Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Planifier")
+                        Text(t("Planifier"))
                     }
                     OutlinedButton(onClick = onRecipe) {
                         Icon(Icons.Filled.Restaurant, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Recette")
+                        Text(t("Recette"))
                     }
                 }
             }
@@ -505,16 +505,16 @@ private fun MealRow(m: Meal, favorite: Boolean, onFavorite: () -> Unit, onDelete
         Column(Modifier.weight(1f)) {
             Text(m.name, fontWeight = FontWeight.Medium)
             Text(
-                "${formatTime(m.timestamp)} · ${when (m.source) { "photo" -> "photo IA"; "ciqual" -> "Ciqual"; "code-barres" -> "code-barres"; "planning" -> "planning"; "refait" -> "refait"; "frigo" -> "idée du chef"; else -> "saisie" }}",
+                formatTime(m.timestamp) + " · " + when (m.source) { "photo" -> t("photo IA"); "ciqual" -> "Ciqual"; "code-barres" -> t("code-barres"); "planning" -> t("planning"); "refait" -> t("refait"); "frigo" -> t("idée du chef"); else -> t("saisie") },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text("${m.kcal} kcal", style = MaterialTheme.typography.titleSmall)
         IconButton(onClick = onFavorite) {
-            Icon(if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder, if (favorite) "Retirer des favoris" else "Ajouter aux favoris",
+            Icon(if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder, if (favorite) t("Retirer des favoris") else t("Ajouter aux favoris"),
                 tint = if (favorite) GoogleYellow else MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Supprimer") }
+        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, t("Supprimer")) }
     }
 }

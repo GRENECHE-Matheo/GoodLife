@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -119,7 +121,7 @@ fun NutridexCard(onOpen: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(DEX_NAME, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
                 Text(
-                    "$found / $total aliments découverts",
+                    t("%1\$s / %2\$s aliments découverts", found, total),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Spacer(Modifier.height(6.dp))
@@ -161,7 +163,7 @@ fun NutridexScreen(onBack: () -> Unit, title: String = DEX_NAME, unlockedIds: Se
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+                            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, t("Retour")) }
                             Spacer(Modifier.width(4.dp))
                             Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
                             Text(
@@ -170,13 +172,12 @@ fun NutridexScreen(onBack: () -> Unit, title: String = DEX_NAME, unlockedIds: Se
                             )
                         }
                         if (mine) Text(
-                            "Photographie tes repas (Scanner › Photo) : chaque aliment reconnu se débloque avec ta photo. " +
-                                "Varie ton assiette pour tout découvrir !",
+                            t("Photographie tes repas (Scanner › Photo) : chaque aliment reconnu se débloque avec ta photo. Varie ton assiette pour tout découvrir !"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            FilterChip(category == null, { category = null }, label = { Text("Tous") })
+                            FilterChip(category == null, { category = null }, label = { Text(t("Tous")) })
                             DexCategory.entries.forEach { c ->
                                 val n = Nutridex.ENTRIES.count { it.category == c }
                                 val got = Nutridex.ENTRIES.count { it.category == c && it.id in unlocked }
@@ -221,16 +222,16 @@ fun NutridexScreen(onBack: () -> Unit, title: String = DEX_NAME, unlockedIds: Se
                     Text(e.category.label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Text(
                         when {
-                            isUnlocked && mine -> "Découvert le ${formatDay(dex.unlocked[e.id] ?: 0L)}."
-                            isUnlocked -> "Déjà découvert."
-                            mine -> "Pas encore découvert. Mets-en dans ton assiette et prends-la en photo !"
-                            else -> "Pas encore découvert."
+                            isUnlocked && mine -> t("Découvert le %1\$s.", formatDay(dex.unlocked[e.id] ?: 0L))
+                            isUnlocked -> t("Déjà découvert.")
+                            mine -> t("Pas encore découvert. Mets-en dans ton assiette et prends-la en photo !")
+                            else -> t("Pas encore découvert.")
                         },
                         style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { open = null }) { Text("Fermer") } }
+            confirmButton = { TextButton(onClick = { open = null }) { Text(t("Fermer")) } }
         )
     }
 }
@@ -254,7 +255,7 @@ fun DexUnlockedBanner(ids: List<String>, onOpen: () -> Unit) {
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                if (entries.size == 1) "Nouveau dans le $DEX_NAME !" else "${entries.size} nouveautés dans le $DEX_NAME !",
+                if (entries.size == 1) t("Nouveau dans le %1\$s !", DEX_NAME) else t("%1\$s nouveautés dans le %2\$s !", entries.size, DEX_NAME),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )

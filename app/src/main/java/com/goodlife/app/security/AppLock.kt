@@ -1,5 +1,7 @@
 package com.goodlife.app.security
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.biometric.BiometricManager
@@ -51,7 +53,7 @@ object AppLock {
         )
         val info = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
-            .setSubtitle("Empreinte, visage ou code du téléphone")
+            .setSubtitle(t("Empreinte, visage ou code du téléphone"))
             .setAllowedAuthenticators(AUTHENTICATORS)
             .build()
         prompt.authenticate(info)

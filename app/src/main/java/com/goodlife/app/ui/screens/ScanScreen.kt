@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -142,7 +144,7 @@ fun ScanScreen(onDone: () -> Unit) {
         scope.launch {
             try {
                 if (mode == "photo") {
-                    loading = "Analyse du repas par l'IA…"
+                    loading = t("Analyse du repas par l'IA…")
                     val jpeg = withContext(Dispatchers.Default) { bmp.toJpeg() }
                     lastJpeg = jpeg
                     val r = Gemini(settings.apiKey, settings.model).analyzeFood(jpeg, profile)
@@ -153,18 +155,18 @@ fun ScanScreen(onDone: () -> Unit) {
                         newDex = Repo.unlockDex(r.dexIds, thumb)
                     }
                 } else {
-                    loading = "Lecture du code-barres…"
+                    loading = t("Lecture du code-barres…")
                     val code = detectFoodBarcode(bmp)
                     if (code == null) {
-                        error = "Aucun code-barres trouvé. Rapproche-toi et cadre bien le code."
+                        error = t("Aucun code-barres trouvé. Rapproche-toi et cadre bien le code.")
                     } else {
-                        loading = "Recherche du produit…"
+                        loading = t("Recherche du produit…")
                         product = OpenFoodFacts.product(code)
-                        if (product == null) error = "Produit $code introuvable dans Open Food Facts. Tu peux le saisir à la main depuis l'accueil."
+                        if (product == null) error = t("Produit %1\$s introuvable dans Open Food Facts. Tu peux le saisir à la main depuis l'accueil.", code)
                     }
                 }
             } catch (e: Exception) {
-                error = e.message ?: "Analyse impossible."
+                error = e.message ?: t("Analyse impossible.")
             } finally {
                 loading = null
             }
@@ -174,21 +176,21 @@ fun ScanScreen(onDone: () -> Unit) {
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { picked ->
         if (picked != null) {
             val bmp = loadBitmap(context, picked)
-            if (bmp != null) analyze(bmp) else error = "Image illisible."
+            if (bmp != null) analyze(bmp) else error = t("Image illisible.")
         }
     }
 
     val header: @Composable () -> Unit = {
-        ScreenTitle("Scanner", if (mode == "photo") "Photo du repas : l'IA estime les calories" else "Code-barres d'un produit emballé")
+        ScreenTitle(t("Scanner"), if (mode == "photo") t("Photo du repas : l'IA estime les calories") else t("Code-barres d'un produit emballé"))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = mode == "photo", onClick = { mode = "photo"; reset() },
-                label = { Text("Photo (IA)") },
+                label = { Text(t("Photo (IA)")) },
                 leadingIcon = { Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp)) }
             )
             FilterChip(
                 selected = mode == "barcode", onClick = { mode = "barcode"; reset() },
-                label = { Text("Code-barres") },
+                label = { Text(t("Code-barres")) },
                 leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp)) }
             )
         }
@@ -238,7 +240,7 @@ fun ScanScreen(onDone: () -> Unit) {
                         pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
                     modifier = Modifier.size(56.dp)
-                ) { Icon(Icons.Filled.PhotoLibrary, "Galerie") }
+                ) { Icon(Icons.Filled.PhotoLibrary, t("Galerie")) }
                 FilledIconButton(
                     onClick = {
                         capture?.let { ic ->
@@ -248,7 +250,7 @@ fun ScanScreen(onDone: () -> Unit) {
                     modifier = Modifier.size(76.dp),
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors()
-                ) { Icon(Icons.Filled.PhotoCamera, "Prendre la photo", Modifier.size(34.dp)) }
+                ) { Icon(Icons.Filled.PhotoCamera, t("Prendre la photo"), Modifier.size(34.dp)) }
                 Spacer(Modifier.size(56.dp))
             }
         }
@@ -259,40 +261,38 @@ fun ScanScreen(onDone: () -> Unit) {
     ScreenColumn {
         header()
         when {
-            mode == "photo" && !settings.aiEnabled -> SectionCard(title = "IA désactivée") {
+            mode == "photo" && !settings.aiEnabled -> SectionCard(title = t("IA désactivée")) {
                 Text(
-                    "L'analyse des photos envoie la photo à Google Gemini avec ta propre clé, c'est pourquoi elle " +
-                        "demande ton accord. Le mode Code-barres fonctionne sans IA ni clé.",
+                    t("L'analyse des photos envoie la photo à Google Gemini avec ta propre clé, c'est pourquoi elle demande ton accord. Le mode Code-barres fonctionne sans IA ni clé."),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Button(onClick = { askConsent = true }) { Text("Activer l'IA") }
+                Button(onClick = { askConsent = true }) { Text(t("Activer l'IA")) }
             }
-            mode == "photo" && settings.apiKey.isBlank() -> SectionCard(title = "Ajoute ta clé Gemini") {
+            mode == "photo" && settings.apiKey.isBlank() -> SectionCard(title = t("Ajoute ta clé Gemini")) {
                 Text(
-                    "Chaque utilisateur utilise sa propre clé, créée chez Google. Elle reste chiffrée sur ce téléphone " +
-                        "et n'est envoyée qu'à Google.",
+                    t("Chaque utilisateur utilise sa propre clé, créée chez Google. Elle reste chiffrée sur ce téléphone et n'est envoyée qu'à Google."),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text("Créer ma clé chez Google") }
+                TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text(t("Créer ma clé chez Google")) }
                 OutlinedTextField(
                     value = keyDraft, onValueChange = { keyDraft = it.trim() },
-                    label = { Text("Clé API Gemini") }, singleLine = true,
+                    label = { Text(t("Clé API Gemini")) }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Button(
                     enabled = keyDraft.length >= 20,
                     onClick = { Repo.updateSettings { it.copy(apiKey = keyDraft) }; keyDraft = "" }
-                ) { Text("Enregistrer la clé") }
+                ) { Text(t("Enregistrer la clé")) }
             }
-            current == null && !hasCamera -> SectionCard(title = "Accès à la caméra") {
-                Text("GoodLife a besoin de la caméra pour photographier directement dans l'app.")
-                Button(onClick = { askCamera.launch(Manifest.permission.CAMERA) }) { Text("Autoriser la caméra") }
+            current == null && !hasCamera -> SectionCard(title = t("Accès à la caméra")) {
+                Text(t("GoodLife a besoin de la caméra pour photographier directement dans l'app."))
+                Button(onClick = { askCamera.launch(Manifest.permission.CAMERA) }) { Text(t("Autoriser la caméra")) }
             }
             current != null -> {
                 Image(
                     bitmap = current.asImageBitmap(),
-                    contentDescription = "Photo",
+                    contentDescription = t("Photo"),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(28.dp))
                 )
@@ -305,8 +305,8 @@ fun ScanScreen(onDone: () -> Unit) {
                     error != null -> {
                         Text(error!!, color = MaterialTheme.colorScheme.error)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(onClick = { analyze(current) }) { Text("Réessayer") }
-                            OutlinedButton(onClick = { reset() }) { Text("Nouvelle photo") }
+                            Button(onClick = { analyze(current) }) { Text(t("Réessayer")) }
+                            OutlinedButton(onClick = { reset() }) { Text(t("Nouvelle photo")) }
                         }
                     }
                     result != null -> {
@@ -328,8 +328,7 @@ fun ScanScreen(onDone: () -> Unit) {
         }
         if (mode == "barcode") {
             Text(
-                "Le code-barres est lu sur ton téléphone (ML Kit). Seul son numéro est envoyé à Open Food Facts, " +
-                    "base de données alimentaire ouverte, pour trouver les valeurs nutritionnelles.",
+                t("Le code-barres est lu sur ton téléphone (ML Kit). Seul son numéro est envoyé à Open Food Facts, base de données alimentaire ouverte, pour trouver les valeurs nutritionnelles."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -340,11 +339,9 @@ fun ScanScreen(onDone: () -> Unit) {
     if (chat && r != null) {
         AiChatDialog(
             title = r.dish,
-            context = "L'utilisateur a photographié un repas (photo jointe). Analyse de l'IA : ${r.dish}, environ ${r.kcal} kcal, " +
-                "protéines ${r.proteinG.toInt()} g, glucides ${r.carbsG.toInt()} g, lipides ${r.fatG.toInt()} g. " +
-                "Aliments : ${r.items.joinToString("; ")}. Conseil déjà donné : ${r.advice}",
+            context = "L'utilisateur a photographié un repas (photo jointe). Analyse de l'IA : ${r.dish}, environ ${r.kcal} kcal, protéines ${r.proteinG.toInt()} g, glucides ${r.carbsG.toInt()} g, lipides ${r.fatG.toInt()} g. Aliments : ${r.items.joinToString("; ")}. Conseil déjà donné : ${r.advice}",
             image = lastJpeg,
-            suggestions = listOf("C'est équilibré ?", "Comment le rendre plus léger ?", "Riche en protéines ?", "Quoi manger avec ?"),
+            suggestions = listOf(t("C'est équilibré ?"), t("Comment le rendre plus léger ?"), t("Riche en protéines ?"), t("Quoi manger avec ?")),
             onDismiss = { chat = false }
         )
     }
@@ -359,13 +356,12 @@ private fun ProductCard(p: FoodProduct, onAdd: (Meal) -> Unit, onRetake: () -> U
         Text(p.name, style = MaterialTheme.typography.titleLarge)
         if (p.brand.isNotBlank()) Text(p.brand, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
-            "Pour 100 g : ${p.kcal100.toInt()} kcal · P ${"%.1f".format(p.protein100)} g · " +
-                "G ${"%.1f".format(p.carbs100)} g · L ${"%.1f".format(p.fat100)} g",
+            t("Pour 100 g : %1\$s kcal · P %2\$s g · G %3\$s g · L %4\$s g", p.kcal100.toInt(), "%.1f".format(p.protein100), "%.1f".format(p.carbs100), "%.1f".format(p.fat100)),
             style = MaterialTheme.typography.bodyMedium
         )
         OutlinedTextField(
             value = grams, onValueChange = { grams = it },
-            label = { Text("Quantité mangée (g ou ml)") }, singleLine = true,
+            label = { Text(t("Quantité mangée (g ou ml)")) }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth()
         )
@@ -378,16 +374,16 @@ private fun ProductCard(p: FoodProduct, onAdd: (Meal) -> Unit, onRetake: () -> U
                         Meal(
                             name = p.name, kcal = kcal,
                             proteinG = p.protein100 * g / 100, carbsG = p.carbs100 * g / 100, fatG = p.fat100 * g / 100,
-                            details = "Code-barres ${p.barcode} · ${g.toInt()} g · Open Food Facts",
+                            details = t("Code-barres %1\$s · %2\$s g · Open Food Facts", p.barcode, g.toInt()),
                             source = "code-barres"
                         )
                     )
                 }
-            ) { Text("Ajouter au journal") }
-            OutlinedButton(onClick = onRetake) { Text("Autre produit") }
+            ) { Text(t("Ajouter au journal")) }
+            OutlinedButton(onClick = onRetake) { Text(t("Autre produit")) }
         }
         Text(
-            "Données : Open Food Facts (licence ODbL), à vérifier sur l'emballage.",
+            t("Données : Open Food Facts (licence ODbL), à vérifier sur l'emballage."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -401,7 +397,7 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> U
 
     if (r.allergens.isNotEmpty()) {
         SectionCard(
-            title = "Attention allergies",
+            title = t("Attention allergies"),
             icon = Icons.Filled.Warning,
             container = MaterialTheme.colorScheme.errorContainer
         ) {
@@ -412,11 +408,11 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> U
     SectionCard {
         Text("${r.kcal} kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
         Text(
-            "Protéines ${r.proteinG.toInt()} g · Glucides ${r.carbsG.toInt()} g · Lipides ${r.fatG.toInt()} g",
+            t("Protéines %1\$s g · Glucides %2\$s g · Lipides %3\$s g", r.proteinG.toInt(), r.carbsG.toInt(), r.fatG.toInt()),
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            "Confiance de l'IA : ${(r.confidence * 100).toInt()} %",
+            t("Confiance de l'IA : %1\$s %%", (r.confidence * 100).toInt()),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -430,15 +426,15 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> U
         FilledTonalButton(onClick = onAsk) {
             Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Poser une question sur ce repas")
+            Text(t("Poser une question sur ce repas"))
         }
         OutlinedTextField(
             value = name, onValueChange = { name = it },
-            label = { Text("Nom du repas") }, singleLine = true, modifier = Modifier.fillMaxWidth()
+            label = { Text(t("Nom du repas")) }, singleLine = true, modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = kcal, onValueChange = { kcal = it },
-            label = { Text("Calories (modifiable)") }, singleLine = true,
+            label = { Text(t("Calories (modifiable)")) }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
@@ -461,11 +457,11 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal) -> Unit, onRetake: () -> U
                         )
                     )
                 }
-            ) { Text("Ajouter au journal") }
+            ) { Text(t("Ajouter au journal")) }
             OutlinedButton(onClick = onRetake) {
                 Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Reprendre")
+                Text(t("Reprendre"))
             }
         }
     }
@@ -514,7 +510,7 @@ private fun takePhoto(
                 val raw = runCatching { image.toBitmap() }.getOrNull()
                 image.close()
                 if (raw == null) {
-                    onFail("Photo illisible, réessaie.")
+                    onFail(t("Photo illisible, réessaie."))
                     return
                 }
                 val bmp = if (rotation != 0) {
@@ -525,7 +521,7 @@ private fun takePhoto(
             }
 
             override fun onError(exception: ImageCaptureException) {
-                onFail("Erreur caméra : ${exception.message}")
+                onFail(t("Erreur caméra : %1\$s", exception.message))
             }
         }
     )

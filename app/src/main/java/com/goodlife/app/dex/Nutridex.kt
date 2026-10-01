@@ -1,19 +1,21 @@
 package com.goodlife.app.dex
 
+import com.goodlife.app.i18n.t
+
 /** Nom de la fonction, à un seul endroit pour pouvoir le changer facilement. */
 const val DEX_NAME = "Nutridex"
 
 enum class DexCategory(val label: String) {
-    FRUITS("Fruits"),
-    LEGUMES("Légumes"),
-    LEGUMINEUSES("Légumineuses"),
-    FECULENTS("Céréales et féculents"),
-    PROTEINES("Viandes, poissons, œufs"),
-    LAITIERS("Produits laitiers"),
-    GRAINES("Fruits à coque et graines"),
-    PETIT_DEJ("Petit-déjeuner"),
-    PLATS_FR("Plats français"),
-    PLATS_MONDE("Plats du monde")
+    FRUITS(t("Fruits")),
+    LEGUMES(t("Légumes")),
+    LEGUMINEUSES(t("Légumineuses")),
+    FECULENTS(t("Céréales et féculents")),
+    PROTEINES(t("Viandes, poissons, œufs")),
+    LAITIERS(t("Produits laitiers")),
+    GRAINES(t("Fruits à coque et graines")),
+    PETIT_DEJ(t("Petit-déjeuner")),
+    PLATS_FR(t("Plats français")),
+    PLATS_MONDE(t("Plats du monde"))
 }
 
 /** Une entrée du Nutridex : [id] stable (ne jamais le changer), nom affiché, émoji pour la silhouette. */
@@ -84,7 +86,7 @@ object Nutridex {
         java.text.Normalizer.normalize(s.lowercase(), java.text.Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"), "").replace("œ", "oe").replace(Regex("[^a-z0-9]+"), "-").trim('-')
 
-    val ENTRIES: List<DexEntry> = RAW.mapIndexed { i, (name, emoji, cat) -> DexEntry(i + 1, slug(name), name, emoji, cat) }
+    val ENTRIES: List<DexEntry> = RAW.mapIndexed { i, (name, emoji, cat) -> DexEntry(i + 1, slug(name), t(name), emoji, cat) /* id tiré du nom français : stable dans toutes les langues */ }
     private val BY_ID = ENTRIES.associateBy { it.id }
 
     fun byId(id: String): DexEntry? = BY_ID[id]

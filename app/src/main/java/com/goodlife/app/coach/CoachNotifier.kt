@@ -1,5 +1,8 @@
 package com.goodlife.app.coach
 
+import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
+
 import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -107,11 +110,11 @@ object CoachNotifier {
                     if (Repo.settings.value.lastNudgeDay > lastDay) return null
                     Repo.updateSettings { it.copy(lastNudgeDay = localDay(0)) }
                     return Note(
-                        "Le chef garde ta place au chaud 👨‍🍳",
+                        t("Le chef garde ta place au chaud 👨‍🍳"),
                         Coach.pick(listOf(
-                            "Ça fait quelques jours ! Pas de pression : note juste ton prochain repas pour repartir en douceur.",
-                            "Tu nous manques ! Une photo de ton prochain repas suffit pour reprendre.",
-                            "On reprend quand tu veux, sans se juger. Le quiz du chef t'attend aussi."
+                            t("Ça fait quelques jours ! Pas de pression : note juste ton prochain repas pour repartir en douceur."),
+                            t("Tu nous manques ! Une photo de ton prochain repas suffit pour reprendre."),
+                            t("On reprend quand tu veux, sans se juger. Le quiz du chef t'attend aussi.")
                         ), 3),
                         ChefMood.QUESTION
                     )
@@ -119,26 +122,26 @@ object CoachNotifier {
                 val y = s.history.lastOrNull()?.takeIf { it.date == localDay(-1) } ?: return null
                 if (y.kcal == 0) return null
                 val ok = y.status == DayStatus.REUSSI || y.status == DayStatus.RATTRAPE
-                val lines = mutableListOf("Score : ${y.score}/100 · ${Coach.fmt(y.kcal)} / ${Coach.fmt(p.targetKcal)} kcal")
-                if (y.stepGoal > 0) lines += "${Coach.fmt(y.steps)} pas / ${Coach.fmt(y.stepGoal)}"
+                val lines = mutableListOf(t("Score : %1\$s/100 · %2\$s / %3\$s kcal", y.score, Coach.fmt(y.kcal), Coach.fmt(p.targetKcal)))
+                if (y.stepGoal > 0) lines += t("%1\$s pas / %2\$s", Coach.fmt(y.steps), Coach.fmt(y.stepGoal))
                 when {
                     ok && s.streak in Coach.MILESTONES -> Note(
-                        "🎉 ${s.streak} jours de série !",
-                        (lines + "Bravo, c'est un vrai palier. Le chef est fier de toi !").joinToString("\n"), ChefMood.BRAVO
+                        t("🎉 %1\$s jours de série !", s.streak),
+                        (lines + t("Bravo, c'est un vrai palier. Le chef est fier de toi !")).joinToString("\n"), ChefMood.BRAVO
                     )
                     ok -> Note(
-                        "Hier : journée validée ✅",
-                        (lines + if (s.streak > 1) "Série : ${s.streak} jours 🔥" else "C'est parti pour une nouvelle série !").joinToString("\n"),
+                        t("Hier : journée validée ✅"),
+                        (lines + if (s.streak > 1) t("Série : %1\$s jours 🔥", s.streak) else t("C'est parti pour une nouvelle série !")).joinToString("\n"),
                         ChefMood.CONTENT
                     )
                     s.recoverableStreak > 0 -> Note(
-                        "Ta série peut encore être sauvée",
-                        (lines + "Réussis le quiz du chef aujourd'hui pour garder ta série de ${s.recoverableStreak} jour${if (s.recoverableStreak > 1) "s" else ""}.").joinToString("\n"),
+                        t("Ta série peut encore être sauvée"),
+                        (lines + tp(s.recoverableStreak, "Réussis le quiz du chef aujourd'hui pour garder ta série de %1\$s jour.", "Réussis le quiz du chef aujourd'hui pour garder ta série de %1\$s jours.")).joinToString("\n"),
                         ChefMood.TRISTE, remind = true
                     )
                     else -> Note(
-                        "Ton bilan d'hier",
-                        (lines + "Pas grave : aujourd'hui est une nouvelle page 💪").joinToString("\n"), ChefMood.CONTENT
+                        t("Ton bilan d'hier"),
+                        (lines + t("Pas grave : aujourd'hui est une nouvelle page 💪")).joinToString("\n"), ChefMood.CONTENT
                     )
                 }
             }
@@ -148,39 +151,39 @@ object CoachNotifier {
                 if (today.any { it.timestamp >= c.timeInMillis }) return null
                 val planned = Repo.plan.value.firstOrNull { it.date == localDay(0) && it.slot == MealSlot.DEJEUNER && !it.done }
                 val tip = Coach.pick(Coach.ENCOURAGEMENTS, 11)
-                if (planned != null) Note("Ce midi : ${planned.name}", "${planned.kcal} kcal, prévu dans ton planning.\n$tip", ChefMood.CONTENT)
-                else Note("Le petit mot du chef", tip, ChefMood.CONTENT)
+                if (planned != null) Note(t("Ce midi : %1\$s", planned.name), t("%1\$s kcal, prévu dans ton planning.\n%2\$s", planned.kcal, tip), ChefMood.CONTENT)
+                else Note(t("Le petit mot du chef"), tip, ChefMood.CONTENT)
             }
             Kind.EVENING -> {
                 if (today.isNotEmpty() || s.streak < 1) return null
                 Note(
-                    "Ta série de ${s.streak} jour${if (s.streak > 1) "s" else ""} t'attend 🔥",
-                    "Tu n'as encore rien noté aujourd'hui. Ajoute tes repas pour la garder !", ChefMood.QUESTION, remind = true
+                    tp(s.streak, "Ta série de %1\$s jour t'attend 🔥", "Ta série de %1\$s jours t'attend 🔥"),
+                    t("Tu n'as encore rien noté aujourd'hui. Ajoute tes repas pour la garder !"), ChefMood.QUESTION, remind = true
                 )
             }
             Kind.WATER -> {
                 val ml = Repo.water.value[localDay(0)] ?: 0
                 val goal = Repo.settings.value.waterGoalMl
                 if (ml >= goal / 2) return null
-                Note("Pense à boire 💧", "Tu en es à ${Coach.fmt(ml)} ml sur ${Coach.fmt(goal)} ml aujourd'hui. Un grand verre d'eau ?", ChefMood.CONTENT)
+                Note(t("Pense à boire 💧"), t("Tu en es à %1\$s ml sur %2\$s ml aujourd'hui. Un grand verre d'eau ?", Coach.fmt(ml), Coach.fmt(goal)), ChefMood.CONTENT)
             }
             Kind.WEEKLY -> {
                 val w = Coach.week(s)
                 if (w.trackedDays == 0 && w.outings == 0 && w.sessions == 0) return null
-                val lines = mutableListOf("${w.validated} jour${if (w.validated > 1) "s" else ""} validé${if (w.validated > 1) "s" else ""} sur 7 · score moyen ${w.avgScore}/100")
+                val lines = mutableListOf(tp(w.validated, "%1\$s jour validé sur 7", "%1\$s jours validés sur 7") + t(" · score moyen %1\$s/100", w.avgScore))
                 val move = mutableListOf<String>()
-                if (w.steps > 0) move += "${Coach.fmt(w.steps)} pas"
-                if (w.sessions > 0) move += "${w.sessions} séance${if (w.sessions > 1) "s" else ""}"
-                if (w.outings > 0) move += "${w.outings} sortie${if (w.outings > 1) "s" else ""} (${String.format(Locale.FRANCE, "%.1f", w.outingKm)} km)"
+                if (w.steps > 0) move += t("%1\$s pas", Coach.fmt(w.steps))
+                if (w.sessions > 0) move += tp(w.sessions, "%1\$s séance", "%1\$s séances")
+                if (w.outings > 0) move += tp(w.outings, "%1\$s sortie", "%1\$s sorties") + " (${String.format(com.goodlife.app.i18n.Lang.locale, "%.1f", w.outingKm)} km)"
                 if (move.isNotEmpty()) lines += move.joinToString(" · ")
                 Coach.weightLine(w.weightDelta, p.goal)?.let { lines += it }
-                w.best?.let { lines += "Meilleure journée : ${Coach.dayName(it.date)} (${it.score}/100)" }
+                w.best?.let { lines += t("Meilleure journée : %1\$s (%2\$s/100)", Coach.dayName(it.date), it.score) }
                 lines += when {
-                    w.validated >= 6 -> "Semaine incroyable, bravo ! 🏆"
-                    w.validated >= 4 -> "Belle semaine, continue comme ça !"
-                    else -> "Chaque semaine compte. On vise un jour de plus la semaine prochaine ?"
+                    w.validated >= 6 -> t("Semaine incroyable, bravo ! 🏆")
+                    w.validated >= 4 -> t("Belle semaine, continue comme ça !")
+                    else -> t("Chaque semaine compte. On vise un jour de plus la semaine prochaine ?")
                 }
-                Note("Ta semaine avec GoodLife 📊", lines.joinToString("\n"), if (w.validated >= 4) ChefMood.BRAVO else ChefMood.CONTENT)
+                Note(t("Ta semaine avec GoodLife 📊"), lines.joinToString("\n"), if (w.validated >= 4) ChefMood.BRAVO else ChefMood.CONTENT)
             }
         }
     }
@@ -201,13 +204,13 @@ object CoachNotifier {
         val channel = if (note.remind) CH_REMIND else CH_SUMMARY
         // App verrouillée par empreinte : le contenu reste discret aussi dans le volet des notifications
         val locked = Repo.settings.value.appLock
-        val title = if (locked) "Un message du chef" else note.title
-        val text = if (locked) "Ouvre GoodLife pour le lire." else note.text
+        val title = if (locked) t("Un message du chef") else note.title
+        val text = if (locked) t("Ouvre GoodLife pour le lire.") else note.text
         // Écran verrouillé : seulement « GoodLife », sans les chiffres (données de santé)
         val public = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notif_chef)
             .setContentTitle("GoodLife")
-            .setContentText("Un message du chef")
+            .setContentText(t("Un message du chef"))
             .build()
         val n = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notif_chef)
@@ -227,20 +230,20 @@ object CoachNotifier {
     private fun createChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         nm.createNotificationChannel(
-            NotificationChannel(CH_SUMMARY, "Bilans et petits mots du chef", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Bilan du matin, mot de midi et bilan de la semaine (sans son)."
+            NotificationChannel(CH_SUMMARY, t("Bilans et petits mots du chef"), NotificationManager.IMPORTANCE_LOW).apply {
+                description = t("Bilan du matin, mot de midi et bilan de la semaine (sans son).")
             }
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_REMIND, "Rappels de série", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Quand ta série risque de s'arrêter."
+            NotificationChannel(CH_REMIND, t("Rappels de série"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = t("Quand ta série risque de s'arrêter.")
             }
         )
     }
 
     /** Montre un exemple tout de suite (bouton « Essayer » dans les Paramètres). */
     fun preview(context: Context) {
-        val note = build(Kind.MORNING) ?: Note("Le petit mot du chef", Coach.pick(Coach.ENCOURAGEMENTS, 5), ChefMood.BRAVO)
+        val note = build(Kind.MORNING) ?: Note(t("Le petit mot du chef"), Coach.pick(Coach.ENCOURAGEMENTS, 5), ChefMood.BRAVO)
         post(context, 40, note)
     }
 }

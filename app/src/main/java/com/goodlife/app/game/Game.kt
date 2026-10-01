@@ -1,5 +1,7 @@
 package com.goodlife.app.game
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.GameState
 import com.goodlife.app.data.Goal
 import com.goodlife.app.data.Meal
@@ -90,12 +92,11 @@ object Game {
 
     fun rulesText(goal: Goal): String {
         val food = when (goal) {
-            Goal.PERTE -> "reste juste sous ton objectif calorique (manger trop peu fait aussi baisser le score)"
-            Goal.MAINTIEN -> "reste proche de ton objectif calorique"
-            Goal.PRISE -> "atteins ton objectif calorique, sans trop le dépasser"
+            Goal.PERTE -> t("reste juste sous ton objectif calorique (manger trop peu fait aussi baisser le score)")
+            Goal.MAINTIEN -> t("reste proche de ton objectif calorique")
+            Goal.PRISE -> t("atteins ton objectif calorique, sans trop le dépasser")
         }
-        return "Score du jour = 60 % alimentation ($food) + 40 % pas si tu suis tes pas. " +
-            "Ta série continue dès $STREAK_SCORE/100."
+        return t("Score du jour = 60 %% alimentation (%1\$s) + 40 %% pas si tu suis tes pas. Ta série continue dès %2\$s/100.", food, STREAK_SCORE)
     }
 
     /** Score alimentation 0..100 pour une journée. */
@@ -145,16 +146,16 @@ object Game {
     private fun threshold(level: Int): Int = 50 * level * (level - 1)
 
     fun title(level: Int): String = when (level) {
-        1 -> "Commis"
-        2 -> "Apprenti"
-        3 -> "Cuisinier"
-        4 -> "Chef de partie"
-        5 -> "Sous-chef"
-        6 -> "Chef"
-        7 -> "Chef étoilé"
-        8 -> "Chef deux étoiles"
-        9 -> "Chef trois étoiles"
-        else -> "Légende de la cuisine"
+        1 -> t("Commis")
+        2 -> t("Apprenti")
+        3 -> t("Cuisinier")
+        4 -> t("Chef de partie")
+        5 -> t("Sous-chef")
+        6 -> t("Chef")
+        7 -> t("Chef étoilé")
+        8 -> t("Chef deux étoiles")
+        9 -> t("Chef trois étoiles")
+        else -> t("Légende de la cuisine")
     }
 
     fun quizXp(correct: Int): Int = correct * 5

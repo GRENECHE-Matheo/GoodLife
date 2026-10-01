@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.height
@@ -122,15 +124,15 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
     var error by remember { mutableStateOf<String?>(null) }
     val list = rememberLazyListState()
 
-    val system = CHAT_RULES + "\nContexte :\n" + context +
-        "\nAllergies de l'utilisateur : " + (profile?.allergies?.ifBlank { null } ?: "aucune connue") +
-        "\nHabitudes : " + (profile?.habits?.ifBlank { null } ?: "non précisées")
+    val system = CHAT_RULES + t("\nContexte :\n") + context +
+        t("\nAllergies de l'utilisateur : ") + (profile?.allergies?.ifBlank { null } ?: t("aucune connue")) +
+        t("\nHabitudes : ") + (profile?.habits?.ifBlank { null } ?: t("non précisées"))
 
     fun send(text: String) {
         val q = text.trim().take(500)
         if (q.isEmpty() || loading) return
         if (messages.count { it.fromUser } >= MAX_TURNS) {
-            error = "Tu as posé beaucoup de questions : ferme et rouvre la conversation pour recommencer."
+            error = t("Tu as posé beaucoup de questions : ferme et rouvre la conversation pour recommencer.")
             return
         }
         messages.add(ChatMessage(true, q))
@@ -160,9 +162,9 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
     Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "Fermer") }
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, t("Fermer")) }
                 Column(Modifier.weight(1f)) {
-                    Text("Demander à l'IA", style = MaterialTheme.typography.titleMedium)
+                    Text(t("Demander à l'IA"), style = MaterialTheme.typography.titleMedium)
                     Text(title, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -177,7 +179,7 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
                     Row(verticalAlignment = Alignment.Top) {
                         ChefMascot(size = 48.dp, mood = ChefMood.QUESTION)
                         Spacer(Modifier.width(8.dp))
-                        Bubble(false, "Pose-moi tes questions sur « $title ». Je réponds en tenant compte de tes allergies et habitudes.")
+                        Bubble(false, t("Pose-moi tes questions sur « %1\$s ». Je réponds en tenant compte de tes allergies et habitudes.", title))
                     }
                 }
                 itemsIndexed(messages) { mi, m ->
@@ -185,24 +187,24 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
                         Bubble(m.fromUser, m.text)
                         if (!m.fromUser) grounded[mi]?.let { g ->
                             if (g.sources.isNotEmpty()) Column(Modifier.widthIn(max = 340.dp).padding(top = 4.dp)) {
-                                Text("Sources consultées :", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(t("Sources consultées :"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 g.sources.forEach { (t, u) ->
                                     Text("• $t", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.clickable { runCatching { uri.openUri(u) } }.padding(vertical = 2.dp))
                                 }
                             }
                             g.suggestionsHtml?.let { Box(Modifier.widthIn(max = 340.dp)) { SearchSuggestions(it) } }
-                            if (!g.searched) Text("(Réponse sans recherche internet : ton modèle ou ta clé ne la permettent pas.)",
+                            if (!g.searched) Text(t("(Réponse sans recherche internet : ton modèle ou ta clé ne la permettent pas.)"),
                                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        if (!m.fromUser) AiContentFooter("Question sur « $title »\n${m.text}", Modifier.widthIn(max = 340.dp))
+                        if (!m.fromUser) AiContentFooter(t("Question sur « %1\$s »\n%2\$s", title, m.text), Modifier.widthIn(max = 340.dp))
                     }
                 }
                 if (loading) item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text("L'IA réfléchit…", style = MaterialTheme.typography.bodySmall)
+                        Text(t("L'IA réfléchit…"), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -219,18 +221,18 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
             Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     input, { input = it.take(500) },
-                    placeholder = { Text("Ta question…") },
+                    placeholder = { Text(t("Ta question…")) },
                     modifier = Modifier.weight(1f),
                     maxLines = 4,
                     shape = RoundedCornerShape(24.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 FilledIconButton(enabled = input.isNotBlank() && !loading, onClick = { send(input) }) {
-                    Icon(Icons.AutoMirrored.Filled.Send, "Envoyer")
+                    Icon(Icons.AutoMirrored.Filled.Send, t("Envoyer"))
                 }
             }
             Text(
-                "Les questions et le contexte sont envoyés à Google Gemini avec ta clé. Rien n'est gardé après fermeture.",
+                t("Les questions et le contexte sont envoyés à Google Gemini avec ta clé. Rien n'est gardé après fermeture."),
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
             )

@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -55,26 +57,26 @@ fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         OutlinedTextField(
             value = name, onValueChange = { name = it },
-            label = { Text("Prénom") }, singleLine = true, modifier = Modifier.fillMaxWidth()
+            label = { Text(t("Prénom")) }, singleLine = true, modifier = Modifier.fillMaxWidth()
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            NumField(age, { age = it }, "Âge", Modifier.weight(1f), decimal = false)
-            NumField(weight, { weight = it }, "Poids (kg)", Modifier.weight(1f))
-            NumField(height, { height = it }, "Taille (cm)", Modifier.weight(1f))
+            NumField(age, { age = it }, t("Âge"), Modifier.weight(1f), decimal = false)
+            NumField(weight, { weight = it }, t("Poids (kg)"), Modifier.weight(1f))
+            NumField(height, { height = it }, t("Taille (cm)"), Modifier.weight(1f))
         }
-        Label("Sexe")
+        Label(t("Sexe"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Sex.entries.forEach { s ->
                 FilterChip(selected = sex == s, onClick = { sex = s }, label = { Text(s.label) })
             }
         }
-        Label("Niveau d'activité")
+        Label(t("Niveau d'activité"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActivityLevel.entries.forEach { a ->
                 FilterChip(selected = activity == a, onClick = { activity = a }, label = { Text(a.label) })
             }
         }
-        Label("Objectif")
+        Label(t("Objectif"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Goal.entries.forEach { g ->
                 FilterChip(selected = goal == g, onClick = { goal = g }, label = { Text(g.label) })
@@ -82,14 +84,14 @@ fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null
         }
         OutlinedTextField(
             value = habits, onValueChange = { habits = it },
-            label = { Text("Habitudes alimentaires") },
-            placeholder = { Text("Ex : végétarien, je saute souvent le petit-déj, j'aime la cuisine asiatique…") },
+            label = { Text(t("Habitudes alimentaires")) },
+            placeholder = { Text(t("Ex : végétarien, je saute souvent le petit-déj, j'aime la cuisine asiatique…")) },
             minLines = 2, modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = allergies, onValueChange = { allergies = it },
-            label = { Text("Allergies / intolérances") },
-            placeholder = { Text("Ex : arachides, lactose, gluten") },
+            label = { Text(t("Allergies / intolérances")) },
+            placeholder = { Text(t("Ex : arachides, lactose, gluten")) },
             modifier = Modifier.fillMaxWidth()
         )
         if (consentText != null) {
@@ -129,24 +131,22 @@ fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null
 
 /** Vérifications du profil, partagées avec l'inscription en plusieurs pages. */
 fun ageError(a: Int?): String? = when {
-    a != null && a in 1 until Nutrition.MIN_AGE -> "GoodLife est réservée aux ${Nutrition.MIN_AGE} ans et plus."
-    a == null || a !in Nutrition.MIN_AGE..110 -> "Âge invalide (${Nutrition.MIN_AGE} à 110 ans)."
+    a != null && a in 1 until Nutrition.MIN_AGE -> t("GoodLife est réservée aux %1\$s ans et plus.", Nutrition.MIN_AGE)
+    a == null || a !in Nutrition.MIN_AGE..110 -> t("Âge invalide (%1\$s à 110 ans).", Nutrition.MIN_AGE)
     else -> null
 }
 
 fun bodyError(w: Double?, h: Double?): String? = when {
-    w == null || w !in 25.0..350.0 -> "Poids invalide."
-    h == null || h !in 100.0..250.0 -> "Taille invalide (en cm)."
+    w == null || w !in 25.0..350.0 -> t("Poids invalide.")
+    h == null || h !in 100.0..250.0 -> t("Taille invalide (en cm).")
     else -> null
 }
 
 fun goalError(goal: Goal, p: Profile): String? = when {
     goal == Goal.PERTE && !Nutrition.weightLossAllowed(p) -> if (p.age < 18)
-        "L'objectif « Perdre du poids » n'est pas proposé avant 18 ans : pendant la croissance, " +
-            "parles-en plutôt à un médecin. Choisis « Maintenir » ou « Prendre du poids »."
+        t("L'objectif « Perdre du poids » n'est pas proposé avant 18 ans : pendant la croissance, parles-en plutôt à un médecin. Choisis « Maintenir » ou « Prendre du poids ».")
     else
-        "Ton IMC est déjà sous 18,5 : l'objectif « Perdre du poids » n'est pas proposé. " +
-            "Si tu veux perdre du poids malgré tout, parles-en à un médecin."
+        t("Ton IMC est déjà sous 18,5 : l'objectif « Perdre du poids » n'est pas proposé. Si tu veux perdre du poids malgré tout, parles-en à un médecin.")
     else -> null
 }
 

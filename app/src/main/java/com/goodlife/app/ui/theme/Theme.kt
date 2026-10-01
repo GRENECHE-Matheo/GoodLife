@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.theme
 
+import com.goodlife.app.i18n.t
+
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
@@ -58,14 +60,14 @@ private val accents = mapOf(
 
 /** Choix affichés dans les paramètres. */
 val THEME_COLORS = listOf(
-    "auto" to "Couleurs du téléphone",
-    "blue" to "Bleu",
-    "green" to "Vert",
-    "purple" to "Violet",
-    "orange" to "Orange",
-    "pink" to "Rose"
+    "auto" to t("Couleurs du téléphone"),
+    "blue" to t("Bleu"),
+    "green" to t("Vert"),
+    "purple" to t("Violet"),
+    "orange" to t("Orange"),
+    "pink" to t("Rose")
 )
-val THEME_MODES = listOf("system" to "Système", "light" to "Clair", "dark" to "Sombre")
+val THEME_MODES = listOf("system" to t("Système"), "light" to t("Clair"), "dark" to t("Sombre"))
 
 /** Material You (couleurs du fond d'écran) dispo à partir d'Android 12. */
 val dynamicColorSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S

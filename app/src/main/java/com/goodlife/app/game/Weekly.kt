@@ -1,5 +1,7 @@
 package com.goodlife.app.game
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.Repo
 import com.goodlife.app.social.WeekStats
 import java.text.SimpleDateFormat
@@ -13,9 +15,9 @@ import java.util.Locale
  */
 object Weekly {
     enum class Kind(val title: String, val unit: String) {
-        DAYS("Le plus de jours validés", "j"),
-        STEPS("Le plus de pas", "pas"),
-        XP("Le plus d'XP gagnée", "XP")
+        DAYS(t("Le plus de jours validés"), "j"),
+        STEPS(t("Le plus de pas"), "pas"),
+        XP(t("Le plus d'XP gagnée"), "XP")
     }
 
     /** Numéro de semaine (lundi = début), compté depuis 1970, en heure locale. */

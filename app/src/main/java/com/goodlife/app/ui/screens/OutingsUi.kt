@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -275,7 +277,7 @@ fun OutingsTab() {
             onBack = { screen = "history" },
             onRetry = { routeId ->
                 val track = Repo.routeTrack(routeId)
-                Tracker.setPlanned(PlannedRoute(track, Tracker.length(track), "Parcours à refaire"))
+                Tracker.setPlanned(PlannedRoute(track, Tracker.length(track), t("Parcours à refaire")))
                 retry = routeId; screen = ""
             }
         )
@@ -332,7 +334,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         if (res[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
             locationGranted = true
             TrackingService.start(context, type, retryRoute)
-        } else routeError = "Sans la localisation précise, impossible de suivre ton activité."
+        } else routeError = t("Sans la localisation précise, impossible de suivre ton activité.")
     }
     fun start() {
         routeError = null
@@ -348,8 +350,8 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
 
     fun routeTo(dest: LatLng) {
         val from = myPosition()
-        if (from == null) { routeError = "Autorise la localisation pour calculer l'itinéraire depuis ta position."; return }
-        busy = "Calcul de l'itinéraire…"; routeError = null
+        if (from == null) { routeError = t("Autorise la localisation pour calculer l'itinéraire depuis ta position."); return }
+        busy = t("Calcul de l'itinéraire…"); routeError = null
         scope.launch {
             try { Tracker.setPlanned(Routing.toDestination(from.latitude, from.longitude, dest.latitude, dest.longitude, type)) }
             catch (e: Exception) { routeError = e.message; Tracker.setPlanned(null) }
@@ -438,7 +440,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp)
             ) {
                 Row(Modifier.padding(4.dp)) {
-                    listOf("activite" to "Activité", "parcours" to "Parcours", "clubs" to "Clubs").forEach { (id, label) ->
+                    listOf("activite" to t("Activité"), "parcours" to t("Parcours"), "clubs" to t("Clubs")).forEach { (id, label) ->
                         val on = mode == id
                         Surface(
                             onClick = { mode = id; selected = null; routeError = null },
@@ -460,11 +462,11 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     if (!locationGranted) askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                     val m = handle.map; val s = handle.style
                     if (m != null && s != null) showMe(m, s, context, follow = live != null)
-                }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, "Ma position") }
+                }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, t("Ma position")) }
                 if (live == null) SmallFloatingActionButton(
                     onClick = { onOffline(handle.map?.projection?.visibleRegion?.latLngBounds) },
                     containerColor = MaterialTheme.colorScheme.surface
-                ) { Icon(Icons.Filled.DownloadForOffline, "Cartes hors ligne") }
+                ) { Icon(Icons.Filled.DownloadForOffline, t("Cartes hors ligne")) }
             }
             // Localisation refusée : explication
             if (!locationGranted && live == null) Surface(
@@ -472,15 +474,15 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                 modifier = Modifier.align(Alignment.TopStart).padding(top = 64.dp, start = 12.dp).widthIn(max = 260.dp)
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text("Localisation désactivée", style = MaterialTheme.typography.titleSmall)
-                    Text("Autorise-la pour te voir sur la carte et suivre tes activités.", style = MaterialTheme.typography.bodySmall)
+                    Text(t("Localisation désactivée"), style = MaterialTheme.typography.titleSmall)
+                    Text(t("Autorise-la pour te voir sur la carte et suivre tes activités."), style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = {
                         askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                    }) { Text("Autoriser") }
+                    }) { Text(t("Autoriser")) }
                 }
             }
             Text(
-                "© OpenMapTiles · © OpenStreetMap",
+                t("© OpenMapTiles · © OpenStreetMap"),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp)
                     .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), RoundedCornerShape(6.dp))
@@ -517,7 +519,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                         selected, places, handle.map?.cameraPosition?.target, busy != null, placesError,
                         onSearch = {
                             val target = handle.map?.cameraPosition?.target ?: return@ClubsPanel
-                            busy = "Recherche des clubs…"; placesError = null; selected = null
+                            busy = t("Recherche des clubs…"); placesError = null; selected = null
                             scope.launch {
                                 try { places = Places.around(target.latitude, target.longitude) }
                                 catch (e: Exception) { placesError = e.message }
@@ -535,8 +537,8 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                         loading = busy != null,
                         onPropose = {
                             val from = myPosition() ?: handle.map?.cameraPosition?.target
-                            if (from == null) { routeError = "Autorise la localisation pour proposer des boucles autour de toi."; return@LoopsPanel }
-                            busy = "Calcul des boucles…"; routeError = null; loopIndex = 0
+                            if (from == null) { routeError = t("Autorise la localisation pour proposer des boucles autour de toi."); return@LoopsPanel }
+                            busy = t("Calcul des boucles…"); routeError = null; loopIndex = 0
                             scope.launch {
                                 try { loops = Routing.loops(from.latitude, from.longitude, loopKm * 1000.0, type) }
                                 catch (e: Exception) { routeError = e.message; loops = emptyList() }
@@ -549,7 +551,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     else -> StartPanel(
                         type = type, onType = { t ->
                             setType(t)
-                            destination?.let { if (planned?.label == "Vers la destination") routeTo(it) }
+                            destination?.let { if (planned?.label == t("Vers la destination")) routeTo(it) }
                         },
                         planned = planned, destination = destination != null, retry = retryRoute != 0L, best = best,
                         activities = outings.size,
@@ -567,10 +569,10 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
 
     if (confirmStop) AlertDialog(
         onDismissRequest = { confirmStop = false },
-        title = { Text("Terminer l'activité ?") },
-        text = { Text("Elle sera enregistrée (si tu as parcouru au moins 50 m).") },
-        confirmButton = { TextButton(onClick = { confirmStop = false; TrackingService.stop(context) }) { Text("Terminer") } },
-        dismissButton = { TextButton(onClick = { confirmStop = false }) { Text("Continuer") } }
+        title = { Text(t("Terminer l'activité ?")) },
+        text = { Text(t("Elle sera enregistrée (si tu as parcouru au moins 50 m).")) },
+        confirmButton = { TextButton(onClick = { confirmStop = false; TrackingService.stop(context) }) { Text(t("Terminer")) } },
+        dismissButton = { TextButton(onClick = { confirmStop = false }) { Text(t("Continuer")) } }
     )
     finished?.let { f -> FinishedDialog(f, onDismiss = { finished = null }) }
 }
@@ -622,16 +624,16 @@ private fun StartPanel(
             Column(Modifier.weight(1f)) {
                 Text(planned.label, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "${km(planned.lengthM)} · environ ${estimate(planned.lengthM, type)}" +
-                        (best?.let { " · record ${formatClock(it.movingMs)}" } ?: ""),
+                    t("%1\$s · environ %2\$s", km(planned.lengthM), estimate(planned.lengthM, type)) +
+                        (best?.let { t(" · record %1\$s", formatClock(it.movingMs)) } ?: ""),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            TextButton(onClick = onCancelRoute) { Text("Annuler") }
+            TextButton(onClick = onCancelRoute) { Text(t("Annuler")) }
         }
     } else {
         Text(
-            if (destination) "Destination choisie" else "Appui long sur la carte pour choisir une destination",
+            if (destination) t("Destination choisie") else t("Appui long sur la carte pour choisir une destination"),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -642,10 +644,10 @@ private fun StartPanel(
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         TextButton(onClick = onHistory) {
-            Icon(Icons.AutoMirrored.Filled.List, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Mes activités ($activities)")
+            Icon(Icons.AutoMirrored.Filled.List, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Mes activités (%1\$s)", activities))
         }
         Spacer(Modifier.weight(1f))
-        Text("GPS sans internet · tracé privé", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(t("GPS sans internet · tracé privé"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -659,13 +661,13 @@ private fun LoopsPanel(
     val value = km.coerceIn(range)
     if (loops.isNotEmpty()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${type.emoji} Boucles de %.0f km".format(value), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = onReset) { Text("Modifier") }
+            Text(t("%1\$s Boucles de %%.0f km", type.emoji).format(value), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = onReset) { Text(t("Modifier")) }
         }
     } else {
     TypePicker(type, onType)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Boucle de", style = MaterialTheme.typography.bodyMedium)
+        Text(t("Boucle de"), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.width(8.dp))
         Text("%.0f km".format(value), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(8.dp))
@@ -678,9 +680,9 @@ private fun LoopsPanel(
     }
     if (loops.isEmpty()) {
         Button(onClick = onPropose, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Filled.Search, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Proposer des boucles autour de moi")
+            Icon(Icons.Filled.Search, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(t("Proposer des boucles autour de moi"))
         }
-        Text("Par les chemins, parcs et rues calmes ; jamais d'autoroute ni de voie rapide.",
+        Text(t("Par les chemins, parcs et rues calmes ; jamais d'autoroute ni de voie rapide."),
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
         loops.forEachIndexed { i, r ->
@@ -698,8 +700,8 @@ private fun LoopsPanel(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onChoose, modifier = Modifier.weight(1f)) { Text("Choisir cette boucle") }
-            OutlinedButton(onClick = onPropose, enabled = !loading) { Icon(Icons.Filled.Replay, "Autres boucles") }
+            Button(onClick = onChoose, modifier = Modifier.weight(1f)) { Text(t("Choisir cette boucle")) }
+            OutlinedButton(onClick = onPropose, enabled = !loading) { Icon(Icons.Filled.Replay, t("Autres boucles")) }
         }
     }
 }
@@ -716,7 +718,7 @@ private fun LivePanel(
             style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f)
         )
         Text(
-            when { !l.gpsOk -> "Recherche du GPS…"; l.paused -> "En pause"; l.autoPaused -> "À l'arrêt"; else -> "" },
+            when { !l.gpsOk -> t("Recherche du GPS…"); l.paused -> t("En pause"); l.autoPaused -> t("À l'arrêt"); else -> "" },
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -734,42 +736,42 @@ private fun LivePanel(
         ) {
             Text(
                 when {
-                    remaining < 40 -> "Arrivé ! Bravo 🎉"
-                    off > 45 -> "Tu t'éloignes du parcours (${off.toInt()} m) · reste ${km(remaining)}"
-                    else -> "Reste ${km(remaining)} · ${planned.label}"
+                    remaining < 40 -> t("Arrivé ! Bravo 🎉")
+                    off > 45 -> t("Tu t'éloignes du parcours (%1\$s m) · reste %2\$s", off.toInt(), km(remaining))
+                    else -> t("Reste %1\$s · %2\$s", km(remaining), planned.label)
                 },
                 style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth().padding(10.dp)
             )
         }
     }
     Row(Modifier.fillMaxWidth()) {
-        Stat("Distance (km)", "%.2f".format(l.distanceM / 1000), Modifier.weight(1f), big = true)
-        Stat("Temps", formatClock(l.movingMs), Modifier.weight(1f), big = true)
+        Stat(t("Distance (km)"), "%.2f".format(l.distanceM / 1000), Modifier.weight(1f), big = true)
+        Stat(t("Temps"), formatClock(l.movingMs), Modifier.weight(1f), big = true)
     }
     Row(Modifier.fillMaxWidth()) {
         if (bike) {
             Stat("km/h", formatKmh(l.speed), Modifier.weight(1f))
-            Stat("Moy. km/h", formatKmh(l.avgSpeed), Modifier.weight(1f))
+            Stat(t("Moy. km/h"), formatKmh(l.avgSpeed), Modifier.weight(1f))
         } else {
-            Stat("Allure /km", formatPace(l.speed), Modifier.weight(1f))
-            Stat("Moy. /km", formatPace(l.avgSpeed), Modifier.weight(1f))
+            Stat(t("Allure /km"), formatPace(l.speed), Modifier.weight(1f))
+            Stat(t("Moy. /km"), formatPace(l.avgSpeed), Modifier.weight(1f))
         }
-        Stat("Dénivelé +", "%.0f m".format(l.elevGainM), Modifier.weight(1f))
+        Stat(t("Dénivelé +"), "%.0f m".format(l.elevGainM), Modifier.weight(1f))
     }
     if (best != null) Text(
-        "Record à battre : ${formatClock(best.movingMs)} pour ${"%.2f".format(best.distanceM / 1000)} km",
+        t("Record à battre : %1\$s pour %2\$s km", formatClock(best.movingMs), "%.2f".format(best.distanceM / 1000)),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary
     )
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         FilledTonalButton(onClick = onPause, modifier = Modifier.weight(1f).height(52.dp)) {
             Icon(if (l.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, null)
-            Spacer(Modifier.width(6.dp)); Text(if (l.paused) "Reprendre" else "Pause")
+            Spacer(Modifier.width(6.dp)); Text(if (l.paused) t("Reprendre") else t("Pause"))
         }
         Button(
             onClick = onStop, modifier = Modifier.weight(1f).height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
         ) {
-            Icon(Icons.Filled.Stop, null); Spacer(Modifier.width(6.dp)); Text("Terminer")
+            Icon(Icons.Filled.Stop, null); Spacer(Modifier.width(6.dp)); Text(t("Terminer"))
         }
     }
 }
@@ -789,33 +791,33 @@ private fun ClubsPanel(
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary
                 )
             }
-            TextButton(onClick = onClose) { Text("Fermer") }
+            TextButton(onClick = onClose) { Text(t("Fermer")) }
         }
         if (selected.address.isNotBlank()) Text(selected.address, style = MaterialTheme.typography.bodySmall)
-        Text("Tarif : ${selected.price.ifBlank { "non renseigné" }}", style = MaterialTheme.typography.bodyMedium)
-        if (selected.hours.isNotBlank()) Text("Horaires : ${selected.hours}", style = MaterialTheme.typography.bodySmall)
-        if (selected.phone.isNotBlank()) Text("Téléphone : ${selected.phone}", style = MaterialTheme.typography.bodySmall)
+        Text(t("Tarif : %1\$s", selected.price.ifBlank { t("non renseigné") }), style = MaterialTheme.typography.bodyMedium)
+        if (selected.hours.isNotBlank()) Text(t("Horaires : %1\$s", selected.hours), style = MaterialTheme.typography.bodySmall)
+        if (selected.phone.isNotBlank()) Text(t("Téléphone : %1\$s", selected.phone), style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (selected.website.isNotBlank()) Button(onClick = {
                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(selected.website))) }
-            }) { Icon(Icons.Filled.Language, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Site du club") }
+            }) { Icon(Icons.Filled.Language, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Site du club")) }
             OutlinedButton(onClick = {
                 runCatching {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${selected.lat},${selected.lng}?q=${selected.lat},${selected.lng}(${Uri.encode(selected.name)})")))
                 }
-            }) { Text("Y aller") }
+            }) { Text(t("Y aller")) }
         }
-        Text("Données © OpenStreetMap, à vérifier auprès du club.", style = MaterialTheme.typography.labelSmall,
+        Text(t("Données © OpenStreetMap, à vérifier auprès du club."), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Clubs et lieux de sport", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(t("Clubs et lieux de sport"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             FilledTonalButton(onClick = onSearch, enabled = !loading) {
-                Icon(Icons.Filled.Search, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Chercher ici")
+                Icon(Icons.Filled.Search, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Chercher ici"))
             }
         }
         if (places.isEmpty()) Text(
-            "Place la carte sur ta zone, puis cherche les clubs, salles, piscines et stades autour.",
+            t("Place la carte sur ta zone, puis cherche les clubs, salles, piscines et stades autour."),
             style = MaterialTheme.typography.bodySmall
         ) else {
             val sorted = remember(places, center) {
@@ -841,7 +843,7 @@ private fun ClubsPanel(
                     }
                 }
             }
-            Text("${places.size} lieux trouvés · touche un point ou un nom", style = MaterialTheme.typography.labelSmall,
+            Text(t("%1\$s lieux trouvés · touche un point ou un nom", places.size), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (error != null) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -853,7 +855,7 @@ private fun ClubsPanel(
 private fun OfflineZonesScreen(bounds: LatLngBounds?, onBack: () -> Unit) {
     val context = LocalContext.current
     val zones by OfflineMaps.zones.collectAsState()
-    var name by remember { mutableStateOf("Ma zone") }
+    var name by remember { mutableStateOf(t("Ma zone")) }
     var detailed by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { OfflineMaps.refresh(context) }
@@ -863,56 +865,55 @@ private fun OfflineZonesScreen(bounds: LatLngBounds?, onBack: () -> Unit) {
     fun mo(b: Long) = "%.0f Mo".format(b / 1_048_576.0)
 
     com.goodlife.app.ui.ScreenColumn {
-        com.goodlife.app.ui.SubScreenHeader("Cartes hors ligne", onBack)
+        com.goodlife.app.ui.SubScreenHeader(t("Cartes hors ligne"), onBack)
         Text(
-            "Le GPS marche sans internet ; une zone téléchargée affiche aussi le fond de carte sans réseau " +
-                "(campagne, forêt, montagne). Télécharge seulement les zones où tu vas, pour ne pas remplir ton téléphone.",
+            t("Le GPS marche sans internet ; une zone téléchargée affiche aussi le fond de carte sans réseau (campagne, forêt, montagne). Télécharge seulement les zones où tu vas, pour ne pas remplir ton téléphone."),
             style = MaterialTheme.typography.bodyMedium
         )
-        com.goodlife.app.ui.SectionCard(title = "Télécharger la zone affichée") {
-            if (bounds == null) Text("Ouvre la carte, cadre la zone voulue, puis reviens ici.", style = MaterialTheme.typography.bodySmall)
+        com.goodlife.app.ui.SectionCard(title = t("Télécharger la zone affichée")) {
+            if (bounds == null) Text(t("Ouvre la carte, cadre la zone voulue, puis reviens ici."), style = MaterialTheme.typography.bodySmall)
             else {
-                OutlinedTextField(name, { name = it.take(40) }, label = { Text("Nom de la zone") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(name, { name = it.take(40) }, label = { Text(t("Nom de la zone")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(detailed, { detailed = true }, label = { Text("Détaillée (chemins)") })
-                    FilterChip(!detailed, { detailed = false }, label = { Text("Légère (rues)") })
+                    FilterChip(detailed, { detailed = true }, label = { Text(t("Détaillée (chemins)")) })
+                    FilterChip(!detailed, { detailed = false }, label = { Text(t("Légère (rues)")) })
                 }
                 val tooBig = tiles > OfflineMaps.MAX_TILES
                 Text(
-                    if (tooBig) "Zone trop grande pour ce niveau de détail : zoome davantage sur la carte ou choisis « Légère »."
-                    else "Taille estimée : environ ${mo(bytes)}",
+                    if (tooBig) t("Zone trop grande pour ce niveau de détail : zoome davantage sur la carte ou choisis « Légère ».")
+                    else t("Taille estimée : environ %1\$s", mo(bytes)),
                     color = if (tooBig) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Button(enabled = !tooBig && name.isNotBlank(), onClick = {
                     error = null
                     OfflineMaps.download(context, name.trim(), bounds, maxZoom) { error = it }
-                }) { Icon(Icons.Filled.DownloadForOffline, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Télécharger") }
-                Text("Garde l'app ouverte pendant le téléchargement.", style = MaterialTheme.typography.labelSmall,
+                }) { Icon(Icons.Filled.DownloadForOffline, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Télécharger")) }
+                Text(t("Garde l'app ouverte pendant le téléchargement."), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
-        com.goodlife.app.ui.SectionCard(title = "Mes zones") {
-            if (zones.isEmpty()) Text("Aucune zone téléchargée.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        com.goodlife.app.ui.SectionCard(title = t("Mes zones")) {
+            if (zones.isEmpty()) Text(t("Aucune zone téléchargée."), color = MaterialTheme.colorScheme.onSurfaceVariant)
             zones.sortedByDescending { it.createdAt }.forEachIndexed { i, z ->
                 if (i > 0) HorizontalDivider()
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(z.name, fontWeight = FontWeight.Medium)
                         Text(
-                            if (z.complete) "Prête · ${mo(z.sizeBytes)}" else "Téléchargement ${(z.progress * 100).toInt()} % · ${mo(z.sizeBytes)}",
+                            if (z.complete) t("Prête · %1\$s", mo(z.sizeBytes)) else t("Téléchargement %1\$s %% · %2\$s", (z.progress * 100).toInt(), mo(z.sizeBytes)),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (!z.complete) androidx.compose.material3.LinearProgressIndicator(
                             progress = { z.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         )
                     }
-                    TextButton(onClick = { OfflineMaps.delete(z) }) { Icon(Icons.Filled.Delete, "Supprimer") }
+                    TextButton(onClick = { OfflineMaps.delete(z) }) { Icon(Icons.Filled.Delete, t("Supprimer")) }
                 }
             }
         }
-        Text("Carte : OpenFreeMap © OpenMapTiles, données © contributeurs OpenStreetMap.",
+        Text(t("Carte : OpenFreeMap © OpenMapTiles, données © contributeurs OpenStreetMap."),
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -935,25 +936,25 @@ private fun FinishedDialog(f: FinishedOuting, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Filled.EmojiEvents, null, tint = MaterialTheme.colorScheme.tertiary) },
-        title = { Text(if (f.record) "Nouveau record !" else "Bravo, activité terminée !") },
+        title = { Text(if (f.record) t("Nouveau record !") else t("Bravo, activité terminée !")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("${o.type.emoji} ${"%.2f".format(o.distanceM / 1000)} km en ${formatClock(o.movingMs)}", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    (if (o.type == OutingType.BIKE) "Moyenne ${formatKmh(o.avgSpeed)} km/h" else "Allure moyenne ${formatPace(o.avgSpeed)} min/km") +
-                        " · dénivelé +${"%.0f".format(o.elevGainM)} m",
+                    (if (o.type == OutingType.BIKE) t("Moyenne %1\$s km/h", formatKmh(o.avgSpeed)) else t("Allure moyenne %1\$s min/km", formatPace(o.avgSpeed))) +
+                        t(" · dénivelé +%1\$s m", "%.0f".format(o.elevGainM)),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (f.previousBest != null) Text(
-                    if (f.record) "Tu bats ton record de ${formatClock(f.previousBest.movingMs - o.movingMs)} !"
-                    else if (!o.valid) "Parcours pas entièrement suivi : pas compté pour le record."
-                    else "Record : ${formatClock(f.previousBest.movingMs)}. Tu y es presque !",
+                    if (f.record) t("Tu bats ton record de %1\$s !", formatClock(f.previousBest.movingMs - o.movingMs))
+                    else if (!o.valid) t("Parcours pas entièrement suivi : pas compté pour le record.")
+                    else t("Record : %1\$s. Tu y es presque !", formatClock(f.previousBest.movingMs)),
                     color = if (f.record) successColor else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(if (f.xp > 0) "+${f.xp} XP" else "XP sport du jour déjà au maximum", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text(if (f.xp > 0) t("+%1\$s XP", f.xp) else t("XP sport du jour déjà au maximum"), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Super") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(t("Super")) } }
     )
 }
 
@@ -965,9 +966,9 @@ private fun FinishedDialog(f: FinishedOuting, onDismiss: () -> Unit) {
 private fun OutingHistory(onBack: () -> Unit, onOpen: (Long) -> Unit) {
     val outings by Repo.outings.collectAsState()
     com.goodlife.app.ui.ScreenColumn {
-        com.goodlife.app.ui.SubScreenHeader("Mes activités", onBack)
+        com.goodlife.app.ui.SubScreenHeader(t("Mes activités"), onBack)
         if (outings.isEmpty()) Text(
-            "Aucune activité pour l'instant. Lance-toi depuis la carte !",
+            t("Aucune activité pour l'instant. Lance-toi depuis la carte !"),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         outings.forEach { o ->
@@ -987,7 +988,7 @@ private fun OutingHistory(onBack: () -> Unit, onOpen: (Long) -> Unit) {
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (record) Icon(Icons.Filled.EmojiEvents, "Record", tint = MaterialTheme.colorScheme.tertiary)
+                    if (record) Icon(Icons.Filled.EmojiEvents, t("Record"), tint = MaterialTheme.colorScheme.tertiary)
                 }
             }
         }
@@ -1018,38 +1019,38 @@ private fun OutingDetail(id: Long, onBack: () -> Unit, onRetry: (Long) -> Unit) 
         Box(Modifier.fillMaxWidth().height(260.dp)) { GoodMap(handle, Modifier.fillMaxSize()) }
         com.goodlife.app.ui.ScreenColumn {
             com.goodlife.app.ui.SubScreenHeader(o.name.ifBlank { "${o.type.label} du ${formatDay(o.start)}" }, onBack)
-            Text("${formatDay(o.start)} à ${formatTime(o.start)}", style = MaterialTheme.typography.bodySmall,
+            Text(t("%1\$s à %2\$s", formatDay(o.start), formatTime(o.start)), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth()) {
-                Stat("Distance (km)", "%.2f".format(o.distanceM / 1000), Modifier.weight(1f))
-                Stat("Temps", formatClock(o.movingMs), Modifier.weight(1f))
+                Stat(t("Distance (km)"), "%.2f".format(o.distanceM / 1000), Modifier.weight(1f))
+                Stat(t("Temps"), formatClock(o.movingMs), Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth()) {
                 if (o.type == OutingType.BIKE) {
-                    Stat("Moyenne (km/h)", formatKmh(o.avgSpeed), Modifier.weight(1f))
-                    Stat("Max (km/h)", formatKmh(o.maxSpeed), Modifier.weight(1f))
+                    Stat(t("Moyenne (km/h)"), formatKmh(o.avgSpeed), Modifier.weight(1f))
+                    Stat(t("Max (km/h)"), formatKmh(o.maxSpeed), Modifier.weight(1f))
                 } else {
-                    Stat("Allure (min/km)", formatPace(o.avgSpeed), Modifier.weight(1f))
-                    Stat("Moyenne (km/h)", formatKmh(o.avgSpeed), Modifier.weight(1f))
+                    Stat(t("Allure (min/km)"), formatPace(o.avgSpeed), Modifier.weight(1f))
+                    Stat(t("Moyenne (km/h)"), formatKmh(o.avgSpeed), Modifier.weight(1f))
                 }
-                Stat("Dénivelé + (m)", "%.0f".format(o.elevGainM), Modifier.weight(1f))
+                Stat(t("Dénivelé + (m)"), "%.0f".format(o.elevGainM), Modifier.weight(1f))
             }
             if (attempts.size > 1 && best != null) Text(
-                "Record sur ce parcours : ${formatClock(best.movingMs)} (${formatDay(best.start)}) · ${attempts.size} passages",
+                t("Record sur ce parcours : %1\$s (%2\$s) · %3\$s passages", formatClock(best.movingMs), formatDay(best.start), attempts.size),
                 color = MaterialTheme.colorScheme.tertiary
             )
-            if (!o.valid) Text("Parcours pas entièrement suivi : cette sortie ne compte pas pour le record.",
+            if (!o.valid) Text(t("Parcours pas entièrement suivi : cette sortie ne compte pas pour le record."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = { onRetry(o.routeId) }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.Replay, null); Spacer(Modifier.width(8.dp)); Text("Refaire ce parcours et battre mon record")
+                Icon(Icons.Filled.Replay, null); Spacer(Modifier.width(8.dp)); Text(t("Refaire ce parcours et battre mon record"))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { rename = true }) { Text("Nommer ce parcours") }
+                OutlinedButton(onClick = { rename = true }) { Text(t("Nommer ce parcours")) }
                 TextButton(onClick = { confirmDelete = true }) {
-                    Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Supprimer")
+                    Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(t("Supprimer"))
                 }
             }
-            Text("Carte : OpenFreeMap © OpenMapTiles, données © contributeurs OpenStreetMap.",
+            Text(t("Carte : OpenFreeMap © OpenMapTiles, données © contributeurs OpenStreetMap."),
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -1058,17 +1059,17 @@ private fun OutingDetail(id: Long, onBack: () -> Unit, onRetry: (Long) -> Unit) 
         var name by remember { mutableStateOf(o.name) }
         AlertDialog(
             onDismissRequest = { rename = false },
-            title = { Text("Nom du parcours") },
-            text = { OutlinedTextField(name, { name = it.take(40) }, singleLine = true, placeholder = { Text("Ex : Tour du lac") }) },
+            title = { Text(t("Nom du parcours")) },
+            text = { OutlinedTextField(name, { name = it.take(40) }, singleLine = true, placeholder = { Text(t("Ex : Tour du lac")) }) },
             confirmButton = { TextButton(onClick = { Repo.renameOuting(o.routeId, name.trim()); rename = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { rename = false }) { Text("Annuler") } }
+            dismissButton = { TextButton(onClick = { rename = false }) { Text(t("Annuler")) } }
         )
     }
     if (confirmDelete) AlertDialog(
         onDismissRequest = { confirmDelete = false },
-        title = { Text("Supprimer cette activité ?") },
-        text = { Text("Le tracé et les chiffres seront effacés. L'XP déjà gagnée reste.") },
-        confirmButton = { TextButton(onClick = { confirmDelete = false; Repo.deleteOuting(o.id); onBack() }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) } },
-        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Annuler") } }
+        title = { Text(t("Supprimer cette activité ?")) },
+        text = { Text(t("Le tracé et les chiffres seront effacés. L'XP déjà gagnée reste.")) },
+        confirmButton = { TextButton(onClick = { confirmDelete = false; Repo.deleteOuting(o.id); onBack() }) { Text(t("Supprimer"), color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(t("Annuler")) } }
     )
 }

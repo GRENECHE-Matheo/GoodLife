@@ -1,5 +1,7 @@
 package com.goodlife.app.sleep
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -40,7 +42,7 @@ object SleepTracker {
     @SuppressLint("MissingPermission")
     fun subscribe(context: Context, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         if (!hasPermission(context)) {
-            onResult(false, "Autorisation « Activité physique » refusée.")
+            onResult(false, t("Autorisation « Activité physique » refusée."))
             return
         }
         runCatching {
@@ -54,7 +56,7 @@ object SleepTracker {
                     onResult(true, null)
                 }
                 .addOnFailureListener { e ->
-                    onResult(false, e.message ?: "Google Play Services indisponible.")
+                    onResult(false, e.message ?: t("Google Play Services indisponible."))
                 }
         }.onFailure { onResult(false, it.message) }
     }

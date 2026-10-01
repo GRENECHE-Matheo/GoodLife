@@ -1,5 +1,7 @@
 package com.goodlife.app.data
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -37,6 +39,11 @@ class SecureStore(context: Context) {
                 .build()
         )
         return gen.generateKey()
+    }
+
+    /** Écrit tout de suite sur le disque (avant un redémarrage de l'app, par exemple). */
+    fun flush() {
+        prefs.edit().commit()
     }
 
     @Synchronized
@@ -88,7 +95,7 @@ class SecureStore(context: Context) {
     }
 
     private fun fileFor(name: String): java.io.File {
-        require(name.matches(Regex("[a-zA-Z0-9_-]{1,80}"))) { "Nom de fichier invalide" }
+        require(name.matches(Regex("[a-zA-Z0-9_-]{1,80}"))) { t("Nom de fichier invalide") }
         return java.io.File(filesDir, "$name.bin")
     }
 

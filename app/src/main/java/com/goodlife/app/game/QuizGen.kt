@@ -1,5 +1,8 @@
 package com.goodlife.app.game
 
+import com.goodlife.app.i18n.Lang
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import java.util.Locale
 import kotlin.math.abs
@@ -12,13 +15,18 @@ import kotlin.random.Random
  * avec la mémoire des questions déjà posées (QuizBank), on ne retombe jamais sur la même.
  */
 object QuizGen {
-    data class Food(val name: String, val kcal: Double, val protein: Double, val carbs: Double, val fat: Double, val family: String)
+    /** [name] (français) sert de clé pour la mémoire des questions ; [shown] est le nom affiché dans la langue de l'app. */
+    data class Food(val name: String, val kcal: Double, val protein: Double, val carbs: Double, val fat: Double, val family: String, val en: String = "") {
+        val shown: String get() = if (Lang.en && en.isNotBlank()) en else name
+    }
 
     /** Une question fabriquée et sa clé (pour ne jamais la reposer). */
     data class Made(val key: String, val question: DailyQuestion)
 
     private enum class Nutrient(val label: String, val unit: String, val minDiff: Double) {
         KCAL("calories", "kcal", 40.0), PROTEIN("protéines", "g", 3.0), CARBS("glucides", "g", 5.0), FAT("lipides (graisses)", "g", 3.0);
+
+        val shown: String get() = t(label)
 
         fun of(f: Food) = when (this) { KCAL -> f.kcal; PROTEIN -> f.protein; CARBS -> f.carbs; FAT -> f.fat }
         fun show(v: Double) = if (this == KCAL) "${v.roundToInt()} kcal" else "${fmt1(v)} g"
@@ -34,7 +42,7 @@ object QuizGen {
                 val f = line.split('\t')
                 if (f.size < 6) return@mapNotNull null
                 Food(f[0], f[1].toDoubleOrNull() ?: return@mapNotNull null, f[2].toDoubleOrNull() ?: 0.0,
-                    f[3].toDoubleOrNull() ?: 0.0, f[4].toDoubleOrNull() ?: 0.0, f[5])
+                    f[3].toDoubleOrNull() ?: 0.0, f[4].toDoubleOrNull() ?: 0.0, f[5], f.getOrElse(6) { "" }.trim())
             }.toList()
         }.also { foods = it }
     }
@@ -66,12 +74,12 @@ object QuizGen {
         val (a, b) = sorted[0] to sorted[1]
         if (n.of(a) < n.of(b) * 1.3 || n.of(a) - n.of(b) < n.minDiff) return null
         val q = pick(rnd, listOf(
-            "Lequel de ces aliments contient le plus de ${n.label} pour 100 g ?",
-            "Pour 100 g, lequel apporte le plus de ${n.label} ?",
-            "Défi du chef : qui a le plus de ${n.label} (pour 100 g) ?",
-            "À poids égal (100 g), lequel est le plus riche en ${n.label} ?"
+            t("Lequel de ces aliments contient le plus de %1\$s pour 100 g ?", n.shown),
+            t("Pour 100 g, lequel apporte le plus de %1\$s ?", n.shown),
+            t("Défi du chef : qui a le plus de %1\$s (pour 100 g) ?", n.shown),
+            t("À poids égal (100 g), lequel est le plus riche en %1\$s ?", n.shown)
         ))
-        return Made("M${n.ordinal}:" + key(four), build(q, a.name, four.map { it.name }, detail(four, n)))
+        return Made("M${n.ordinal}:" + key(four), build(q, a.shown, four.map { it.shown }, detail(four, n)))
     }
 
     /** « Lequel est le moins calorique ? » */
@@ -80,11 +88,11 @@ object QuizGen {
         val sorted = four.sortedBy { it.kcal }
         if (sorted[1].kcal < sorted[0].kcal * 1.3 || sorted[1].kcal - sorted[0].kcal < 40) return null
         val q = pick(rnd, listOf(
-            "Lequel de ces aliments est le moins calorique pour 100 g ?",
-            "Pour 100 g, lequel apporte le moins de calories ?",
-            "Le chef cherche le plus léger : lequel a le moins de calories pour 100 g ?"
+            t("Lequel de ces aliments est le moins calorique pour 100 g ?"),
+            t("Pour 100 g, lequel apporte le moins de calories ?"),
+            t("Le chef cherche le plus léger : lequel a le moins de calories pour 100 g ?")
         ))
-        return Made("L:" + key(four), build(q, sorted[0].name, four.map { it.name }, detail(four, Nutrient.KCAL)))
+        return Made("L:" + key(four), build(q, sorted[0].shown, four.map { it.shown }, detail(four, Nutrient.KCAL)))
     }
 
     /** « Environ combien de kcal (ou de protéines) dans 100 g de … ? » */
@@ -108,32 +116,33 @@ object QuizGen {
         if (options.size < 4) return null
         val label = { x: Double -> if (n == Nutrient.KCAL) "${x.roundToInt()} kcal" else "${x.roundToInt()} g" }
         val q = if (n == Nutrient.KCAL) pick(rnd, listOf(
-            "Environ combien de calories dans 100 g ${de(f.name)} ?",
-            "100 g ${de(f.name)}, ça fait environ combien de kcal ?"
+            t("Environ combien de calories dans 100 g %1\$s ?", de(f)),
+            t("100 g %1\$s, ça fait environ combien de kcal ?", de(f))
         )) else pick(rnd, listOf(
-            "Environ combien de protéines dans 100 g ${de(f.name)} ?",
-            "100 g ${de(f.name)} apportent environ combien de grammes de protéines ?"
+            t("Environ combien de protéines dans 100 g %1\$s ?", de(f)),
+            t("100 g %1\$s apportent environ combien de grammes de protéines ?", de(f))
         ))
-        val expl = "100 g ${de(f.name)} : ${n.show(v)}" +
-            (if (n == Nutrient.KCAL) " (protéines ${fmt1(f.protein)} g, glucides ${fmt1(f.carbs)} g, lipides ${fmt1(f.fat)} g). " else ". ") + SOURCE
+        val expl = t("100 g %1\$s : %2\$s", de(f), n.show(v)) +
+            (if (n == Nutrient.KCAL) t(" (protéines %1\$s g, glucides %2\$s g, lipides %3\$s g). ", fmt1(f.protein), fmt1(f.carbs), fmt1(f.fat)) else ". ") + t(SOURCE)
         return Made("E${n.ordinal}:" + f.name, build(q, label(good), options.map(label), expl))
     }
 
     /** « D'où vient surtout l'énergie de … ? » (glucides, lipides ou protéines). */
     private fun energySource(all: List<Food>, rnd: Random): Made? {
         val f = all[rnd.nextInt(all.size)]
-        val parts = listOf("Des glucides" to f.carbs * 4, "Des lipides (graisses)" to f.fat * 9, "Des protéines" to f.protein * 4)
+        val parts = listOf(t("Des glucides") to f.carbs * 4, t("Des lipides (graisses)") to f.fat * 9, t("Des protéines") to f.protein * 4)
+        val short = listOf(t("glucides"), t("lipides"), t("protéines"))
         val total = parts.sumOf { it.second }
         if (total < 40) return null
         val top = parts.maxBy { it.second }
         if (top.second / total < 0.6) return null
         val q = pick(rnd, listOf(
-            "${f.name} : d'où vient surtout son énergie ?",
-            "${f.name} : ses calories viennent surtout…"
+            t("%1\$s : d'où vient surtout son énergie ?", f.shown),
+            t("%1\$s : ses calories viennent surtout…", f.shown)
         ))
-        val pct = parts.joinToString(", ") { "${it.first.removePrefix("Des ").lowercase()} ${(it.second * 100 / total).roundToInt()} %" }
+        val pct = parts.indices.joinToString(", ") { i -> "${short[i]} ${(parts[i].second * 100 / total).roundToInt()} %" }
         return Made("S:" + f.name, build(q, top.first, parts.map { it.first },
-            "Part des calories (${lower(f.name)}) : $pct (1 g de lipides = 9 kcal, 1 g de glucides ou de protéines = 4 kcal). $SOURCE"))
+            t("Part des calories (%1\$s) : %2\$s (1 g de lipides = 9 kcal, 1 g de glucides ou de protéines = 4 kcal). %3\$s", lower(f.shown), pct, t(SOURCE))))
     }
 
     /** « Vrai ou faux : 100 g de X contiennent plus de … que 100 g de Y. » */
@@ -144,11 +153,11 @@ object QuizGen {
         if (n.of(hi) < n.of(lo) * 1.5 || n.of(hi) - n.of(lo) < n.minDiff) return null
         val statementTrue = rnd.nextBoolean()
         val (a, b) = if (statementTrue) hi to lo else lo to hi
-        val what = if (n == Nutrient.KCAL) "plus de calories" else "plus de ${n.label}"
-        val q = "Vrai ou faux : 100 g ${de(a.name)} contiennent $what que 100 g ${de(b.name)}."
-        val good = if (statementTrue) "Vrai" else "Faux"
-        return Made("T${n.ordinal}:" + key(listOf(x, y)), build(q, good, listOf("Vrai", "Faux"),
-            "Pour 100 g : ${hi.name} ${n.show(n.of(hi))}, ${lo.name} ${n.show(n.of(lo))}. $SOURCE", shuffle = false))
+        val what = if (n == Nutrient.KCAL) t("plus de calories") else t("plus de %1\$s", n.shown)
+        val q = t("Vrai ou faux : 100 g %1\$s contiennent %2\$s que 100 g %3\$s.", de(a), what, de(b))
+        val good = if (statementTrue) t("Vrai") else t("Faux")
+        return Made("T${n.ordinal}:" + key(listOf(x, y)), build(q, good, listOf(t("Vrai"), t("Faux")),
+            t("Pour 100 g : %1\$s %2\$s, %3\$s %4\$s. %5\$s", hi.shown, n.show(n.of(hi)), lo.shown, n.show(n.of(lo)), t(SOURCE)), shuffle = false))
     }
 
     /** « Le plus calorique : X ou Y ? » */
@@ -160,10 +169,10 @@ object QuizGen {
         val (hi, lo) = if (two[0].kcal >= two[1].kcal) two[0] to two[1] else two[1] to two[0]
         if (hi.kcal < lo.kcal * 1.4 || hi.kcal - lo.kcal < 40) return null
         val q = pick(rnd, listOf(
-            "Duel du chef : lequel est le plus calorique pour 100 g ?",
-            "Pour 100 g, qui gagne le match des calories ?"
+            t("Duel du chef : lequel est le plus calorique pour 100 g ?"),
+            t("Pour 100 g, qui gagne le match des calories ?")
         ))
-        return Made("D:" + key(two), build(q, hi.name, two.map { it.name }, detail(two, Nutrient.KCAL)))
+        return Made("D:" + key(two), build(q, hi.shown, two.map { it.shown }, detail(two, Nutrient.KCAL)))
     }
 
     // ------------------------------------------------------------------ outils
@@ -174,21 +183,23 @@ object QuizGen {
     }
 
     private fun detail(foods: List<Food>, n: Nutrient) =
-        "Pour 100 g : " + foods.sortedByDescending { n.of(it) }.joinToString(", ") { "${it.name} ${n.show(n.of(it))}" } + ". $SOURCE"
+        t("Pour 100 g : ") + foods.sortedByDescending { n.of(it) }.joinToString(", ") { "${it.shown} ${n.show(n.of(it))}" } + ". " + t(SOURCE)
 
     private fun key(foods: List<Food>) = foods.map { it.name }.sorted().joinToString("|")
 
     private fun <T> pick(rnd: Random, list: List<T>) = list[rnd.nextInt(list.size)]
 
     private fun fmt1(v: Double): String = if (v >= 10 || v % 1.0 == 0.0) v.roundToInt().toString()
-                                          else String.format(Locale.FRANCE, "%.1f", v)
+                                          else String.format(com.goodlife.app.i18n.Lang.locale, "%.1f", v)
 
     private fun lower(name: String): String {
         // Garde la majuscule des noms propres (Comté, Brie de Meaux…) ; sinon minuscule au milieu de la phrase
         val proper = listOf("Brie", "Comté", "Cantal", "Beaufort", "Parmesan", "Roquefort", "Camembert", "Reblochon", "Munster",
             "Maroilles", "Livarot", "Époisses", "Chaource", "Coulommiers", "Morbier", "Salers", "Abondance", "Langres",
-            "Neufchâtel", "Pont", "Saint", "Tête de moine", "Gouda", "Edam", "Cheddar", "Mozzarella", "Feta", "Emmental",
-            "Gorgonzola", "Grana", "Asiago", "Fontina", "Provolone", "Burrata", "Mascarpone", "Fourme", "Bresaola", "Coppa")
+            "Neufchâtel", "Pont", "Saint", "Tête de moine", "Tête de Moine", "Gouda", "Edam", "Cheddar", "Mozzarella", "Feta", "Emmental",
+            "Gorgonzola", "Grana", "Asiago", "Fontina", "Provolone", "Burrata", "Mascarpone", "Fourme", "Bresaola", "Coppa",
+            "Bleu d'Auvergne", "French Gruyère", "Brussels", "Jerusalem", "Bayonne", "Morteau", "Vienna", "Mirabelle", "Greengage",
+            "Savoy", "Breton", "Pacific")
         return if (proper.any { name.startsWith(it) }) name else name.replaceFirstChar { it.lowercase() }
     }
 
@@ -196,6 +207,7 @@ object QuizGen {
     private fun startsWithVowel(s: String) = s.firstOrNull()?.lowercaseChar()?.let { it in "aeiouyéèêàâîôûœ" } == true ||
         s.lowercase().let { it.startsWith("huile") || it.startsWith("huître") || it.startsWith("herbe") }
 
-    /** « de pomme », « d'amandes ». */
-    private fun de(name: String): String = lower(name).let { if (startsWithVowel(it)) "d'$it" else "de $it" }
+    /** « de pomme », « d'amandes » (en anglais : « of apple »). */
+    private fun de(f: Food): String =
+        if (Lang.en) "of " + lower(f.shown) else lower(f.name).let { if (startsWithVowel(it)) "d'$it" else "de $it" }
 }

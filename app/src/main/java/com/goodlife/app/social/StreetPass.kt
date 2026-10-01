@@ -1,5 +1,7 @@
 package com.goodlife.app.social
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -114,7 +116,7 @@ class StreetPassService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
             NotificationChannel(StreetPass.CHANNEL, "StreetPass", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Indique que StreetPass est actif"
+                description = t("Indique que StreetPass est actif")
             }
         )
         val open = PendingIntent.getActivity(
@@ -122,8 +124,8 @@ class StreetPassService : Service() {
         )
         val n: Notification = NotificationCompat.Builder(this, StreetPass.CHANNEL)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("StreetPass actif")
-            .setContentText(if (met == 0) "À l'affût d'autres joueurs GoodLife" else "$met rencontre(s) depuis l'activation")
+            .setContentTitle(t("StreetPass actif"))
+            .setContentText(if (met == 0) t("À l'affût d'autres joueurs GoodLife") else t("%1\$s rencontre(s) depuis l'activation", met))
             .setOngoing(true)
             .setContentIntent(open)
             .setPriority(NotificationCompat.PRIORITY_LOW)

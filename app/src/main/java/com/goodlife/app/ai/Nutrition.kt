@@ -1,5 +1,7 @@
 package com.goodlife.app.ai
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.Goal
 import com.goodlife.app.data.Profile
 import com.goodlife.app.data.Sex
@@ -31,8 +33,7 @@ object Nutrition {
         return p.copy(
             targetKcal = kcal, proteinG = protein, carbsG = carbs, fatG = fat,
             targetSource = "formule",
-            targetExplanation = "Calcul Mifflin-St Jeor : métabolisme de base ${bmr(p).roundToInt()} kcal × activité " +
-                "(${p.activity.label}) = ${tdee(p).roundToInt()} kcal/jour, ajusté pour l'objectif « ${p.goal.label} »."
+            targetExplanation = t("Calcul Mifflin-St Jeor : métabolisme de base %1\$s kcal × activité (%2\$s) = %3\$s kcal/jour, ajusté pour l'objectif « %4\$s ».", bmr(p).roundToInt(), p.activity.label, tdee(p).roundToInt(), p.goal.label)
         )
     }
 

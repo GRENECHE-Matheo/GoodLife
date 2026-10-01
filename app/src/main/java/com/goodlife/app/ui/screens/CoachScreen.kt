@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -120,14 +122,14 @@ fun CoachScreen(onBack: () -> Unit) {
         // Première fois : accord explicite pour envoyer le résumé de ses chiffres (données de santé)
         if (Repo.settings.value.coachConsentAt == 0L) { askConsent = q; return }
         if (entries.count { it.message.fromUser } >= MAX_TURNS) {
-            error = "On a beaucoup discuté ! Appuie sur « Nouvelle conversation » pour recommencer."
+            error = t("On a beaucoup discuté ! Appuie sur « Nouvelle conversation » pour recommencer.")
             return
         }
         entries.add(CoachEntry(ChatMessage(true, q)))
         input = ""; error = null; loading = true
         scope.launch {
             try {
-                val system = CHAT_RULES + "\n" + COACH_RULES + "\nChiffres et contexte de la personne :\n" + Coach.aiContext()
+                val system = CHAT_RULES + "\n" + COACH_RULES + t("\nChiffres et contexte de la personne :\n") + Coach.aiContext()
                 val r = Gemini(settings.apiKey, settings.model).coach(system, entries.map { it.message })
                 entries.add(CoachEntry(ChatMessage(false, r.text), r.meals))
             } catch (e: Exception) {
@@ -149,16 +151,16 @@ fun CoachScreen(onBack: () -> Unit) {
         Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, t("Retour")) }
                     ChefMascot(size = 40.dp, mood = if (loading) ChefMood.QUESTION else mood)
                     Spacer(Modifier.width(8.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Ton coach", style = MaterialTheme.typography.titleLarge)
-                        Text("Alimentation, sport et motivation", style = MaterialTheme.typography.bodySmall,
+                        Text(t("Ton coach"), style = MaterialTheme.typography.titleLarge)
+                        Text(t("Alimentation, sport et motivation"), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (entries.isNotEmpty()) IconButton(onClick = { CoachSession.clear(); error = null }) {
-                        Icon(Icons.Filled.RestartAlt, "Nouvelle conversation")
+                        Icon(Icons.Filled.RestartAlt, t("Nouvelle conversation"))
                     }
                 }
                 LazyColumn(
@@ -174,11 +176,8 @@ fun CoachScreen(onBack: () -> Unit) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (dailyWord.isNotBlank()) Bubble(false, dailyWord)
                                 Bubble(false,
-                                    if (aiReady) "Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, " +
-                                        "ton bilan de la semaine… Je connais tes chiffres, et si je te propose des repas, tu pourras " +
-                                        "les ajouter à ton planning en un geste."
-                                    else "Pour discuter avec moi, active l'IA et ajoute ta clé Gemini dans Profil › Paramètres › " +
-                                        "Intelligence artificielle (18 ans et plus). En attendant, je te laisse mes petits mots ici et dans tes notifications !"
+                                    if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres, et si je te propose des repas, tu pourras les ajouter à ton planning en un geste.")
+                                    else t("Pour discuter avec moi, active l'IA et ajoute ta clé Gemini dans Profil › Paramètres › Intelligence artificielle (18 ans et plus). En attendant, je te laisse mes petits mots ici et dans tes notifications !")
                                 )
                             }
                         }
@@ -188,7 +187,7 @@ fun CoachScreen(onBack: () -> Unit) {
                             Bubble(e.message.fromUser, e.message.text)
                             if (!e.message.fromUser) {
                                 if (e.meals.isNotEmpty()) MealProposals(i, e.meals)
-                                AiContentFooter("Coach GoodLife\n${e.message.text}", Modifier.widthIn(max = 340.dp))
+                                AiContentFooter(t("Coach GoodLife\n%1\$s", e.message.text), Modifier.widthIn(max = 340.dp))
                             }
                         }
                     }
@@ -196,7 +195,7 @@ fun CoachScreen(onBack: () -> Unit) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
-                            Text("Le chef réfléchit…", style = MaterialTheme.typography.bodySmall)
+                            Text(t("Le chef réfléchit…"), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -210,21 +209,21 @@ fun CoachScreen(onBack: () -> Unit) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            "Que manger ce soir ?", "Prévois mes repas de demain", "Un conseil sport pour aujourd'hui",
-                            "Comment s'est passée ma semaine ?", "Une idée de collation"
+                            t("Que manger ce soir ?"), t("Prévois mes repas de demain"), t("Un conseil sport pour aujourd'hui"),
+                            t("Comment s'est passée ma semaine ?"), t("Une idée de collation")
                         ).forEach { s -> AssistChip(onClick = { send(s) }, label = { Text(s) }) }
                     }
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
                             input, { input = it.take(600) },
-                            placeholder = { Text("Écris au chef…") },
+                            placeholder = { Text(t("Écris au chef…")) },
                             modifier = Modifier.weight(1f),
                             maxLines = 4,
                             shape = RoundedCornerShape(24.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         FilledIconButton(enabled = input.isNotBlank() && !loading, onClick = { send(input) }) {
-                            Icon(Icons.AutoMirrored.Filled.Send, "Envoyer")
+                            Icon(Icons.AutoMirrored.Filled.Send, t("Envoyer"))
                         }
                     }
                     askConsent?.let { q ->
@@ -238,8 +237,7 @@ fun CoachScreen(onBack: () -> Unit) {
                         )
                     }
                     Text(
-                        "Tes questions et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini " +
-                            "avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. Rien n'est gardé après la fermeture de l'app.",
+                        t("Tes questions et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. Rien n'est gardé après la fermeture de l'app."),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                     )
@@ -254,19 +252,14 @@ fun CoachScreen(onBack: () -> Unit) {
 private fun CoachConsentDialog(onAccept: () -> Unit, onDismiss: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Le chef a besoin de tes chiffres") },
+        title = { Text(t("Le chef a besoin de tes chiffres")) },
         text = {
             Text(
-                "Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : " +
-                    "ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, " +
-                    "un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), " +
-                    "ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\n" +
-                    "Jamais ton prénom, ton sommeil, tes photos ni tes positions GPS. Tu peux retirer cet accord en " +
-                    "désactivant l'IA dans Paramètres."
+                t("Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\nJamais ton prénom, ton sommeil, tes photos ni tes positions GPS. Tu peux retirer cet accord en désactivant l'IA dans Paramètres.")
             )
         },
-        confirmButton = { TextButton(onClick = onAccept) { Text("J'accepte") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+        confirmButton = { TextButton(onClick = onAccept) { Text(t("J'accepte")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
 }
 
@@ -289,7 +282,7 @@ private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
                 Row(Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(m.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
-                        Text("${coachDayLabel(m.date)} · ${m.slot.label} · ${m.kcal} kcal", style = MaterialTheme.typography.labelMedium,
+                        Text(t("%1\$s · %2\$s · %3\$s kcal", coachDayLabel(m.date), m.slot.label, m.kcal), style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer)
                         if (m.description.isNotBlank()) Text(m.description, style = MaterialTheme.typography.bodySmall,
                             maxLines = 3, overflow = TextOverflow.Ellipsis)
@@ -297,7 +290,7 @@ private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
                     TextButton(enabled = !done, onClick = { add(i, m) }) {
                         Icon(if (done) Icons.Filled.Check else Icons.Filled.DateRange, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(if (done) "Ajouté" else "Ajouter")
+                        Text(if (done) t("Ajouté") else t("Ajouter"))
                     }
                 }
             }
@@ -306,16 +299,16 @@ private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
         if (meals.size > 1 && remaining > 0) FilledTonalButton(onClick = { meals.forEachIndexed { i, m -> add(i, m) } }) {
             Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Tout ajouter au planning ($remaining)")
+            Text(t("Tout ajouter au planning (%1\$s)", remaining))
         }
     }
 }
 
 private fun coachDayLabel(date: String): String = when (date) {
-    localDay(0) -> "Aujourd'hui"
-    localDay(1) -> "Demain"
+    localDay(0) -> t("Aujourd'hui")
+    localDay(1) -> t("Demain")
     else -> runCatching {
-        SimpleDateFormat("EEEE d MMM", Locale.FRANCE).format(SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)!!)
+        SimpleDateFormat("EEEE d MMM", com.goodlife.app.i18n.Lang.locale).format(SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)!!)
             .replaceFirstChar { it.uppercase() }
     }.getOrDefault(date)
 }

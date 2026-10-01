@@ -1,5 +1,7 @@
 package com.goodlife.app.ui
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
@@ -190,12 +192,12 @@ fun XpGainCard(startXp: Int, endXp: Int, modifier: Modifier = Modifier) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Niveau ${info.level} · ${info.title}",
+                    t("Niveau %1\$s · %2\$s", info.level, info.title),
                     style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f).graphicsLayer { scaleX = badge.value; scaleY = badge.value; transformOrigin = TransformOrigin(0f, 0.5f) }
                 )
                 Text(
-                    "+${(xp.value - startXp).toInt().coerceAtLeast(0)} XP",
+                    t("+%1\$s XP", (xp.value - startXp).toInt().coerceAtLeast(0)),
                     style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = primary
                 )
             }
@@ -223,8 +225,8 @@ fun XpGainCard(startXp: Int, endXp: Int, modifier: Modifier = Modifier) {
                 }
             }
             Text(
-                if (leveledUp) "Niveau supérieur ! Plus que ${info.xpForNext - info.xpInLevel} XP pour le suivant."
-                else "${info.xpInLevel} / ${info.xpForNext} XP · ${info.xpForNext - info.xpInLevel} XP avant le niveau ${info.level + 1}",
+                if (leveledUp) t("Niveau supérieur ! Plus que %1\$s XP pour le suivant.", info.xpForNext - info.xpInLevel)
+                else t("%1\$s / %2\$s XP · %3\$s XP avant le niveau %4\$s", info.xpInLevel, info.xpForNext, info.xpForNext - info.xpInLevel, info.level + 1),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (leveledUp) primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (leveledUp) FontWeight.Medium else FontWeight.Normal

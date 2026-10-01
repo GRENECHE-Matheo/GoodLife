@@ -1,5 +1,8 @@
 package com.goodlife.app.coach
 
+import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
+
 import com.goodlife.app.data.Goal
 import com.goodlife.app.data.MealSlot
 import com.goodlife.app.data.Profile
@@ -74,19 +77,19 @@ object Coach {
     /** Une phrase positive sur le poids, seulement si elle va dans le sens de l'objectif (jamais culpabilisante). */
     fun weightLine(delta: Double?, goal: Goal): String? {
         if (delta == null) return null
-        val d = String.format(Locale.FRANCE, "%+.1f kg", delta)
+        val d = String.format(com.goodlife.app.i18n.Lang.locale, "%+.1f kg", delta)
         return when (goal) {
-            Goal.PERTE -> if (delta < 0) "Poids : $d, tu te rapproches de ton objectif 👏" else null
-            Goal.PRISE -> if (delta > 0) "Poids : $d, tu te rapproches de ton objectif 👏" else null
-            Goal.MAINTIEN -> if (abs(delta) <= 0.5) "Poids stable ($d) : parfait pour ton objectif." else null
+            Goal.PERTE -> if (delta < 0) t("Poids : %1\$s, tu te rapproches de ton objectif 👏", d) else null
+            Goal.PRISE -> if (delta > 0) t("Poids : %1\$s, tu te rapproches de ton objectif 👏", d) else null
+            Goal.MAINTIEN -> if (abs(delta) <= 0.5) t("Poids stable (%1\$s) : parfait pour ton objectif.", d) else null
         }
     }
 
     fun dayName(date: String): String = runCatching {
-        SimpleDateFormat("EEEE", Locale.FRANCE).format(SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)!!)
+        SimpleDateFormat("EEEE", com.goodlife.app.i18n.Lang.locale).format(SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)!!)
     }.getOrDefault(date)
 
-    fun fmt(n: Int): String = String.format(Locale.FRANCE, "%,d", n).replace(' ', ' ').replace(' ', ' ')
+    fun fmt(n: Int): String = String.format(com.goodlife.app.i18n.Lang.locale, "%,d", n).replace(' ', ' ').replace(' ', ' ')
 
     /** Tirage stable pour une journée (le même texte si la notification est recalculée). */
     fun <T> pick(list: List<T>, salt: Int): T {
@@ -95,18 +98,18 @@ object Coach {
     }
 
     val ENCOURAGEMENTS = listOf(
-        "Chaque repas noté, c'est un pas de plus. Continue comme ça !",
-        "Pas besoin d'être parfait, juste régulier. Tu gères.",
-        "Un bon repas ce midi, et l'après-midi sera plus facile.",
-        "Pense à boire un grand verre d'eau avec ton repas 💧",
-        "Prends le temps de manger assis et sans écran : ton corps te dira quand il a assez.",
-        "Une assiette colorée, c'est souvent une assiette équilibrée 🌈",
-        "Après le repas, 10 minutes de marche aident la digestion 🚶",
-        "Tu fais déjà mieux qu'hier en y pensant. Bon appétit !",
-        "Des légumes, une source de protéines, un féculent : le trio gagnant.",
-        "Le chef croit en toi. Bon appétit ! 👨‍🍳",
-        "Écoute ta faim : on peut s'arrêter avant d'avoir fini son assiette.",
-        "Petit rappel : un fruit en dessert, c'est simple et bon 🍎"
+        t("Chaque repas noté, c'est un pas de plus. Continue comme ça !"),
+        t("Pas besoin d'être parfait, juste régulier. Tu gères."),
+        t("Un bon repas ce midi, et l'après-midi sera plus facile."),
+        t("Pense à boire un grand verre d'eau avec ton repas 💧"),
+        t("Prends le temps de manger assis et sans écran : ton corps te dira quand il a assez."),
+        t("Une assiette colorée, c'est souvent une assiette équilibrée 🌈"),
+        t("Après le repas, 10 minutes de marche aident la digestion 🚶"),
+        t("Tu fais déjà mieux qu'hier en y pensant. Bon appétit !"),
+        t("Des légumes, une source de protéines, un féculent : le trio gagnant."),
+        t("Le chef croit en toi. Bon appétit ! 👨‍🍳"),
+        t("Écoute ta faim : on peut s'arrêter avant d'avoir fini son assiette."),
+        t("Petit rappel : un fruit en dessert, c'est simple et bon 🍎")
     )
 
     /** Le petit mot du chef sur l'accueil, avec son humeur. Tout est calculé sur le téléphone. */
@@ -117,18 +120,18 @@ object Coach {
         val okYesterday = y != null && (y.status == DayStatus.REUSSI || y.status == DayStatus.RATTRAPE)
         return when {
             s.today.status == DayStatus.REUSSI -> com.goodlife.app.ui.ChefMood.BRAVO to
-                pick(listOf("Journée validée (${s.today.score}/100) ! Bravo${if (name != null) " $name" else ""} 🎉",
-                    "${s.today.score}/100 aujourd'hui, c'est du beau travail !", "Objectif du jour atteint. Le chef est ravi !"), 1)
+                pick(listOf(if (name != null) t("Journée validée (%1\$s/100) ! Bravo %2\$s 🎉", s.today.score, name) else t("Journée validée (%1\$s/100) ! Bravo 🎉", s.today.score),
+                    t("%1\$s/100 aujourd'hui, c'est du beau travail !", s.today.score), t("Objectif du jour atteint. Le chef est ravi !")), 1)
             okYesterday && s.streak in MILESTONES -> com.goodlife.app.ui.ChefMood.BRAVO to
-                "${s.streak} jours de série ! Continue, tu es sur une super lancée 🔥"
+                t("%1\$s jours de série ! Continue, tu es sur une super lancée 🔥", s.streak)
             hour < 11 && y != null && y.kcal > 0 -> (if (okYesterday) com.goodlife.app.ui.ChefMood.CONTENT else com.goodlife.app.ui.ChefMood.QUESTION) to
-                if (okYesterday) "Hier : ${y.score}/100, bravo ! On repart pour une belle journée ?"
-                else "Hier : ${y.score}/100. Pas grave du tout : aujourd'hui est une nouvelle page."
+                if (okYesterday) t("Hier : %1\$s/100, bravo ! On repart pour une belle journée ?", y.score)
+                else t("Hier : %1\$s/100. Pas grave du tout : aujourd'hui est une nouvelle page.", y.score)
             s.today.kcal == 0 && hour >= 14 -> com.goodlife.app.ui.ChefMood.QUESTION to
-                if (s.streak > 0) "Qu'as-tu mangé aujourd'hui ? Note-le pour garder ta série de ${s.streak} jour${if (s.streak > 1) "s" else ""}."
-                else "Qu'as-tu mangé aujourd'hui ? Note tes repas pour lancer ta série !"
+                if (s.streak > 0) tp(s.streak, "Qu'as-tu mangé aujourd'hui ? Note-le pour garder ta série de %1\$s jour.", "Qu'as-tu mangé aujourd'hui ? Note-le pour garder ta série de %1\$s jours.")
+                else t("Qu'as-tu mangé aujourd'hui ? Note tes repas pour lancer ta série !")
             s.today.kcal > 0 && s.today.stepGoal > 0 && s.today.steps < s.today.stepGoal / 2 && hour >= 16 -> com.goodlife.app.ui.ChefMood.CONTENT to
-                "Encore ${fmt(s.today.stepGoal - s.today.steps)} pas pour ton objectif : une petite marche ce soir ?"
+                t("Encore %1\$s pas pour ton objectif : une petite marche ce soir ?", fmt(s.today.stepGoal - s.today.steps))
             else -> com.goodlife.app.ui.ChefMood.CONTENT to pick(ENCOURAGEMENTS, 7)
         }
     }
@@ -144,33 +147,33 @@ object Coach {
         val now = Calendar.getInstance()
         val today = Repo.mealsOfDay(Repo.meals.value)
         val sb = StringBuilder()
-        sb.append("Aujourd'hui : ").append(dayName(localDay(0))).append(' ').append(localDay(0))
-            .append(", il est ").append(now.get(Calendar.HOUR_OF_DAY)).append("h.\n")
-        sb.append("Profil : ${p.age} ans, ${p.sex.label}, ${p.weightKg} kg, ${p.heightCm.roundToInt()} cm, activité ${p.activity.label}, ")
-            .append("objectif ${p.goal.label}. Objectif : ${p.targetKcal} kcal/jour (protéines ${p.proteinG} g, glucides ${p.carbsG} g, lipides ${p.fatG} g).\n")
+        sb.append(t("Aujourd'hui : ")).append(dayName(localDay(0))).append(' ').append(localDay(0))
+            .append(t(", il est ")).append(now.get(Calendar.HOUR_OF_DAY)).append("h.\n")
+        sb.append(t("Profil : %1\$s ans, %2\$s, %3\$s kg, %4\$s cm, activité %5\$s, ", p.age, p.sex.label, p.weightKg, p.heightCm.roundToInt(), p.activity.label))
+            .append(t("objectif %1\$s. Objectif : %2\$s kcal/jour (protéines %3\$s g, glucides %4\$s g, lipides %5\$s g).\n", p.goal.label, p.targetKcal, p.proteinG, p.carbsG, p.fatG))
         sb.append("Habitudes : ${p.habits.ifBlank { "non précisées" }}. Allergies : ${p.allergies.ifBlank { "aucune connue" }}.\n")
-        sb.append("Repas d'aujourd'hui : ")
-        if (today.isEmpty()) sb.append("aucun pour l'instant") else today.sortedBy { it.timestamp }.forEach {
-            sb.append("${it.name} (${it.kcal} kcal, P${it.proteinG.roundToInt()} G${it.carbsG.roundToInt()} L${it.fatG.roundToInt()}) ; ")
+        sb.append(t("Repas d'aujourd'hui : "))
+        if (today.isEmpty()) sb.append(t("aucun pour l'instant")) else today.sortedBy { it.timestamp }.forEach {
+            sb.append(t("%1\$s (%2\$s kcal, P%3\$s G%4\$s L%5\$s) ; ", it.name, it.kcal, it.proteinG.roundToInt(), it.carbsG.roundToInt(), it.fatG.roundToInt()))
         }
-        sb.append("\nTotal du jour : ${s.today.kcal} kcal, reste ${p.targetKcal - s.today.kcal} kcal. Score du jour : ${s.today.score}/100.\n")
-        if (s.today.stepGoal > 0) sb.append("Pas aujourd'hui : ${s.today.steps} / objectif ${s.today.stepGoal}.\n")
-        sb.append("7 derniers jours : ${w.validated}/7 jours validés, score moyen ${w.avgScore}, moyenne ${w.avgKcal} kcal les jours notés, ")
+        sb.append(t("\nTotal du jour : %1\$s kcal, reste %2\$s kcal. Score du jour : %3\$s/100.\n", s.today.kcal, p.targetKcal - s.today.kcal, s.today.score))
+        if (s.today.stepGoal > 0) sb.append(t("Pas aujourd'hui : %1\$s / objectif %2\$s.\n", s.today.steps, s.today.stepGoal))
+        sb.append(t("7 derniers jours : %1\$s/7 jours validés, score moyen %2\$s, moyenne %3\$s kcal les jours notés, ", w.validated, w.avgScore, w.avgKcal))
             .append("${w.steps} pas au total, ${w.sessions} séance(s) de sport, ${w.outings} sortie(s) GPS (${String.format(Locale.US, "%.1f", w.outingKm)} km).\n")
-        sb.append("Série en cours : ${s.streak} jours (record ${s.bestStreak}). Niveau ${s.level.level}.\n")
+        sb.append(t("Série en cours : %1\$s jours (record %2\$s). Niveau %3\$s.\n", s.streak, s.bestStreak, s.level.level))
         w.weightDelta?.let { sb.append("Évolution du poids sur la semaine : ${String.format(Locale.US, "%+.1f", it)} kg.\n") }
         Repo.sport.value.program?.let { pr ->
-            sb.append("Programme sportif : but « ${pr.goal} », niveau ${pr.level}, ${pr.daysPerWeek} jours/semaine, matériel : ")
-                .append(pr.equipment.ifEmpty { listOf("aucun") }.joinToString()).append(". Séances : ")
-                .append(pr.sessions.joinToString(" ; ") { "jour ${it.day} ${it.title} (${it.minutes} min)" })
-            if (pr.limits.isNotBlank()) sb.append(". Limites / douleurs : ${pr.limits}")
+            sb.append(t("Programme sportif : but « %1\$s », niveau %2\$s, %3\$s jours/semaine, matériel : ", pr.goal, pr.level, pr.daysPerWeek))
+                .append(pr.equipment.ifEmpty { listOf("aucun") }.joinToString()).append(t(". Séances : "))
+                .append(pr.sessions.joinToString(" ; ") { t("jour %1\$s %2\$s (%3\$s min)", it.day, it.title, it.minutes) })
+            if (pr.limits.isNotBlank()) sb.append(t(". Limites / douleurs : %1\$s", pr.limits))
             sb.append(".\n")
         }
         val upcoming = Repo.plan.value.filter { it.date >= localDay(0) && it.date <= localDay(7) && !it.done }
             .sortedWith(compareBy({ it.date }, { it.slot.ordinal }))
         if (upcoming.isNotEmpty()) {
-            sb.append("Déjà prévu au planning : ")
-            upcoming.take(20).forEach { sb.append("${it.date} ${it.slot.label} : ${it.name} (${it.kcal} kcal) ; ") }
+            sb.append(t("Déjà prévu au planning : "))
+            upcoming.take(20).forEach { sb.append(t("%1\$s %2\$s : %3\$s (%4\$s kcal) ; ", it.date, it.slot.label, it.name, it.kcal)) }
             sb.append('\n')
         }
         return sb.toString()

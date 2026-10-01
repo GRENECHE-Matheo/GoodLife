@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -166,16 +168,16 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
     fun next() {
         if (page == 5) {
             error = if (stepsOn && stepsMode == "manual" && (stepsManual.toNumber()?.toInt() ?: 0) !in 1000..40_000)
-                "Choisis un objectif entre 1 000 et 40 000 pas." else null
+                t("Choisis un objectif entre 1 000 et 40 000 pas.") else null
             if (error == null) leaveStepsPage()
             return
         }
         error = when (page) {
-            1 -> if (!policyOk) "Coche la case pour accepter la politique de confidentialité." else null
+            1 -> if (!policyOk) t("Coche la case pour accepter la politique de confidentialité.") else null
             2 -> ageError(age.toNumber()?.toInt())
             3 -> bodyError(weight.toNumber(), height.toNumber())
             4 -> goalError(goal, profile())
-            6 -> if (!healthOk) "Coche la case pour que GoodLife puisse enregistrer tes données." else null
+            6 -> if (!healthOk) t("Coche la case pour que GoodLife puisse enregistrer tes données.") else null
             else -> null
         }
         if (error == null && page < PAGES - 1) page++
@@ -188,7 +190,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
                 // Barre de progression
                 Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (page > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+                    if (page > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, t("Retour")) }
                     else Spacer(Modifier.size(48.dp))
                     val progress by animateFloatAsState((page + 1f) / PAGES, label = "progress")
                     LinearProgressIndicator(
@@ -212,69 +214,66 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                             0 -> WelcomePage()
                             1 -> PolicyPage(policyOk, { policyOk = it; error = null }, onOpenPolicy)
                             2 -> {
-                                PageTitle(ChefMood.CONTENT, "Faisons connaissance", "Pour personnaliser tes conseils. Ton prénom reste sur ton téléphone.")
-                                OutlinedTextField(name, { name = it.take(40) }, label = { Text("Prénom (facultatif)") },
+                                PageTitle(ChefMood.CONTENT, t("Faisons connaissance"), t("Pour personnaliser tes conseils. Ton prénom reste sur ton téléphone."))
+                                OutlinedTextField(name, { name = it.take(40) }, label = { Text(t("Prénom (facultatif)")) },
                                     singleLine = true, modifier = Modifier.fillMaxWidth())
-                                Field(age, { age = it; error = null }, "Âge", decimal = false)
-                                Chips("Sexe (pour le calcul des besoins)", Sex.entries, sex, { it.label }) { sex = it }
+                                Field(age, { age = it; error = null }, t("Âge"), decimal = false)
+                                Chips(t("Sexe (pour le calcul des besoins)"), Sex.entries, sex, { it.label }) { sex = it }
                             }
                             3 -> {
-                                PageTitle(ChefMood.QUESTION, "Ton corps", "Pour estimer tes besoins en énergie. Tu pourras tout modifier plus tard.")
+                                PageTitle(ChefMood.QUESTION, t("Ton corps"), t("Pour estimer tes besoins en énergie. Tu pourras tout modifier plus tard."))
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Field(weight, { weight = it; error = null }, "Poids (kg)", Modifier.weight(1f))
-                                    Field(height, { height = it; error = null }, "Taille (cm)", Modifier.weight(1f))
+                                    Field(weight, { weight = it; error = null }, t("Poids (kg)"), Modifier.weight(1f))
+                                    Field(height, { height = it; error = null }, t("Taille (cm)"), Modifier.weight(1f))
                                 }
-                                Chips("Au quotidien, tu es plutôt…", ActivityLevel.entries, activity, { it.label }) { activity = it }
+                                Chips(t("Au quotidien, tu es plutôt…"), ActivityLevel.entries, activity, { it.label }) { activity = it }
                                 Text(ACTIVITY_HELP[activity] ?: "", style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             4 -> {
-                                PageTitle(ChefMood.BRAVO, "Ton objectif", "Le chef adapte le score, les idées de repas et les conseils.")
-                                Chips("Objectif", Goal.entries, goal, { it.label }) { goal = it; error = null }
-                                OutlinedTextField(habits, { habits = it.take(300) }, label = { Text("Habitudes alimentaires (facultatif)") },
-                                    placeholder = { Text("Ex : végétarien, je saute souvent le petit-déj…") },
+                                PageTitle(ChefMood.BRAVO, t("Ton objectif"), t("Le chef adapte le score, les idées de repas et les conseils."))
+                                Chips(t("Objectif"), Goal.entries, goal, { it.label }) { goal = it; error = null }
+                                OutlinedTextField(habits, { habits = it.take(300) }, label = { Text(t("Habitudes alimentaires (facultatif)")) },
+                                    placeholder = { Text(t("Ex : végétarien, je saute souvent le petit-déj…")) },
                                     minLines = 2, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(allergies, { allergies = it.take(200) }, label = { Text("Allergies / intolérances (facultatif)") },
-                                    placeholder = { Text("Ex : arachides, lactose, gluten") }, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(allergies, { allergies = it.take(200) }, label = { Text(t("Allergies / intolérances (facultatif)")) },
+                                    placeholder = { Text(t("Ex : arachides, lactose, gluten")) }, modifier = Modifier.fillMaxWidth())
                             }
                             5 -> {
-                                PageTitle(ChefMood.SPORT, "Tes pas", "Bouger un peu plus chaque jour compte autant que bien manger.")
+                                PageTitle(ChefMood.SPORT, t("Tes pas"), t("Bouger un peu plus chaque jour compte autant que bien manger."))
                                 Row(Modifier.fillMaxWidth().toggleable(stepsOn, role = Role.Switch) { stepsOn = it }, verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
-                                        Text("Compter mes pas", style = MaterialTheme.typography.bodyLarge)
-                                        Text("Comptés sur le téléphone, jamais envoyés (sauf ta moyenne à l'IA si tu choisis son conseil).",
+                                        Text(t("Compter mes pas"), style = MaterialTheme.typography.bodyLarge)
+                                        Text(t("Comptés sur le téléphone, jamais envoyés (sauf ta moyenne à l'IA si tu choisis son conseil)."),
                                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     androidx.compose.material3.Switch(checked = stepsOn, onCheckedChange = null)
                                 }
                                 if (stepsOn) {
-                                    if (canSensor && canHc) Chips("Avec quoi ?", listOf("sensor", "hc"), stepsSource,
-                                        { if (it == "sensor") "Capteur du téléphone" else "Health Connect (montre, Samsung Health…)" }) { stepsSource = it }
-                                    else Text(if (canSensor) "Avec le capteur de pas du téléphone." else "Avec Health Connect (ton téléphone n'a pas de capteur de pas).",
+                                    if (canSensor && canHc) Chips(t("Avec quoi ?"), listOf("sensor", "hc"), stepsSource,
+                                        { if (it == "sensor") t("Capteur du téléphone") else t("Health Connect (montre, Samsung Health…)") }) { stepsSource = it }
+                                    else Text(if (canSensor) t("Avec le capteur de pas du téléphone.") else t("Avec Health Connect (ton téléphone n'a pas de capteur de pas)."),
                                         style = MaterialTheme.typography.bodyMedium)
-                                    Chips("Mon objectif par jour", listOf("auto", "manual", "ia"), stepsMode, {
-                                        when (it) { "auto" -> "Automatique"; "manual" -> "Je choisis"; else -> "Conseil de l'IA" }
+                                    Chips(t("Mon objectif par jour"), listOf("auto", "manual", "ia"), stepsMode, {
+                                        when (it) { "auto" -> t("Automatique"); "manual" -> t("Je choisis"); else -> t("Conseil de l'IA") }
                                     }) { stepsMode = it }
                                     Text(
                                         when (stepsMode) {
-                                            "auto" -> "Ta moyenne des 7 derniers jours + 10 %, pour progresser doucement (6 000 pas au début)."
-                                            "manual" -> "Tu fixes ton objectif, tu pourras le changer quand tu veux."
-                                            else -> "Chaque jour, l'IA regarde tes vrais pas de la semaine et ajuste ton objectif petit à petit " +
-                                                "(jamais plus de 15 % d'un jour à l'autre). Il faut activer l'IA (18 ans et plus) à l'étape suivante ; " +
-                                                "en attendant, l'objectif est automatique."
+                                            "auto" -> t("Ta moyenne des 7 derniers jours + 10 %, pour progresser doucement (6 000 pas au début).")
+                                            "manual" -> t("Tu fixes ton objectif, tu pourras le changer quand tu veux.")
+                                            else -> t("Chaque jour, l'IA regarde tes vrais pas de la semaine et ajuste ton objectif petit à petit (jamais plus de 15 % d'un jour à l'autre). Il faut activer l'IA (18 ans et plus) à l'étape suivante ; en attendant, l'objectif est automatique.")
                                         },
                                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    if (stepsMode == "manual") Field(stepsManual, { stepsManual = it; error = null }, "Pas par jour", decimal = false)
+                                    if (stepsMode == "manual") Field(stepsManual, { stepsManual = it; error = null }, t("Pas par jour"), decimal = false)
                                 }
                             }
                             6 -> SummaryPage(profile(), healthOk) { healthOk = it; error = null }
                             else -> {
-                                PageTitle(ChefMood.BRAVO, "Le chef t'accompagne", "Des petits messages pour garder le rythme, sans t'embêter.")
+                                PageTitle(ChefMood.BRAVO, t("Le chef t'accompagne"), t("Des petits messages pour garder le rythme, sans t'embêter."))
                                 NotifChoices(prefs) { n -> notifs = listOf(n.morning, n.noon, n.evening, n.weekly) }
                                 Text(
-                                    "Préparés sur ton téléphone, jamais plus d'un à la fois. Sur l'écran verrouillé, seul " +
-                                        "« Un message du chef » s'affiche. Tu peux tout changer dans Paramètres.",
+                                    t("Préparés sur ton téléphone, jamais plus d'un à la fois. Sur l'écran verrouillé, seul « Un message du chef » s'affiche. Tu peux tout changer dans Paramètres."),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -289,18 +288,18 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                     )
                     when (page) {
                         0 -> {
-                            Button(onClick = { next() }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("C'est parti !") }
+                            Button(onClick = { next() }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(t("C'est parti !")) }
                         }
                         PAGES - 1 -> {
                             Button(
                                 onClick = { if (prefs.any) askNotif() else finish(prefs) },
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
-                            ) { Text("Terminer") }
+                            ) { Text(t("Terminer")) }
                             TextButton(onClick = { finish(NotifPrefs(false, false, false, false)) }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Pas de notifications pour l'instant")
+                                Text(t("Pas de notifications pour l'instant"))
                             }
                         }
-                        else -> Button(onClick = { next() }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Continuer") }
+                        else -> Button(onClick = { next() }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(t("Continuer")) }
                     }
                 }
             }
@@ -309,31 +308,30 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
 }
 
 private val ACTIVITY_HELP = mapOf(
-    ActivityLevel.SEDENTAIRE to "Surtout assis (bureau, cours), peu de marche.",
-    ActivityLevel.LEGER to "Un peu de marche chaque jour, ou du sport 1 à 2 fois par semaine.",
-    ActivityLevel.MODERE to "Souvent debout ou en mouvement, ou du sport 3 à 4 fois par semaine.",
-    ActivityLevel.ACTIF to "Métier physique, ou du sport presque tous les jours.",
-    ActivityLevel.TRES_ACTIF to "Entraînement intense chaque jour ou travail très physique."
+    ActivityLevel.SEDENTAIRE to t("Surtout assis (bureau, cours), peu de marche."),
+    ActivityLevel.LEGER to t("Un peu de marche chaque jour, ou du sport 1 à 2 fois par semaine."),
+    ActivityLevel.MODERE to t("Souvent debout ou en mouvement, ou du sport 3 à 4 fois par semaine."),
+    ActivityLevel.ACTIF to t("Métier physique, ou du sport presque tous les jours."),
+    ActivityLevel.TRES_ACTIF to t("Entraînement intense chaque jour ou travail très physique.")
 )
 
 @Composable
 private fun ColumnScope.WelcomePage() {
     ChefMascot(size = 120.dp, mood = ChefMood.BRAVO, modifier = Modifier.align(Alignment.CenterHorizontally))
-    Text("Bienvenue sur GoodLife", style = MaterialTheme.typography.headlineLarge)
-    Text("Ton coach pour mieux manger et bouger plus, à ton rythme.", style = MaterialTheme.typography.bodyLarge,
+    Text(t("Bienvenue sur GoodLife"), style = MaterialTheme.typography.headlineLarge)
+    Text(t("Ton coach pour mieux manger et bouger plus, à ton rythme."), style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Feature(Icons.Filled.Restaurant, "Mange mieux, sans te priver", "Photo de ton assiette, idées de repas, planning de la semaine.")
-    Feature(Icons.Filled.DirectionsRun, "Bouge plus", "Pas, programme sportif, course, marche et vélo avec la carte.")
-    Feature(Icons.Filled.LocalFireDepartment, "Reste motivé", "Séries, niveaux, quiz et les petits mots du chef.")
-    Feature(Icons.Filled.Lock, "Tes données restent chez toi", "Aucun compte, aucune pub, tout est chiffré sur ton téléphone.")
+    Feature(Icons.Filled.Restaurant, t("Mange mieux, sans te priver"), t("Photo de ton assiette, idées de repas, planning de la semaine."))
+    Feature(Icons.Filled.DirectionsRun, t("Bouge plus"), t("Pas, programme sportif, course, marche et vélo avec la carte."))
+    Feature(Icons.Filled.LocalFireDepartment, t("Reste motivé"), t("Séries, niveaux, quiz et les petits mots du chef."))
+    Feature(Icons.Filled.Lock, t("Tes données restent chez toi"), t("Aucun compte, aucune pub, tout est chiffré sur ton téléphone."))
     Text(
-        "Réservé aux ${Nutrition.MIN_AGE} ans et plus. GoodLife est une app de bien-être, pas un dispositif médical : " +
-            "demande l'avis d'un professionnel de santé avant de changer ton alimentation.",
+        t("Réservé aux %1\$s ans et plus. GoodLife est une app de bien-être, pas un dispositif médical : demande l'avis d'un professionnel de santé avant de changer ton alimentation.", Nutrition.MIN_AGE),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    SectionCard(title = "Tu changes de téléphone ?", icon = Icons.Filled.Restore) {
+    SectionCard(title = t("Tu changes de téléphone ?"), icon = Icons.Filled.Restore) {
         Text(
-            "Restaure ta sauvegarde GoodLife (fichier .goodlife) avec son mot de passe pour tout retrouver.",
+            t("Restaure ta sauvegarde GoodLife (fichier .goodlife) avec son mot de passe pour tout retrouver."),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         RestoreButton(outlined = true)
@@ -342,34 +340,32 @@ private fun ColumnScope.WelcomePage() {
 
 @Composable
 private fun PolicyPage(accepted: Boolean, onAccept: (Boolean) -> Unit, onOpenPolicy: () -> Unit) {
-    PageTitle(ChefMood.CONTENT, "Tes données restent chez toi", "Voici exactement ce qui peut quitter ton téléphone, et quand.")
+    PageTitle(ChefMood.CONTENT, t("Tes données restent chez toi"), t("Voici exactement ce qui peut quitter ton téléphone, et quand."))
     SectionCard {
         DataFlowSummary()
-        TextButton(onClick = onOpenPolicy) { Text("Lire la politique de confidentialité complète") }
+        TextButton(onClick = onOpenPolicy) { Text(t("Lire la politique de confidentialité complète")) }
     }
-    CheckLine(accepted, onAccept, "J'ai lu et j'accepte la politique de confidentialité de GoodLife.")
+    CheckLine(accepted, onAccept, t("J'ai lu et j'accepte la politique de confidentialité de GoodLife."))
 }
 
 @Composable
 private fun SummaryPage(p: Profile, consent: Boolean, onConsent: (Boolean) -> Unit) {
     val t = Nutrition.formulaTarget(p)
-    PageTitle(ChefMood.BRAVO, if (p.name.isBlank()) "C'est presque fini !" else "C'est presque fini, ${p.name} !", "Voici ton point de départ.")
+    PageTitle(ChefMood.BRAVO, if (p.name.isBlank()) t("C'est presque fini !") else t("C'est presque fini, %1\$s !", p.name), t("Voici ton point de départ."))
     Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Ton objectif quotidien", style = MaterialTheme.typography.labelLarge)
+            Text(t("Ton objectif quotidien"), style = MaterialTheme.typography.labelLarge)
             Text("${com.goodlife.app.coach.Coach.fmt(t.targetKcal)} kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
-            Text("Protéines ${t.proteinG} g · Glucides ${t.carbsG} g · Lipides ${t.fatG} g", style = MaterialTheme.typography.bodyMedium)
+            Text(t("Protéines %1\$s g · Glucides %2\$s g · Lipides %3\$s g", t.proteinG, t.carbsG, t.fatG), style = MaterialTheme.typography.bodyMedium)
             Text(
-                "Calculé sur ton téléphone (formule de Mifflin-St Jeor) selon ton âge, ton poids, ta taille, ton activité et " +
-                    "ton objectif « ${p.goal.label} ». Tu pourras l'affiner plus tard.",
+                t("Calculé sur ton téléphone (formule de Mifflin-St Jeor) selon ton âge, ton poids, ta taille, ton activité et ton objectif « %1\$s ». Tu pourras l'affiner plus tard.", p.goal.label),
                 style = MaterialTheme.typography.bodySmall
             )
         }
     }
     CheckLine(
         consent, onConsent,
-        "J'accepte que GoodLife enregistre sur ce téléphone mes données de santé (poids, taille, repas, pas, sommeil, allergies) " +
-            "pour calculer mes besoins. Je peux retirer cet accord en effaçant mes données (Paramètres)."
+        t("J'accepte que GoodLife enregistre sur ce téléphone mes données de santé (poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins. Je peux retirer cet accord en effaçant mes données (Paramètres).")
     )
 }
 

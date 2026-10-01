@@ -1,372 +1,372 @@
 # Aliments courants pour le quiz du chef, tirés de la table Ciqual 2025 (Anses, doi:10.57745/RDMHWY), Licence Ouverte Etalab 2.0.
-# Colonnes : nom, kcal, protéines, glucides, lipides, famille (pour 100 g)
-Abondance (fromage)	393	27.1	0	31.6	laitier
-Abricot	44.1	0.8	9	0	végétal
-Abricot sec	239	2.9	59.1	0.5	végétal
-Ail cru	109	5.3	18.6	0	plats
-Amandes	615	18.8	9.5	51.3	végétal
-Ananas cru	51.6	0.2	11.7	0	végétal
-Anchois cru	129	18.6	0	6.1	viande-poisson
-Andouille	211	18.4	0.3	15.1	viande-poisson
-Artichaut cru	45.4	3.3	4.8	0.1	végétal
-Artichaut cuit	33.2	2.5	1	0.3	végétal
-Asiago (fromage)	356	32.1	0	25.6	laitier
-Aubergine crue	22.9	1	2.7	0.2	végétal
-Aubergine cuite	27.1	0.8	4.2	0.2	végétal
-Avocat	203	1.6	0	20.6	végétal
-Avoine crue	378	16.9	55.7	6.9	céréales
-Banane crue	87.6	1.1	19.7	0	végétal
-Barre chocolatée biscuitée	492	5.6	61.4	24.1	sucré
-Batavia crue	14.9	1.2	1.8	0	végétal
-Beaufort (fromage)	404	26.7	0.7	33	laitier
-Beignet de crevette	260	6.5	35.5	10	viande-poisson
-Betterave rouge crue	40.2	1.6	6.3	0.2	végétal
-Betterave rouge cuite	41.5	1.4	7.1	0.4	végétal
-Beurre	731	0.6	0.9	80.5	gras
-Beurre de cacahuète	643	22.2	17.3	51.4	végétal
-Biscotte classique	394	10	73.2	5.4	céréales
-Biscuit de Savoie	260	5.9	56.3	0.8	sucré
-Biscuit sec	436	7.2	74	11.7	sucré
-Blanc de poulet cru	110	23.4	0	1.5	viande-poisson
-Blanc de poulet grillé	141	30.1	0	2	viande-poisson
-Blé dur complet cru	342	13.7	59.3	2.5	céréales
-Blinis	270	5.9	34.6	11.5	céréales
-Boeuf braisé	240	32.1	0	12.4	viande-poisson
-Boisson au soja nature	42.4	3.2	1.9	2.1	plats
-Bonbon dragéifié	378	0.5	89.9	1.9	sucré
-Bonbon gélifié	339	4.9	76.9	0.5	sucré
-Bonbon tendre	392	0.9	84.3	5.1	sucré
-Boulgour cuit	131	4.3	24.1	1	céréales
-Boulgour de blé cru	347	11.7	65.8	1.4	céréales
-Bresaola	172	32.8	0.5	4.3	viande-poisson
-Brie de Meaux (fromage)	276	21.4	1.2	20.7	laitier
-Brocoli cru	31.9	2.9	2.1	0.4	végétal
-Brocoli cuit	30	3.2	1.8	0.6	végétal
-Burrata	259	10.8	0.9	23.4	laitier
-Cabillaud cru	77.4	18.1	0	0.6	viande-poisson
-Cabillaud cuit	106	24.5	0	0.9	viande-poisson
-Cacahuètes grillées	644	23.5	14.4	51.9	végétal
-Camembert	275	19.2	1.3	21.5	laitier
-Canelé	298	5	61	3.2	sucré
-Cantal (fromage)	378	25.3	0	31	laitier
-Carambole crue	28.4	1	3.8	0.3	végétal
-Carotte crue	30.2	0.8	5.2	0	végétal
-Carotte cuite	33	0.4	6.2	0.2	végétal
-Cassis cru	70.2	1.4	9.7	0.4	végétal
-Céleri branche cru	15.4	0.6	2.4	0	végétal
-Céleri branche cuit	13.1	0.6	1.4	0.1	végétal
-Céleri-rave cru	26.3	1.4	4	0	végétal
-Céleri-rave cuit	36.5	1.3	4.6	0.9	végétal
-Cerise	53.7	0.8	13	0	végétal
-Cervelas	278	11.9	1.6	24.8	viande-poisson
-Champignons de Paris crus	21	2.1	1.8	0.4	végétal
-Chaource (fromage)	278	17.3	0.6	22.9	laitier
-Chapelure	365	9.4	74.3	1.6	céréales
-Charlotte aux fruits	200	5.2	28.2	6.6	sucré
-Châtaigne crue	189	2	36.8	1.8	végétal
-Chausson aux pommes	360	4.2	42.2	18.7	sucré
-Cheddar	399	24.7	1.2	32.6	laitier
-Chewing-gum	206	0.2	76	0.2	sucré
-Chicorée verte crue	16.1	1.9	0.5	0.5	végétal
-Chipolata crue	253	15.8	1	20.6	viande-poisson
-Chipolata cuite	283	18.8	0.8	22.4	viande-poisson
-Chips	532	6	51	32.7	végétal
-Chocolat au lait	550	7.5	58.9	30.8	sucré
-Chocolat noir 70 %	591	10.4	26.9	46.3	sucré
-Chorizo	425	23.5	1.2	36.1	viande-poisson
-Chou blanc cru	35.2	1.4	4.6	0.6	végétal
-Chou de Bruxelles cru	43.9	3.4	4.6	0.3	végétal
-Chou frisé cru	49.5	4.3	4.2	0.9	végétal
-Chou frisé cuit	29.7	1.9	3.6	0.4	végétal
-Chou kale cru	34.6	2.9	0.3	1.5	végétal
-Chou rouge cru	26.4	1.1	4.3	0	végétal
-Chou rouge cuit	31.8	1.3	5.1	0.1	végétal
-Chou vert cru	24.4	1.4	2.7	0.1	végétal
-Chou vert cuit	24.1	1	3	0.5	végétal
-Chou-fleur cru	24.9	1.8	2.1	0.7	végétal
-Chou-fleur cuit	20.9	1.6	1.6	0.5	végétal
-Chouquette	408	9.1	40.6	22.9	sucré
-Citron	24.3	0.2	1.6	0	végétal
-Citrouille crue	29.7	1	5.8	0.1	végétal
-Clémentine	45.5	0.8	9.2	0	végétal
-Coing cru	59	0.4	12.5	0.1	végétal
-Compote de pomme	107	0.2	25.8	0.2	végétal
-Comté	413	27.8	0	33.8	laitier
-Concombre cru	16.8	0.7	2.9	0.1	végétal
-Confiture de fraise	248	0.2	60.5	0.5	sucré
-Coppa	284	25	1	20	viande-poisson
-Coque cuite	86.9	13.6	5.6	1.1	viande-poisson
-Côte de porc grillée	211	29.6	0	10.3	viande-poisson
-Coulommiers (fromage)	280	18.8	0	23	laitier
-Courge crue	14.4	0.9	1.6	0.1	végétal
-Courge musquée crue	23.5	0.6	4.6	0.1	végétal
-Courge spaghetti crue	32.3	0.6	5.4	0.6	végétal
-Courge spaghetti cuite	28	0.7	5.1	0.3	végétal
-Courgette crue	16.7	1.2	1.8	0.3	végétal
-Courgette cuite	15.5	0.9	1.4	0.4	végétal
-Crabe cru	104	19.5	0	2.9	viande-poisson
-Cresson de fontaine cru	15.5	2.3	1.1	0.1	végétal
-Crevettes cuites	97.3	22	0	1	viande-poisson
-Croissant	412	6.3	47.6	21.1	sucré
-Datte	287	1.8	64.7	0.2	végétal
-Échalote crue	61.7	1.8	12.2	0	végétal
-Échalote cuite	69.3	2.1	13.5	0	végétal
-Éclair	264	5.8	31.6	11.8	sucré
-Écrevisse crue	68.3	14.8	0.8	0.6	viande-poisson
-Écrevisse cuite	73.5	16.3	0.6	0.7	viande-poisson
-Edam (fromage)	320	25.7	0	24.4	laitier
-Églefin cru	76.2	17.3	1	0.3	viande-poisson
-Églefin cuit	89	20.9	0	0.6	viande-poisson
-Emmental	373	27.9	0	28.8	laitier
-Endive crue	16.6	1.2	2.8	0	végétal
-Entrecôte crue	231	19.4	0	17.1	viande-poisson
-Épeautre cru	344	14.6	59.5	2.4	céréales
-Éperlan cru	85.4	17.5	0	1.7	viande-poisson
-Épinard cru	33.3	2.7	3.1	0.4	végétal
-Épinard cuit	19.6	3.2	0.2	0.1	végétal
-Épinards cuits	19.6	3.2	0.2	0.1	végétal
-Époisses (fromage)	286	17.6	0	24	laitier
-Escalope de dinde	124	28.5	0	1.1	viande-poisson
-Espadon cru	134	18.9	1	6	viande-poisson
-Fenouil cru	18.2	1	2.6	0	végétal
-Fenouil cuit	11.8	0.4	1.8	0	végétal
-Feta	284	15.1	0.5	24.3	laitier
-Fèves cuites	83.3	8.1	9.3	0.8	végétal
-Figue crue	67.6	1.2	13.5	0	végétal
-Filet mignon de porc cuit	168	26.1	0	7.1	viande-poisson
-Flocons d'avoine	369	10.6	57.7	7.8	sucré
-Fontina (fromage)	384	25.6	0.8	31.1	laitier
-Fourme d'Ambert (fromage)	339	20.6	0	28.4	laitier
-Fraise crue	35.1	0.6	6	0	végétal
-Framboise crue	47.9	1.2	5.8	0.8	végétal
-Frites	258	3.3	32.7	11.9	végétal
-Fromage blanc nature	75.7	7.3	3.9	3.2	laitier
-Fromage bleu d'Auvergne	342	20.6	0	29	laitier
-Fromage de chèvre frais	194	12	2.5	15.2	laitier
-Fruit séché	267	2.1	61.3	0.6	végétal
-Gâteau	410	5.5	51.8	19.6	sucré
-Glace (crème glacée)	171	2.8	25	6.5	plats
-Gorgonzola (fromage)	318	19.5	0	26.9	laitier
-Gouda	369	24.7	0	30.2	laitier
-Goyave crue	68.3	2.5	9	0.9	végétal
-Graisse d'oie	898	0	0	99.8	gras
-Graisse de canard	898	0	0	99.8	gras
-Grana Padano (fromage)	399	33.9	1.2	28.5	laitier
-Groseille à maquereau crue	39.4	0.9	4.5	0.6	végétal
-Groseille crue	67.2	1.6	7.1	0.7	végétal
-Gruyère IGP France (fromage)	415	28.2	0.7	33.2	laitier
-Haché de volaille	137	17.7	3.5	5.7	viande-poisson
-Hamburger	251	13.3	29.5	8.4	plats
-Hareng cru	176	17.7	0	11.7	viande-poisson
-Haricot beurre cru	37.6	1.8	5.6	0.1	végétal
-Haricot plat cru	32.4	1.9	4.5	0.1	végétal
-Haricot vert cru	31.9	1.8	4.1	0.2	végétal
-Haricot vert cuit	29.4	2	3	0.2	végétal
-Haricots blancs cuits	112	6.8	12	1.1	végétal
-Haricots rouges cuits	116	9.6	12.3	0.6	végétal
-Haricots verts cuits	29.4	2	3	0.2	végétal
-Homard cru	85.5	17.9	0.9	1.1	viande-poisson
-Huile d'amande	900	0	0	100	gras
-Huile d'arachide	899	0.2	0	99.9	gras
-Huile d'avocat	900	0	0	100	gras
-Huile d'olive	899	0.2	0	99.9	gras
-Huile de colza	900	0	0	100	gras
-Huile de lin	900	0	0	100	gras
-Huile de maïs	900	0	0	100	gras
-Huile de noisette	900	0	0	100	gras
-Huile de noix	900	0	0	100	gras
-Huile de sésame	900	0	0	100	gras
-Huile de soja	900	0	0	100	gras
-Huile de tournesol	900	0.2	0	100	gras
-Huile végétale	899	0.2	0	99.9	gras
-Huître creuse crue	67.2	8.6	3.9	1.9	viande-poisson
-Huître plate crue	53.5	10.2	1.2	0.9	viande-poisson
-Jambon blanc	113	21	0.8	2.8	viande-poisson
-Jambon cru	239	25.9	4.3	13.2	viande-poisson
-Jambon de Bayonne	243	28	4.5	12.6	viande-poisson
-Jambon sec	230	28.7	0.5	12.6	viande-poisson
-Jambonneau cuit	157	20	5.4	6	viande-poisson
-Kaki cru	66	0.9	14.3	0	végétal
-Kéfir de lait	61.1	3.2	4.5	3.4	laitier
-Ketchup	108	1.2	23.7	0.2	plats
-Kiwi	60.9	0.9	11	0.6	végétal
-Lait concentré sucré	327	7.7	56.5	7.9	laitier
-Lait de brebis	103	5.7	4.5	7	laitier
-Lait de chèvre cru	57.4	3.2	4	3.2	laitier
-Lait de jument	50	2.4	6.2	1.7	laitier
-Lait demi-écrémé	47.5	3.5	5	1.6	laitier
-Lait entier	63.9	3.4	4.8	3.5	laitier
-Laitue crue	14.7	1.4	1.2	0.2	végétal
-Langouste crue	86.9	17.7	1.1	1.3	viande-poisson
-Langoustine crue	89.8	19.1	1.5	0.8	viande-poisson
-Langres (fromage)	286	16.7	1.1	23.8	laitier
-Lentilles corail cuites	123	10.6	15	0.5	végétal
-Lentilles vertes cuites	125	10.1	16.2	0.6	végétal
-Lieu noir cru	82.5	18.8	0	0.8	viande-poisson
-Lieu noir cuit	99.7	23.1	0	0.8	viande-poisson
-Limande crue	80.8	18.3	0	0.8	viande-poisson
-Livarot (fromage)	301	24.6	0	22.6	laitier
-Macaron sec	436	6.9	77.7	10.2	sucré
-Mâche crue	15	2	0.5	0	végétal
-Maïs doux cuit	106	3.4	18.6	1.5	végétal
-Mangue	71.1	0.6	14.3	0	végétal
-Maquereau cru	198	18.1	0.9	13.5	viande-poisson
-Marron glacé	320	0.9	77.5	0.5	sucré
-Mascarpone	369	6	3.1	37	laitier
-Mayonnaise	692	1.3	3.4	74.5	plats
-Melon	59.8	1.1	14.8	0	végétal
-Merguez crue	301	13.8	1.1	26.8	viande-poisson
-Meringue	396	4.8	93.2	0.5	sucré
-Merlan cru	79.2	18.8	0	0.5	viande-poisson
-Merlan cuit	98.3	23	0	0.7	viande-poisson
-Merlu cru	82.6	17.6	0	1.4	viande-poisson
-Merlu cuit	112	21.2	0	3	viande-poisson
-Mérou cru	85.2	18.6	0.7	0.9	viande-poisson
-Miel	331	0.7	82.1	0	sucré
-Mille-feuille	292	3.9	43.7	11.3	sucré
-Morbier (fromage)	355	22.8	0	29.2	laitier
-Mortadelle	310	15.2	0.7	27.4	viande-poisson
-Moule commune crue	71.8	11.2	2.7	1.8	viande-poisson
-Moutarde	151	6.9	4.3	11.2	plats
-Mozzarella	227	16.5	0.7	17.7	laitier
-Muesli	433	8.9	63.4	14.3	sucré
-Munster (fromage)	324	20.4	0.7	26.8	laitier
-Myrtille crue	57.7	0.9	10.6	0.3	végétal
-Navet cuit	25	0.9	3.8	0.2	végétal
-Neufchâtel (fromage)	300	18.1	0	25.5	laitier
-Noisettes	632	14.4	7.2	56.9	végétal
-Noix	709	13.3	6.9	67.3	végétal
-Noix de cajou	618	17.4	21.3	48.1	végétal
-Noix de coco	369	3.5	4.7	34.7	végétal
-Oeuf au plat	157	14.6	1.4	10.4	viande-poisson
-Oeuf cru	140	12.8	0.1	9.8	viande-poisson
-Oeuf dur	134	13.5	0.5	8.6	viande-poisson
-Oeuf poché	139	12.5	0.9	9.5	viande-poisson
-Oignon cru	39	1.1	6.2	0.6	végétal
-Oignon cuit	34.6	1.3	6.2	0.2	végétal
-Omelette nature	196	13.8	0.9	15.3	viande-poisson
-Orange	42	0.8	8	0	végétal
-Orge complète crue	334	12.5	56.2	2.3	céréales
-Pain au chocolat	423	7.5	45.4	22.5	sucré
-Pain au levain	261	7.4	53.1	1.3	céréales
-Pain au son	244	8.3	44.4	1.9	céréales
-Pain bagel	301	9.8	53	4.6	céréales
-Pain blanc (baguette)	287	8.3	58.3	1.4	céréales
-Pain complet	234	8.7	41.2	1.7	céréales
-Pain de campagne	253	7.5	50	1.3	céréales
-Pain de mie	279	7.1	50.4	4.4	céréales
-Pain panini	254	7.5	50.6	1.1	céréales
-Pain perdu	226	6	30.8	8.4	laitier
-Pain pita	249	7.5	48.8	1.5	céréales
-Panais cru	67.9	1.2	12.6	0.3	végétal
-Panais cuit	91.2	1.9	16.6	0.5	végétal
-Papaye crue	39.6	0.8	8.5	0	végétal
-Parmesan	411	31.1	1.1	31	laitier
-Pastèque	35.4	0.7	8.3	0	végétal
-Patate douce crue	81.2	1.6	17.1	0.1	végétal
-Patate douce cuite	79.1	1.7	16.3	0.1	végétal
-Pâte à tartiner chocolat-noisette	549	5	57.9	32.4	sucré
-Pâté au jambon	302	14.7	1	26.5	viande-poisson
-Pâté breton	363	11	2.9	34	viande-poisson
-Pâté de lapin	286	14.7	1.7	24.5	viande-poisson
-Pâtes complètes cuites	179	7.3	31.3	1.4	céréales
-Pâtes crues (sèches)	364	12	72.7	1.6	céréales
-Pâtes cuites	167	6.1	31.4	1.1	céréales
-Pêche	37.9	0.9	7.5	0.2	végétal
-Petit-suisse nature	88	9.7	3.1	3.9	laitier
-Petits pois crus	81.2	5.4	11.4	0.4	végétal
-Petits pois cuits	61.4	5.8	4.7	0.9	végétal
-Pignon de pin	712	13.7	2.9	68.4	végétal
-Piment cru	37.4	1.9	5.8	0.4	végétal
-Pistaches grillées	631	18.4	14.9	51.6	végétal
-Pizza	234	10	27.4	8.9	plats
-Poire crue	56.6	0.4	12.3	0.3	végétal
-Poireau cru	30.4	1.5	4.5	0.3	végétal
-Poireau cuit	24.7	2.6	2.2	0	végétal
-Pois cassés cuits	129	8.6	16.3	1.5	végétal
-Pois chiches cuits	148	8.3	17.7	3	végétal
-Poivron jaune cru	29.4	0.9	4.7	0.3	végétal
-Poivron rouge cru	33.6	1.1	6	0	végétal
-Poivron rouge cuit	37.9	1.2	6.4	0.3	végétal
-Poivron vert cru	22.5	0.8	3.4	0	végétal
-Poivron vert cuit	17.3	0.9	2.4	0.2	végétal
-Polenta cuite	76.1	1.4	16.9	0	céréales
-Pomme crue	54	0.2	11.6	0.2	végétal
-Pomme de terre à l'eau	72.6	1.8	15.4	0	végétal
-Pomme de terre crue	80	2	16.2	0.1	végétal
-Pomme de terre cuite	94.9	2	17.2	1.6	végétal
-Pont l'Évêque (fromage)	326	22.7	0	26.2	laitier
-Porc cru	146	22.3	0.4	6.2	viande-poisson
-Potimarron cru	22.1	0.9	3.1	0.3	végétal
-Potimarron cuit	38.6	1.1	6.9	0.3	végétal
-Potiron cru	20.1	1.1	3.5	0.1	végétal
-Potiron cuit	26.1	0.8	4.5	0.1	végétal
-Poulpe cru	60.1	12.9	1	0.5	viande-poisson
-Poulpe cuit	156	29.8	4.4	2.1	viande-poisson
-Provolone (fromage)	340	25.6	0	26.6	laitier
-Prune crue	51.6	0.7	9.9	0.3	végétal
-Prune mirabelle crue	74.6	0.6	18	0	végétal
-Prune Reine-Claude crue	69	0.9	16.4	0	végétal
-Prune violette crue	46.4	0.8	9.6	0.1	végétal
-Purée de pommes de terre	117	2	11.3	6.7	végétal
-Quinoa cru	358	13.2	58.1	6.1	céréales
-Quinoa cuit	149	4.7	27.9	1.1	céréales
-Radis rouge cru	11	0.9	1.5	0	végétal
-Raisin cru	71	0.7	16.3	0.2	végétal
-Raisin sec	322	3	73.2	0.9	végétal
-Reblochon (fromage)	322	20.3	0	26.9	laitier
-Rillettes d'oie	364	14.9	1	33.4	viande-poisson
-Rillettes de canard	377	15.3	1	34.6	viande-poisson
-Rillettes de poulet	340	16.4	0.5	30.3	viande-poisson
-Riz blanc cru	350	7	77.5	0.8	céréales
-Riz blanc cuit	155	3.1	33.2	0.7	céréales
-Riz complet cru	350	7	71.4	2.8	céréales
-Riz complet cuit	187	3.9	37.6	1.8	céréales
-Riz rouge cru	352	8	70.6	3	céréales
-Riz sauvage cru	344	11.1	69.2	0.9	céréales
-Roquefort	384	19.5	0	33.9	laitier
-Roquette crue	27.9	2.6	2.1	0.7	végétal
-Rouget-barbet de roche cru	158	18.4	0	9.4	viande-poisson
-Saindoux	900	0	0	100	gras
-Saint-Félicien (fromage)	281	13.4	0	25.2	laitier
-Saint-Marcellin (fromage)	280	15.1	0	24.3	laitier
-Salade sucrine crue	16.6	1.1	2.6	0	végétal
-Salade verte crue	13.5	1	1.5	0.1	végétal
-Salami	457	17.7	2.6	41.8	viande-poisson
-Salers (fromage)	388	25.9	0	31.4	laitier
-Salsifis cuit	67.7	2.7	12.3	0.2	végétal
-Sardine crue	160	19.5	0	9.2	viande-poisson
-Sardines à l'huile	224	23.3	0.1	14.5	viande-poisson
-Sarrasin complet cru	362	13.3	67.5	3.4	céréales
-Saucisse de Francfort	279	13.7	3.4	23.4	viande-poisson
-Saucisse de Morteau	398	16	1.2	36.6	viande-poisson
-Saucisse sèche	460	27.3	4	37.1	viande-poisson
-Saucisse viennoise crue	233	10.3	0	21.3	viande-poisson
-Saucisson à l'ail	276	15	0.6	23.6	viande-poisson
-Saucisson sec	418	24.2	5.5	33.1	viande-poisson
-Saumon à la vapeur	199	23	0.9	11.5	viande-poisson
-Saumon cuit	205	23.2	0.6	12.2	viande-poisson
-Scarole crue	20.5	1.4	2	0.2	végétal
-Seiche crue	76.3	16.2	0.5	1.1	viande-poisson
-Sole crue	77.3	18	0	0.6	viande-poisson
-Sole cuite	94.6	20.3	0	1.5	viande-poisson
-Sorbet	122	0.4	28.7	0.6	plats
-Soupe de légumes	39.5	1.4	4.8	1.4	plats
-Spéculoos	476	5.6	71.2	18.1	sucré
-Steak haché 15 % cuit	239	23.6	0	16.1	viande-poisson
-Steak haché 5 % cuit	155	25.5	0	5.8	viande-poisson
-Sucre blanc	399	0	99.7	0	sucré
-Sucre roux	393	0.1	98.1	0	sucré
-Tarte au citron	319	5.6	43.1	13.6	sucré
-Tarte aux abricots	285	3.2	41	10.7	sucré
-Terrine de canard	322	13.2	5.6	27.1	viande-poisson
-Terrine de lapin	266	19	6.4	18	viande-poisson
-Tête de moine (fromage)	415	26	0.5	34.5	laitier
-Thon cru	155	24	2.7	5.4	viande-poisson
-Tofu nature	147	13.4	2.9	8.5	plats
-Tomate cerise crue	31.8	1.3	5.6	0	végétal
-Tomate cuite	19.8	1	3.1	0.2	végétal
-Topinambour cru	74.7	2	15.8	0	végétal
-Topinambour cuit	69.3	1.8	14.4	0	végétal
-Truite saumonée crue	143	19.2	0	7.4	viande-poisson
-Turbot cru	85.5	17.9	0	1.6	viande-poisson
+# Colonnes : nom, kcal, protéines, glucides, lipides, famille (pour 100 g), nom anglais
+Abondance (fromage)	393	27.1	0	31.6	laitier	Abondance (cheese)
+Abricot	44.1	0.8	9	0	végétal	Apricot
+Abricot sec	239	2.9	59.1	0.5	végétal	Dried apricot
+Ail cru	109	5.3	18.6	0	plats	Raw garlic
+Amandes	615	18.8	9.5	51.3	végétal	Almonds
+Ananas cru	51.6	0.2	11.7	0	végétal	Raw pineapple
+Anchois cru	129	18.6	0	6.1	viande-poisson	Raw anchovy
+Andouille	211	18.4	0.3	15.1	viande-poisson	Andouille sausage
+Artichaut cru	45.4	3.3	4.8	0.1	végétal	Raw artichoke
+Artichaut cuit	33.2	2.5	1	0.3	végétal	Cooked artichoke
+Asiago (fromage)	356	32.1	0	25.6	laitier	Asiago (cheese)
+Aubergine crue	22.9	1	2.7	0.2	végétal	Raw aubergine
+Aubergine cuite	27.1	0.8	4.2	0.2	végétal	Cooked aubergine
+Avocat	203	1.6	0	20.6	végétal	Avocado
+Avoine crue	378	16.9	55.7	6.9	céréales	Raw oats
+Banane crue	87.6	1.1	19.7	0	végétal	Banana
+Barre chocolatée biscuitée	492	5.6	61.4	24.1	sucré	Chocolate biscuit bar
+Batavia crue	14.9	1.2	1.8	0	végétal	Raw batavia lettuce
+Beaufort (fromage)	404	26.7	0.7	33	laitier	Beaufort (cheese)
+Beignet de crevette	260	6.5	35.5	10	viande-poisson	Prawn fritter
+Betterave rouge crue	40.2	1.6	6.3	0.2	végétal	Raw beetroot
+Betterave rouge cuite	41.5	1.4	7.1	0.4	végétal	Cooked beetroot
+Beurre	731	0.6	0.9	80.5	gras	Butter
+Beurre de cacahuète	643	22.2	17.3	51.4	végétal	Peanut butter
+Biscotte classique	394	10	73.2	5.4	céréales	Rusk (toasted bread)
+Biscuit de Savoie	260	5.9	56.3	0.8	sucré	Savoy sponge cake
+Biscuit sec	436	7.2	74	11.7	sucré	Plain biscuit
+Blanc de poulet cru	110	23.4	0	1.5	viande-poisson	Raw chicken breast
+Blanc de poulet grillé	141	30.1	0	2	viande-poisson	Grilled chicken breast
+Blé dur complet cru	342	13.7	59.3	2.5	céréales	Raw whole durum wheat
+Blinis	270	5.9	34.6	11.5	céréales	Blinis
+Boeuf braisé	240	32.1	0	12.4	viande-poisson	Braised beef
+Boisson au soja nature	42.4	3.2	1.9	2.1	plats	Plain soy drink
+Bonbon dragéifié	378	0.5	89.9	1.9	sucré	Sugar-coated sweet
+Bonbon gélifié	339	4.9	76.9	0.5	sucré	Jelly sweet
+Bonbon tendre	392	0.9	84.3	5.1	sucré	Chewy sweet
+Boulgour cuit	131	4.3	24.1	1	céréales	Cooked bulgur
+Boulgour de blé cru	347	11.7	65.8	1.4	céréales	Raw bulgur wheat
+Bresaola	172	32.8	0.5	4.3	viande-poisson	Bresaola
+Brie de Meaux (fromage)	276	21.4	1.2	20.7	laitier	Brie de Meaux (cheese)
+Brocoli cru	31.9	2.9	2.1	0.4	végétal	Raw broccoli
+Brocoli cuit	30	3.2	1.8	0.6	végétal	Cooked broccoli
+Burrata	259	10.8	0.9	23.4	laitier	Burrata
+Cabillaud cru	77.4	18.1	0	0.6	viande-poisson	Raw cod
+Cabillaud cuit	106	24.5	0	0.9	viande-poisson	Cooked cod
+Cacahuètes grillées	644	23.5	14.4	51.9	végétal	Roasted peanuts
+Camembert	275	19.2	1.3	21.5	laitier	Camembert
+Canelé	298	5	61	3.2	sucré	Canelé (small cake)
+Cantal (fromage)	378	25.3	0	31	laitier	Cantal (cheese)
+Carambole crue	28.4	1	3.8	0.3	végétal	Raw star fruit
+Carotte crue	30.2	0.8	5.2	0	végétal	Raw carrot
+Carotte cuite	33	0.4	6.2	0.2	végétal	Cooked carrot
+Cassis cru	70.2	1.4	9.7	0.4	végétal	Raw blackcurrant
+Céleri branche cru	15.4	0.6	2.4	0	végétal	Raw celery
+Céleri branche cuit	13.1	0.6	1.4	0.1	végétal	Cooked celery
+Céleri-rave cru	26.3	1.4	4	0	végétal	Raw celeriac
+Céleri-rave cuit	36.5	1.3	4.6	0.9	végétal	Cooked celeriac
+Cerise	53.7	0.8	13	0	végétal	Cherry
+Cervelas	278	11.9	1.6	24.8	viande-poisson	Saveloy
+Champignons de Paris crus	21	2.1	1.8	0.4	végétal	Raw button mushrooms
+Chaource (fromage)	278	17.3	0.6	22.9	laitier	Chaource (cheese)
+Chapelure	365	9.4	74.3	1.6	céréales	Breadcrumbs
+Charlotte aux fruits	200	5.2	28.2	6.6	sucré	Fruit charlotte
+Châtaigne crue	189	2	36.8	1.8	végétal	Raw chestnut
+Chausson aux pommes	360	4.2	42.2	18.7	sucré	Apple turnover
+Cheddar	399	24.7	1.2	32.6	laitier	Cheddar
+Chewing-gum	206	0.2	76	0.2	sucré	Chewing gum
+Chicorée verte crue	16.1	1.9	0.5	0.5	végétal	Raw green chicory
+Chipolata crue	253	15.8	1	20.6	viande-poisson	Raw chipolata
+Chipolata cuite	283	18.8	0.8	22.4	viande-poisson	Cooked chipolata
+Chips	532	6	51	32.7	végétal	Crisps
+Chocolat au lait	550	7.5	58.9	30.8	sucré	Milk chocolate
+Chocolat noir 70 %	591	10.4	26.9	46.3	sucré	Dark chocolate 70%
+Chorizo	425	23.5	1.2	36.1	viande-poisson	Chorizo
+Chou blanc cru	35.2	1.4	4.6	0.6	végétal	Raw white cabbage
+Chou de Bruxelles cru	43.9	3.4	4.6	0.3	végétal	Raw Brussels sprouts
+Chou frisé cru	49.5	4.3	4.2	0.9	végétal	Raw curly cabbage
+Chou frisé cuit	29.7	1.9	3.6	0.4	végétal	Cooked curly cabbage
+Chou kale cru	34.6	2.9	0.3	1.5	végétal	Raw kale
+Chou rouge cru	26.4	1.1	4.3	0	végétal	Raw red cabbage
+Chou rouge cuit	31.8	1.3	5.1	0.1	végétal	Cooked red cabbage
+Chou vert cru	24.4	1.4	2.7	0.1	végétal	Raw green cabbage
+Chou vert cuit	24.1	1	3	0.5	végétal	Cooked green cabbage
+Chou-fleur cru	24.9	1.8	2.1	0.7	végétal	Raw cauliflower
+Chou-fleur cuit	20.9	1.6	1.6	0.5	végétal	Cooked cauliflower
+Chouquette	408	9.1	40.6	22.9	sucré	Chouquette (sugar puff)
+Citron	24.3	0.2	1.6	0	végétal	Lemon
+Citrouille crue	29.7	1	5.8	0.1	végétal	Raw pumpkin
+Clémentine	45.5	0.8	9.2	0	végétal	Clementine
+Coing cru	59	0.4	12.5	0.1	végétal	Raw quince
+Compote de pomme	107	0.2	25.8	0.2	végétal	Apple compote
+Comté	413	27.8	0	33.8	laitier	Comté
+Concombre cru	16.8	0.7	2.9	0.1	végétal	Raw cucumber
+Confiture de fraise	248	0.2	60.5	0.5	sucré	Strawberry jam
+Coppa	284	25	1	20	viande-poisson	Coppa
+Coque cuite	86.9	13.6	5.6	1.1	viande-poisson	Cooked cockle
+Côte de porc grillée	211	29.6	0	10.3	viande-poisson	Grilled pork chop
+Coulommiers (fromage)	280	18.8	0	23	laitier	Coulommiers (cheese)
+Courge crue	14.4	0.9	1.6	0.1	végétal	Raw squash
+Courge musquée crue	23.5	0.6	4.6	0.1	végétal	Raw butternut squash
+Courge spaghetti crue	32.3	0.6	5.4	0.6	végétal	Raw spaghetti squash
+Courge spaghetti cuite	28	0.7	5.1	0.3	végétal	Cooked spaghetti squash
+Courgette crue	16.7	1.2	1.8	0.3	végétal	Raw courgette
+Courgette cuite	15.5	0.9	1.4	0.4	végétal	Cooked courgette
+Crabe cru	104	19.5	0	2.9	viande-poisson	Raw crab
+Cresson de fontaine cru	15.5	2.3	1.1	0.1	végétal	Raw watercress
+Crevettes cuites	97.3	22	0	1	viande-poisson	Cooked prawns
+Croissant	412	6.3	47.6	21.1	sucré	Croissant
+Datte	287	1.8	64.7	0.2	végétal	Date
+Échalote crue	61.7	1.8	12.2	0	végétal	Raw shallot
+Échalote cuite	69.3	2.1	13.5	0	végétal	Cooked shallot
+Éclair	264	5.8	31.6	11.8	sucré	Éclair
+Écrevisse crue	68.3	14.8	0.8	0.6	viande-poisson	Raw crayfish
+Écrevisse cuite	73.5	16.3	0.6	0.7	viande-poisson	Cooked crayfish
+Edam (fromage)	320	25.7	0	24.4	laitier	Edam (cheese)
+Églefin cru	76.2	17.3	1	0.3	viande-poisson	Raw haddock
+Églefin cuit	89	20.9	0	0.6	viande-poisson	Cooked haddock
+Emmental	373	27.9	0	28.8	laitier	Emmental
+Endive crue	16.6	1.2	2.8	0	végétal	Raw endive
+Entrecôte crue	231	19.4	0	17.1	viande-poisson	Raw rib steak
+Épeautre cru	344	14.6	59.5	2.4	céréales	Raw spelt
+Éperlan cru	85.4	17.5	0	1.7	viande-poisson	Raw smelt
+Épinard cru	33.3	2.7	3.1	0.4	végétal	Raw spinach
+Épinard cuit	19.6	3.2	0.2	0.1	végétal	Cooked spinach
+Épinards cuits	19.6	3.2	0.2	0.1	végétal	Cooked spinach leaves
+Époisses (fromage)	286	17.6	0	24	laitier	Époisses (cheese)
+Escalope de dinde	124	28.5	0	1.1	viande-poisson	Turkey escalope
+Espadon cru	134	18.9	1	6	viande-poisson	Raw swordfish
+Fenouil cru	18.2	1	2.6	0	végétal	Raw fennel
+Fenouil cuit	11.8	0.4	1.8	0	végétal	Cooked fennel
+Feta	284	15.1	0.5	24.3	laitier	Feta
+Fèves cuites	83.3	8.1	9.3	0.8	végétal	Cooked broad beans
+Figue crue	67.6	1.2	13.5	0	végétal	Raw fig
+Filet mignon de porc cuit	168	26.1	0	7.1	viande-poisson	Cooked pork tenderloin
+Flocons d'avoine	369	10.6	57.7	7.8	sucré	Rolled oats
+Fontina (fromage)	384	25.6	0.8	31.1	laitier	Fontina (cheese)
+Fourme d'Ambert (fromage)	339	20.6	0	28.4	laitier	Fourme d'Ambert (cheese)
+Fraise crue	35.1	0.6	6	0	végétal	Strawberry
+Framboise crue	47.9	1.2	5.8	0.8	végétal	Raspberry
+Frites	258	3.3	32.7	11.9	végétal	Chips (French fries)
+Fromage blanc nature	75.7	7.3	3.9	3.2	laitier	Plain fromage blanc
+Fromage bleu d'Auvergne	342	20.6	0	29	laitier	Bleu d'Auvergne (cheese)
+Fromage de chèvre frais	194	12	2.5	15.2	laitier	Fresh goat's cheese
+Fruit séché	267	2.1	61.3	0.6	végétal	Dried fruit
+Gâteau	410	5.5	51.8	19.6	sucré	Cake
+Glace (crème glacée)	171	2.8	25	6.5	plats	Ice cream
+Gorgonzola (fromage)	318	19.5	0	26.9	laitier	Gorgonzola (cheese)
+Gouda	369	24.7	0	30.2	laitier	Gouda
+Goyave crue	68.3	2.5	9	0.9	végétal	Raw guava
+Graisse d'oie	898	0	0	99.8	gras	Goose fat
+Graisse de canard	898	0	0	99.8	gras	Duck fat
+Grana Padano (fromage)	399	33.9	1.2	28.5	laitier	Grana Padano (cheese)
+Groseille à maquereau crue	39.4	0.9	4.5	0.6	végétal	Raw gooseberry
+Groseille crue	67.2	1.6	7.1	0.7	végétal	Raw redcurrant
+Gruyère IGP France (fromage)	415	28.2	0.7	33.2	laitier	French Gruyère (cheese)
+Haché de volaille	137	17.7	3.5	5.7	viande-poisson	Minced poultry
+Hamburger	251	13.3	29.5	8.4	plats	Hamburger
+Hareng cru	176	17.7	0	11.7	viande-poisson	Raw herring
+Haricot beurre cru	37.6	1.8	5.6	0.1	végétal	Raw wax bean
+Haricot plat cru	32.4	1.9	4.5	0.1	végétal	Raw flat bean
+Haricot vert cru	31.9	1.8	4.1	0.2	végétal	Raw green bean
+Haricot vert cuit	29.4	2	3	0.2	végétal	Cooked green bean
+Haricots blancs cuits	112	6.8	12	1.1	végétal	Cooked white beans
+Haricots rouges cuits	116	9.6	12.3	0.6	végétal	Cooked kidney beans
+Haricots verts cuits	29.4	2	3	0.2	végétal	Cooked green beans
+Homard cru	85.5	17.9	0.9	1.1	viande-poisson	Raw lobster
+Huile d'amande	900	0	0	100	gras	Almond oil
+Huile d'arachide	899	0.2	0	99.9	gras	Peanut oil
+Huile d'avocat	900	0	0	100	gras	Avocado oil
+Huile d'olive	899	0.2	0	99.9	gras	Olive oil
+Huile de colza	900	0	0	100	gras	Rapeseed oil
+Huile de lin	900	0	0	100	gras	Linseed oil
+Huile de maïs	900	0	0	100	gras	Corn oil
+Huile de noisette	900	0	0	100	gras	Hazelnut oil
+Huile de noix	900	0	0	100	gras	Walnut oil
+Huile de sésame	900	0	0	100	gras	Sesame oil
+Huile de soja	900	0	0	100	gras	Soybean oil
+Huile de tournesol	900	0.2	0	100	gras	Sunflower oil
+Huile végétale	899	0.2	0	99.9	gras	Vegetable oil
+Huître creuse crue	67.2	8.6	3.9	1.9	viande-poisson	Raw Pacific oyster
+Huître plate crue	53.5	10.2	1.2	0.9	viande-poisson	Raw flat oyster
+Jambon blanc	113	21	0.8	2.8	viande-poisson	Cooked ham
+Jambon cru	239	25.9	4.3	13.2	viande-poisson	Cured ham
+Jambon de Bayonne	243	28	4.5	12.6	viande-poisson	Bayonne ham
+Jambon sec	230	28.7	0.5	12.6	viande-poisson	Dry-cured ham
+Jambonneau cuit	157	20	5.4	6	viande-poisson	Cooked ham hock
+Kaki cru	66	0.9	14.3	0	végétal	Raw persimmon
+Kéfir de lait	61.1	3.2	4.5	3.4	laitier	Milk kefir
+Ketchup	108	1.2	23.7	0.2	plats	Ketchup
+Kiwi	60.9	0.9	11	0.6	végétal	Kiwi
+Lait concentré sucré	327	7.7	56.5	7.9	laitier	Sweetened condensed milk
+Lait de brebis	103	5.7	4.5	7	laitier	Sheep's milk
+Lait de chèvre cru	57.4	3.2	4	3.2	laitier	Raw goat's milk
+Lait de jument	50	2.4	6.2	1.7	laitier	Mare's milk
+Lait demi-écrémé	47.5	3.5	5	1.6	laitier	Semi-skimmed milk
+Lait entier	63.9	3.4	4.8	3.5	laitier	Whole milk
+Laitue crue	14.7	1.4	1.2	0.2	végétal	Raw lettuce
+Langouste crue	86.9	17.7	1.1	1.3	viande-poisson	Raw spiny lobster
+Langoustine crue	89.8	19.1	1.5	0.8	viande-poisson	Raw langoustine
+Langres (fromage)	286	16.7	1.1	23.8	laitier	Langres (cheese)
+Lentilles corail cuites	123	10.6	15	0.5	végétal	Cooked red lentils
+Lentilles vertes cuites	125	10.1	16.2	0.6	végétal	Cooked green lentils
+Lieu noir cru	82.5	18.8	0	0.8	viande-poisson	Raw coley
+Lieu noir cuit	99.7	23.1	0	0.8	viande-poisson	Cooked coley
+Limande crue	80.8	18.3	0	0.8	viande-poisson	Raw dab
+Livarot (fromage)	301	24.6	0	22.6	laitier	Livarot (cheese)
+Macaron sec	436	6.9	77.7	10.2	sucré	Almond macaroon
+Mâche crue	15	2	0.5	0	végétal	Raw lamb's lettuce
+Maïs doux cuit	106	3.4	18.6	1.5	végétal	Cooked sweetcorn
+Mangue	71.1	0.6	14.3	0	végétal	Mango
+Maquereau cru	198	18.1	0.9	13.5	viande-poisson	Raw mackerel
+Marron glacé	320	0.9	77.5	0.5	sucré	Candied chestnut
+Mascarpone	369	6	3.1	37	laitier	Mascarpone
+Mayonnaise	692	1.3	3.4	74.5	plats	Mayonnaise
+Melon	59.8	1.1	14.8	0	végétal	Melon
+Merguez crue	301	13.8	1.1	26.8	viande-poisson	Raw merguez sausage
+Meringue	396	4.8	93.2	0.5	sucré	Meringue
+Merlan cru	79.2	18.8	0	0.5	viande-poisson	Raw whiting
+Merlan cuit	98.3	23	0	0.7	viande-poisson	Cooked whiting
+Merlu cru	82.6	17.6	0	1.4	viande-poisson	Raw hake
+Merlu cuit	112	21.2	0	3	viande-poisson	Cooked hake
+Mérou cru	85.2	18.6	0.7	0.9	viande-poisson	Raw grouper
+Miel	331	0.7	82.1	0	sucré	Honey
+Mille-feuille	292	3.9	43.7	11.3	sucré	Mille-feuille
+Morbier (fromage)	355	22.8	0	29.2	laitier	Morbier (cheese)
+Mortadelle	310	15.2	0.7	27.4	viande-poisson	Mortadella
+Moule commune crue	71.8	11.2	2.7	1.8	viande-poisson	Raw mussel
+Moutarde	151	6.9	4.3	11.2	plats	Mustard
+Mozzarella	227	16.5	0.7	17.7	laitier	Mozzarella
+Muesli	433	8.9	63.4	14.3	sucré	Muesli
+Munster (fromage)	324	20.4	0.7	26.8	laitier	Munster (cheese)
+Myrtille crue	57.7	0.9	10.6	0.3	végétal	Blueberry
+Navet cuit	25	0.9	3.8	0.2	végétal	Cooked turnip
+Neufchâtel (fromage)	300	18.1	0	25.5	laitier	Neufchâtel (cheese)
+Noisettes	632	14.4	7.2	56.9	végétal	Hazelnuts
+Noix	709	13.3	6.9	67.3	végétal	Walnuts
+Noix de cajou	618	17.4	21.3	48.1	végétal	Cashew nuts
+Noix de coco	369	3.5	4.7	34.7	végétal	Coconut
+Oeuf au plat	157	14.6	1.4	10.4	viande-poisson	Fried egg
+Oeuf cru	140	12.8	0.1	9.8	viande-poisson	Raw egg
+Oeuf dur	134	13.5	0.5	8.6	viande-poisson	Hard-boiled egg
+Oeuf poché	139	12.5	0.9	9.5	viande-poisson	Poached egg
+Oignon cru	39	1.1	6.2	0.6	végétal	Raw onion
+Oignon cuit	34.6	1.3	6.2	0.2	végétal	Cooked onion
+Omelette nature	196	13.8	0.9	15.3	viande-poisson	Plain omelette
+Orange	42	0.8	8	0	végétal	Orange
+Orge complète crue	334	12.5	56.2	2.3	céréales	Raw whole barley
+Pain au chocolat	423	7.5	45.4	22.5	sucré	Pain au chocolat
+Pain au levain	261	7.4	53.1	1.3	céréales	Sourdough bread
+Pain au son	244	8.3	44.4	1.9	céréales	Bran bread
+Pain bagel	301	9.8	53	4.6	céréales	Bagel
+Pain blanc (baguette)	287	8.3	58.3	1.4	céréales	White bread (baguette)
+Pain complet	234	8.7	41.2	1.7	céréales	Wholemeal bread
+Pain de campagne	253	7.5	50	1.3	céréales	Country bread
+Pain de mie	279	7.1	50.4	4.4	céréales	Sandwich bread
+Pain panini	254	7.5	50.6	1.1	céréales	Panini bread
+Pain perdu	226	6	30.8	8.4	laitier	French toast
+Pain pita	249	7.5	48.8	1.5	céréales	Pitta bread
+Panais cru	67.9	1.2	12.6	0.3	végétal	Raw parsnip
+Panais cuit	91.2	1.9	16.6	0.5	végétal	Cooked parsnip
+Papaye crue	39.6	0.8	8.5	0	végétal	Raw papaya
+Parmesan	411	31.1	1.1	31	laitier	Parmesan
+Pastèque	35.4	0.7	8.3	0	végétal	Watermelon
+Patate douce crue	81.2	1.6	17.1	0.1	végétal	Raw sweet potato
+Patate douce cuite	79.1	1.7	16.3	0.1	végétal	Cooked sweet potato
+Pâte à tartiner chocolat-noisette	549	5	57.9	32.4	sucré	Chocolate-hazelnut spread
+Pâté au jambon	302	14.7	1	26.5	viande-poisson	Ham pâté
+Pâté breton	363	11	2.9	34	viande-poisson	Breton pâté
+Pâté de lapin	286	14.7	1.7	24.5	viande-poisson	Rabbit pâté
+Pâtes complètes cuites	179	7.3	31.3	1.4	céréales	Cooked wholemeal pasta
+Pâtes crues (sèches)	364	12	72.7	1.6	céréales	Dry pasta (uncooked)
+Pâtes cuites	167	6.1	31.4	1.1	céréales	Cooked pasta
+Pêche	37.9	0.9	7.5	0.2	végétal	Peach
+Petit-suisse nature	88	9.7	3.1	3.9	laitier	Plain petit-suisse
+Petits pois crus	81.2	5.4	11.4	0.4	végétal	Raw peas
+Petits pois cuits	61.4	5.8	4.7	0.9	végétal	Cooked peas
+Pignon de pin	712	13.7	2.9	68.4	végétal	Pine nuts
+Piment cru	37.4	1.9	5.8	0.4	végétal	Raw chilli
+Pistaches grillées	631	18.4	14.9	51.6	végétal	Roasted pistachios
+Pizza	234	10	27.4	8.9	plats	Pizza
+Poire crue	56.6	0.4	12.3	0.3	végétal	Pear
+Poireau cru	30.4	1.5	4.5	0.3	végétal	Raw leek
+Poireau cuit	24.7	2.6	2.2	0	végétal	Cooked leek
+Pois cassés cuits	129	8.6	16.3	1.5	végétal	Cooked split peas
+Pois chiches cuits	148	8.3	17.7	3	végétal	Cooked chickpeas
+Poivron jaune cru	29.4	0.9	4.7	0.3	végétal	Raw yellow pepper
+Poivron rouge cru	33.6	1.1	6	0	végétal	Raw red pepper
+Poivron rouge cuit	37.9	1.2	6.4	0.3	végétal	Cooked red pepper
+Poivron vert cru	22.5	0.8	3.4	0	végétal	Raw green pepper
+Poivron vert cuit	17.3	0.9	2.4	0.2	végétal	Cooked green pepper
+Polenta cuite	76.1	1.4	16.9	0	céréales	Cooked polenta
+Pomme crue	54	0.2	11.6	0.2	végétal	Apple
+Pomme de terre à l'eau	72.6	1.8	15.4	0	végétal	Boiled potato
+Pomme de terre crue	80	2	16.2	0.1	végétal	Raw potato
+Pomme de terre cuite	94.9	2	17.2	1.6	végétal	Cooked potato
+Pont l'Évêque (fromage)	326	22.7	0	26.2	laitier	Pont-l'Évêque (cheese)
+Porc cru	146	22.3	0.4	6.2	viande-poisson	Raw pork
+Potimarron cru	22.1	0.9	3.1	0.3	végétal	Raw red kuri squash
+Potimarron cuit	38.6	1.1	6.9	0.3	végétal	Cooked red kuri squash
+Potiron cru	20.1	1.1	3.5	0.1	végétal	Raw pumpkin (potiron)
+Potiron cuit	26.1	0.8	4.5	0.1	végétal	Cooked pumpkin
+Poulpe cru	60.1	12.9	1	0.5	viande-poisson	Raw octopus
+Poulpe cuit	156	29.8	4.4	2.1	viande-poisson	Cooked octopus
+Provolone (fromage)	340	25.6	0	26.6	laitier	Provolone (cheese)
+Prune crue	51.6	0.7	9.9	0.3	végétal	Plum
+Prune mirabelle crue	74.6	0.6	18	0	végétal	Mirabelle plum
+Prune Reine-Claude crue	69	0.9	16.4	0	végétal	Greengage plum
+Prune violette crue	46.4	0.8	9.6	0.1	végétal	Purple plum
+Purée de pommes de terre	117	2	11.3	6.7	végétal	Mashed potatoes
+Quinoa cru	358	13.2	58.1	6.1	céréales	Raw quinoa
+Quinoa cuit	149	4.7	27.9	1.1	céréales	Cooked quinoa
+Radis rouge cru	11	0.9	1.5	0	végétal	Radish
+Raisin cru	71	0.7	16.3	0.2	végétal	Grapes
+Raisin sec	322	3	73.2	0.9	végétal	Raisins
+Reblochon (fromage)	322	20.3	0	26.9	laitier	Reblochon (cheese)
+Rillettes d'oie	364	14.9	1	33.4	viande-poisson	Goose rillettes
+Rillettes de canard	377	15.3	1	34.6	viande-poisson	Duck rillettes
+Rillettes de poulet	340	16.4	0.5	30.3	viande-poisson	Chicken rillettes
+Riz blanc cru	350	7	77.5	0.8	céréales	Raw white rice
+Riz blanc cuit	155	3.1	33.2	0.7	céréales	Cooked white rice
+Riz complet cru	350	7	71.4	2.8	céréales	Raw brown rice
+Riz complet cuit	187	3.9	37.6	1.8	céréales	Cooked brown rice
+Riz rouge cru	352	8	70.6	3	céréales	Raw red rice
+Riz sauvage cru	344	11.1	69.2	0.9	céréales	Raw wild rice
+Roquefort	384	19.5	0	33.9	laitier	Roquefort
+Roquette crue	27.9	2.6	2.1	0.7	végétal	Rocket (arugula)
+Rouget-barbet de roche cru	158	18.4	0	9.4	viande-poisson	Raw red mullet
+Saindoux	900	0	0	100	gras	Lard
+Saint-Félicien (fromage)	281	13.4	0	25.2	laitier	Saint-Félicien (cheese)
+Saint-Marcellin (fromage)	280	15.1	0	24.3	laitier	Saint-Marcellin (cheese)
+Salade sucrine crue	16.6	1.1	2.6	0	végétal	Raw little gem lettuce
+Salade verte crue	13.5	1	1.5	0.1	végétal	Green salad
+Salami	457	17.7	2.6	41.8	viande-poisson	Salami
+Salers (fromage)	388	25.9	0	31.4	laitier	Salers (cheese)
+Salsifis cuit	67.7	2.7	12.3	0.2	végétal	Cooked salsify
+Sardine crue	160	19.5	0	9.2	viande-poisson	Raw sardine
+Sardines à l'huile	224	23.3	0.1	14.5	viande-poisson	Sardines in oil
+Sarrasin complet cru	362	13.3	67.5	3.4	céréales	Raw whole buckwheat
+Saucisse de Francfort	279	13.7	3.4	23.4	viande-poisson	Frankfurter
+Saucisse de Morteau	398	16	1.2	36.6	viande-poisson	Morteau sausage
+Saucisse sèche	460	27.3	4	37.1	viande-poisson	Dry sausage
+Saucisse viennoise crue	233	10.3	0	21.3	viande-poisson	Raw Vienna sausage
+Saucisson à l'ail	276	15	0.6	23.6	viande-poisson	Garlic sausage
+Saucisson sec	418	24.2	5.5	33.1	viande-poisson	Dry-cured sausage (saucisson)
+Saumon à la vapeur	199	23	0.9	11.5	viande-poisson	Steamed salmon
+Saumon cuit	205	23.2	0.6	12.2	viande-poisson	Cooked salmon
+Scarole crue	20.5	1.4	2	0.2	végétal	Raw escarole
+Seiche crue	76.3	16.2	0.5	1.1	viande-poisson	Raw cuttlefish
+Sole crue	77.3	18	0	0.6	viande-poisson	Raw sole
+Sole cuite	94.6	20.3	0	1.5	viande-poisson	Cooked sole
+Sorbet	122	0.4	28.7	0.6	plats	Sorbet
+Soupe de légumes	39.5	1.4	4.8	1.4	plats	Vegetable soup
+Spéculoos	476	5.6	71.2	18.1	sucré	Speculoos biscuit
+Steak haché 15 % cuit	239	23.6	0	16.1	viande-poisson	Cooked beef burger 15% fat
+Steak haché 5 % cuit	155	25.5	0	5.8	viande-poisson	Cooked beef burger 5% fat
+Sucre blanc	399	0	99.7	0	sucré	White sugar
+Sucre roux	393	0.1	98.1	0	sucré	Brown sugar
+Tarte au citron	319	5.6	43.1	13.6	sucré	Lemon tart
+Tarte aux abricots	285	3.2	41	10.7	sucré	Apricot tart
+Terrine de canard	322	13.2	5.6	27.1	viande-poisson	Duck terrine
+Terrine de lapin	266	19	6.4	18	viande-poisson	Rabbit terrine
+Tête de moine (fromage)	415	26	0.5	34.5	laitier	Tête de Moine (cheese)
+Thon cru	155	24	2.7	5.4	viande-poisson	Raw tuna
+Tofu nature	147	13.4	2.9	8.5	plats	Plain tofu
+Tomate cerise crue	31.8	1.3	5.6	0	végétal	Cherry tomato
+Tomate cuite	19.8	1	3.1	0.2	végétal	Cooked tomato
+Topinambour cru	74.7	2	15.8	0	végétal	Raw Jerusalem artichoke
+Topinambour cuit	69.3	1.8	14.4	0	végétal	Cooked Jerusalem artichoke
+Truite saumonée crue	143	19.2	0	7.4	viande-poisson	Raw salmon trout
+Turbot cru	85.5	17.9	0	1.6	viande-poisson	Raw turbot

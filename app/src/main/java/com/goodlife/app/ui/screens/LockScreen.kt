@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -44,7 +46,7 @@ fun LockScreen(onUnlocked: () -> Unit) {
         }
         val activity = context.findFragmentActivity() ?: return
         error = null
-        AppLock.authenticate(activity, "Déverrouiller GoodLife", onSuccess = onUnlocked, onError = { error = it })
+        AppLock.authenticate(activity, t("Déverrouiller GoodLife"), onSuccess = onUnlocked, onError = { error = it })
     }
 
     LaunchedEffect(Unit) { unlock() }
@@ -61,10 +63,10 @@ fun LockScreen(onUnlocked: () -> Unit) {
                 modifier = Modifier.size(72.dp)
             )
             Spacer(Modifier.height(24.dp))
-            Text("GoodLife est verrouillée", style = MaterialTheme.typography.headlineSmall)
+            Text(t("GoodLife est verrouillée"), style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text(
-                "Utilise ton empreinte, ton visage ou le code de ton téléphone.",
+                t("Utilise ton empreinte, ton visage ou le code de ton téléphone."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -74,7 +76,7 @@ fun LockScreen(onUnlocked: () -> Unit) {
                 Text(error!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
             Spacer(Modifier.height(32.dp))
-            Button(onClick = { unlock() }) { Text("Déverrouiller") }
+            Button(onClick = { unlock() }) { Text(t("Déverrouiller")) }
         }
     }
 }

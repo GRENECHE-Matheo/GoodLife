@@ -8,6 +8,19 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.5 — 01/10/2026
+
+**GoodLife parle anglais.**
+
+- ✨ **App en anglais** : sur un téléphone qui n'est pas en français, toute l'app passe en anglais (écrans, notifications du
+  chef, widgets, quiz, anecdotes, Nutridex, politique de confidentialité). Réglable dans Paramètres › Langue
+  (langue du téléphone, français ou anglais).
+- ✨ Le quiz du chef en anglais, avec les noms anglais des 370 aliments de la table Ciqual.
+- ✨ Avec l'IA, le chef, les idées de repas, les recettes et les programmes sportifs répondent dans la langue de l'app.
+- 🛠️ Dates et nombres au format de la langue choisie.
+- ℹ️ Restent en français : les actus (sources françaises), la recherche d'aliments de la table Ciqual et les données déjà
+  enregistrées (noms de repas, programmes créés avant).
+
 ## v0.9.4 — 01/10/2026
 
 **Courses, frigo et bien-être au quotidien.**

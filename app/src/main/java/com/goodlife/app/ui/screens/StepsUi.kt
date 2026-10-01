@@ -2,6 +2,8 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -54,7 +56,7 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
-fun formatSteps(n: Int): String = NumberFormat.getIntegerInstance(Locale.FRANCE).format(n)
+fun formatSteps(n: Int): String = NumberFormat.getIntegerInstance(com.goodlife.app.i18n.Lang.locale).format(n)
 
 /**
  * Active le suivi des pas : demande l'autorisation « Activité physique » (capteur) puis relève les pas.
@@ -72,21 +74,21 @@ fun rememberEnableSteps(onMessage: (String?) -> Unit = {}): () -> Unit {
     }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) enable()
-        else onMessage("Sans l'autorisation « Activité physique », le téléphone ne peut pas compter tes pas.")
+        else onMessage(t("Sans l'autorisation « Activité physique », le téléphone ne peut pas compter tes pas."))
     }
     // Téléphone sans capteur de pas : on passe par Health Connect (pas d'une montre, Samsung Health…)
     val askHc = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
         if (granted.containsAll(Steps.HC_PERMISSIONS)) {
             Repo.updateSettings { it.copy(stepsSource = "hc") }
             enable()
-        } else onMessage("Accès aux pas refusé dans Health Connect.")
+        } else onMessage(t("Accès aux pas refusé dans Health Connect."))
     }
     return {
         when {
             !Steps.sensorAvailable(context) && Steps.healthConnectAvailable(context) ->
                 askHc.launch(Steps.HC_PERMISSIONS)
             !Steps.sensorAvailable(context) ->
-                onMessage("Ce téléphone n'a pas de capteur de pas. Tu peux passer par Health Connect si tu l'installes.")
+                onMessage(t("Ce téléphone n'a pas de capteur de pas. Tu peux passer par Health Connect si tu l'installes."))
             !Steps.hasActivityPermission(context) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
                 ask.launch(Manifest.permission.ACTIVITY_RECOGNITION)
             else -> enable()
@@ -120,13 +122,13 @@ fun StepsLine() {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Icon(Icons.AutoMirrored.Filled.DirectionsWalk, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(6.dp))
-            Text("${formatSteps(today)} / ${formatSteps(goal)} pas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+            Text(t("%1\$s / %2\$s pas", formatSteps(today), formatSteps(goal)), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
         }
     } else {
         TextButton(onClick = enable, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.AutoMirrored.Filled.DirectionsWalk, null, Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Suivre aussi mes pas")
+            Text(t("Suivre aussi mes pas"))
         }
     }
     if (message != null) Text(message!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -150,15 +152,15 @@ fun StepsSettingsSection() {
             Repo.updateSettings { it.copy(stepsSource = "hc") }
             Steps.schedule(context)
             scope.launch { Steps.refresh(context) }
-        } else message = "Accès aux pas refusé dans Health Connect."
+        } else message = t("Accès aux pas refusé dans Health Connect.")
     }
 
-    SectionCard(title = "Pas", icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
+    SectionCard(title = t("Pas"), icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
-                Text("Suivre mes pas", style = MaterialTheme.typography.bodyLarge)
+                Text(t("Suivre mes pas"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Compté sur le téléphone, jamais envoyé. Compte pour 40 % du score du jour.",
+                    t("Compté sur le téléphone, jamais envoyé. Compte pour 40 % du score du jour."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -175,38 +177,38 @@ fun StepsSettingsSection() {
         }
         if (settings.stepsEnabled) {
             if (hcAvailable) {
-                Text("Source", style = MaterialTheme.typography.labelLarge)
+                Text(t("Source"), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = settings.stepsSource == "sensor",
                         onClick = { Repo.updateSettings { it.copy(stepsSource = "sensor") }; Steps.schedule(context) },
-                        label = { Text("Capteur du téléphone") }
+                        label = { Text(t("Capteur du téléphone")) }
                     )
                     FilterChip(
                         selected = settings.stepsSource == "hc",
                         onClick = { askHc.launch(Steps.HC_PERMISSIONS) },
-                        label = { Text("Health Connect") }
+                        label = { Text(t("Health Connect")) }
                     )
                 }
                 Text(
-                    "Health Connect reprend les pas de Samsung Health, Google Fit ou d'une montre (lecture seule).",
+                    t("Health Connect reprend les pas de Samsung Health, Google Fit ou d'une montre (lecture seule)."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text("Objectif par jour", style = MaterialTheme.typography.labelLarge)
+            Text(t("Objectif par jour"), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(settings.stepsGoalMode == "auto", { Repo.updateSettings { it.copy(stepsGoalMode = "auto") } }, label = { Text("Automatique") })
-                FilterChip(settings.stepsGoalMode == "manual", { Repo.updateSettings { it.copy(stepsGoalMode = "manual") } }, label = { Text("Je choisis") })
+                FilterChip(settings.stepsGoalMode == "auto", { Repo.updateSettings { it.copy(stepsGoalMode = "auto") } }, label = { Text(t("Automatique")) })
+                FilterChip(settings.stepsGoalMode == "manual", { Repo.updateSettings { it.copy(stepsGoalMode = "manual") } }, label = { Text(t("Je choisis")) })
                 if (settings.aiEnabled) {
-                    FilterChip(settings.stepsGoalMode == "ia", { Repo.updateSettings { it.copy(stepsGoalMode = "ia") } }, label = { Text("Conseil de l'IA") })
+                    FilterChip(settings.stepsGoalMode == "ia", { Repo.updateSettings { it.copy(stepsGoalMode = "ia") } }, label = { Text(t("Conseil de l'IA")) })
                 }
             }
             when (settings.stepsGoalMode) {
                 "manual" -> Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         manual, { manual = it.filter(Char::isDigit).take(5) },
-                        label = { Text("Pas par jour") }, singleLine = true,
+                        label = { Text(t("Pas par jour")) }, singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
                     )
@@ -218,15 +220,14 @@ fun StepsSettingsSection() {
                 }
                 "ia" -> {
                     if (settings.stepsGoalIa > 0) {
-                        Text("${formatSteps(settings.stepsGoalIa)} pas par jour", fontWeight = FontWeight.Medium)
+                        Text(t("%1\$s pas par jour", formatSteps(settings.stepsGoalIa)), fontWeight = FontWeight.Medium)
                         Text(
-                            "Recalculé chaque jour à la première ouverture de l'app, à partir de tes pas des 7 derniers jours " +
-                                "(au plus 15 % de changement d'un jour à l'autre).",
+                            t("Recalculé chaque jour à la première ouverture de l'app, à partir de tes pas des 7 derniers jours (au plus 15 % de changement d'un jour à l'autre)."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (settings.stepsGoalIaWhy.isNotBlank()) {
                             Text(settings.stepsGoalIaWhy, style = MaterialTheme.typography.bodySmall)
-                            AiContentFooter("Objectif de pas : ${settings.stepsGoalIa}\n${settings.stepsGoalIaWhy}")
+                            AiContentFooter(t("Objectif de pas : %1\$s\n%2\$s", settings.stepsGoalIa, settings.stepsGoalIaWhy))
                         }
                     }
                     FilledTonalButton(
@@ -248,12 +249,11 @@ fun StepsSettingsSection() {
                         if (iaLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(if (settings.stepsGoalIa > 0) "Recalculer" else "Demander à l'IA")
+                        Text(if (settings.stepsGoalIa > 0) t("Recalculer") else t("Demander à l'IA"))
                     }
                 }
                 else -> Text(
-                    "${formatSteps(Steps.autoGoal())} pas : ta moyenne des 7 derniers jours + 10 % (entre 5 000 et 12 000). " +
-                        "Il monte doucement quand tu y arrives.",
+                    t("%1\$s pas : ta moyenne des 7 derniers jours + 10 %% (entre 5 000 et 12 000). Il monte doucement quand tu y arrives.", formatSteps(Steps.autoGoal())),
                     style = MaterialTheme.typography.bodySmall
                 )
             }

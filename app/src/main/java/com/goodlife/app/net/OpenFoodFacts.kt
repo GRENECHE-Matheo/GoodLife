@@ -1,5 +1,7 @@
 package com.goodlife.app.net
 
+import com.goodlife.app.i18n.t
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -25,11 +27,10 @@ object OpenFoodFacts {
     suspend fun product(barcode: String): FoodProduct? = withContext(Dispatchers.IO) {
         if (!BARCODE.matches(barcode)) return@withContext null
         val (code, body) = httpGet(
-            "https://world.openfoodfacts.org/api/v2/product/$barcode" +
-                "?fields=product_name,product_name_fr,brands,nutriments,serving_quantity"
+            "https://world.openfoodfacts.org/api/v2/product/$barcode?fields=product_name,product_name_fr,brands,nutriments,serving_quantity"
         )
         if (code == 404) return@withContext null
-        if (code !in 200..299) throw java.io.IOException("Open Food Facts indisponible ($code).")
+        if (code !in 200..299) throw java.io.IOException(t("Open Food Facts indisponible (%1\$s).", code))
         val root = runCatching { JSONObject(body) }.getOrNull() ?: return@withContext null
         if (root.optInt("status", 0) != 1) return@withContext null
         val p = root.optJSONObject("product") ?: return@withContext null
@@ -39,7 +40,7 @@ object OpenFoodFacts {
         if (kcal.isNaN()) return@withContext null
         FoodProduct(
             barcode = barcode,
-            name = p.optString("product_name_fr").ifBlank { p.optString("product_name") }.ifBlank { "Produit $barcode" },
+            name = p.optString("product_name_fr").ifBlank { p.optString("product_name") }.ifBlank { t("Produit %1\$s", barcode) },
             brand = p.optString("brands").split(",").firstOrNull()?.trim().orEmpty(),
             kcal100 = kcal,
             protein100 = n.optDouble("proteins_100g", 0.0).takeUnless { it.isNaN() } ?: 0.0,

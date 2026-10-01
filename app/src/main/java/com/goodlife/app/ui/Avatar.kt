@@ -1,5 +1,7 @@
 package com.goodlife.app.ui
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -34,7 +36,7 @@ fun Avatar(jpeg: ByteArray?, name: String, size: Dp, modifier: Modifier = Modifi
         contentAlignment = Alignment.Center
     ) {
         if (bmp != null) {
-            Image(bmp.asImageBitmap(), "Photo de profil", Modifier.size(size), contentScale = ContentScale.Crop)
+            Image(bmp.asImageBitmap(), t("Photo de profil"), Modifier.size(size), contentScale = ContentScale.Crop)
         } else {
             Text(
                 name.trim().firstOrNull()?.uppercase() ?: "🙂",

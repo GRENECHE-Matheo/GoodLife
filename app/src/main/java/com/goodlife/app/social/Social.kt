@@ -1,5 +1,7 @@
 package com.goodlife.app.social
 
+import com.goodlife.app.i18n.t
+
 import com.goodlife.app.data.Repo
 import com.goodlife.app.game.Game
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -61,8 +63,7 @@ object Social {
 
     /** Texte à envoyer par message pour qu'un ami m'ajoute à distance (sans aucun serveur). */
     fun shareText(): String? = mySignedCard()?.let {
-        "Ajoute-moi sur GoodLife 🍏 Ouvre ce message avec l'app GoodLife (Partager › GoodLife), " +
-            "ou copie-le dans Amis › Coller un code :\n" + Identity.toText(it)
+        t("Ajoute-moi sur GoodLife 🍏 Ouvre ce message avec l'app GoodLife (Partager › GoodLife), ou copie-le dans Amis › Coller un code :\n") + Identity.toText(it)
     }
 
     private fun record(card: PlayerCard, via: String): SyncEvent {

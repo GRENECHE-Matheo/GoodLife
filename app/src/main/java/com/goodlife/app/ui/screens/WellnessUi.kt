@@ -2,6 +2,9 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -64,12 +67,12 @@ fun WaterCard() {
             Icon(Icons.Filled.WaterDrop, null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("Eau : ${Coach.fmt(ml)} / ${Coach.fmt(goal)} ml", style = MaterialTheme.typography.titleSmall)
-                Text("${ml / GLASS_ML} verre${if (ml / GLASS_ML > 1) "s" else ""} de 250 ml" + if (ml >= goal) " · objectif atteint 💧" else "",
+                Text(t("Eau : %1\$s / %2\$s ml", Coach.fmt(ml), Coach.fmt(goal)), style = MaterialTheme.typography.titleSmall)
+                Text(tp(ml / GLASS_ML, "%1\$s verre de 250 ml", "%1\$s verres de 250 ml") + if (ml >= goal) t(" · objectif atteint 💧") else "",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TextButton(enabled = ml > 0, onClick = { Repo.addWater(-GLASS_ML) }) { Text("−") }
-            FilledTonalButton(onClick = { Repo.addWater(GLASS_ML) }) { Text("+ 1 verre") }
+            FilledTonalButton(onClick = { Repo.addWater(GLASS_ML) }) { Text(t("+ 1 verre")) }
         }
         LinearProgressIndicator(progress = { (ml.toFloat() / goal).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp), strokeCap = StrokeCap.Round)
     }
@@ -90,19 +93,19 @@ fun FeelingCard() {
     if (!editing && f != null) {
         Surface(onClick = { editing = true }, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Aujourd'hui : humeur ${MOODS[f.mood - 1]} · énergie ${ENERGY[f.energy - 1]}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Text("Modifier", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(t("Aujourd'hui : humeur %1\$s · énergie %2\$s", MOODS[f.mood - 1], ENERGY[f.energy - 1]), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(t("Modifier"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
         return
     }
-    SectionCard(title = "Comment tu te sens aujourd'hui ?") {
-        Text("Humeur", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    SectionCard(title = t("Comment tu te sens aujourd'hui ?")) {
+        Text(t("Humeur"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ScaleRow(MOODS, mood) { mood = it }
-        Text("Énergie", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(t("Énergie"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ScaleRow(ENERGY, energy) { energy = it }
-        Button(enabled = mood > 0 && energy > 0, onClick = { Repo.setFeeling(mood, energy); editing = false }) { Text("Enregistrer") }
-        Text("Reste sur ton téléphone. Après quelques jours, le chef te montre ce qui semble t'aider (dans Mes progrès).",
+        Button(enabled = mood > 0 && energy > 0, onClick = { Repo.setFeeling(mood, energy); editing = false }) { Text(t("Enregistrer")) }
+        Text(t("Reste sur ton téléphone. Après quelques jours, le chef te montre ce qui semble t'aider (dans Mes progrès)."),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -127,7 +130,7 @@ fun MissionsCard(summary: GameSummary) {
     val missions = remember(meals, game, water, feelings, social, outings, summary) { Milestones.missions(summary) }
     LaunchedEffect(missions) { Milestones.rewardMissions(missions) }
     if (!Milestones.showMissions(missions)) return
-    SectionCard(title = "Tes missions de départ · ${missions.count { it.done }}/${missions.size}", icon = Icons.Filled.EmojiEvents) {
+    SectionCard(title = t("Tes missions de départ · %1\$s/%2\$s", missions.count { it.done }, missions.size), icon = Icons.Filled.EmojiEvents) {
         missions.forEach { m ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(if (m.done) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked, null,
@@ -135,7 +138,7 @@ fun MissionsCard(summary: GameSummary) {
                 Spacer(Modifier.width(10.dp))
                 Text("${m.emoji} ${m.title}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
                     color = if (m.done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
-                Text("+${m.xp} XP", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(t("+%1\$s XP", m.xp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -154,13 +157,13 @@ fun NewBadgeCard(summary: GameSummary, onOpen: () -> Unit) {
             Text(fresh.first().emoji, style = MaterialTheme.typography.displaySmall)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(if (fresh.size > 1) "${fresh.size} nouveaux badges !" else "Nouveau badge !", style = MaterialTheme.typography.labelLarge)
-                Text(fresh.take(3).joinToString(" · ") { it.title } + if (fresh.size > 3) " et ${fresh.size - 3} autres" else "",
+                Text(if (fresh.size > 1) t("%1\$s nouveaux badges !", fresh.size) else t("Nouveau badge !"), style = MaterialTheme.typography.labelLarge)
+                Text(fresh.take(3).joinToString(" · ") { it.title } + if (fresh.size > 3) t(" et %1\$s autres", fresh.size - 3) else "",
                     style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { Milestones.markBadgesSeen(all); fresh = emptyList(); onOpen() }) { Text("Voir mes badges") }
+            FilledTonalButton(onClick = { Milestones.markBadgesSeen(all); fresh = emptyList(); onOpen() }) { Text(t("Voir mes badges")) }
             TextButton(onClick = { Milestones.markBadgesSeen(all); fresh = emptyList() }) { Text("OK") }
         }
     }
@@ -171,7 +174,7 @@ fun NewBadgeCard(summary: GameSummary, onOpen: () -> Unit) {
 fun BadgesSection(summary: GameSummary) {
     val all = remember(summary) { Milestones.badges(summary) }
     LaunchedEffect(all) { Milestones.markBadgesSeen(all) }
-    SectionCard(title = "Badges · ${all.count { it.unlocked }}/${all.size}", icon = Icons.Filled.EmojiEvents) {
+    SectionCard(title = t("Badges · %1\$s/%2\$s", all.count { it.unlocked }, all.size), icon = Icons.Filled.EmojiEvents) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             all.forEach { b -> BadgeChip(b) }
         }
@@ -203,29 +206,26 @@ fun FeelingInsights() {
     val sleep by Repo.sleep.collectAsState()
     val lines = remember(feelings, steps, sleep) {
         val out = mutableListOf<String>()
-        fun avg(l: List<Int>) = String.format(Locale.FRANCE, "%.1f", l.average())
+        fun avg(l: List<Int>) = String.format(com.goodlife.app.i18n.Lang.locale, "%.1f", l.average())
         // Pas : objectif atteint ou non → énergie
         val withSteps = feelings.mapNotNull { (d, f) -> steps.days[d]?.takeIf { it.goal > 0 }?.let { (it.steps >= it.goal) to f.energy } }
         val hit = withSteps.filter { it.first }.map { it.second }; val miss = withSteps.filter { !it.first }.map { it.second }
-        if (hit.size >= 4 && miss.size >= 4) out += "Les jours où tu atteins ton objectif de pas, ton énergie moyenne est de ${avg(hit)}/5, " +
-            "contre ${avg(miss)}/5 les autres jours (${withSteps.size} jours notés)."
+        if (hit.size >= 4 && miss.size >= 4) out += t("Les jours où tu atteins ton objectif de pas, ton énergie moyenne est de %1\$s/5, contre %2\$s/5 les autres jours (%3\$s jours notés).", avg(hit), avg(miss), withSteps.size)
         // Sommeil de la nuit précédente : 7 h ou plus → humeur
         val sleepByDay = sleep.groupBy { java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date(it.end)) }
             .mapValues { e -> e.value.sumOf { it.end - it.start } / 3_600_000.0 }
         val withSleep = feelings.mapNotNull { (d, f) -> sleepByDay[d]?.let { (it >= 7.0) to f.mood } }
         val good = withSleep.filter { it.first }.map { it.second }; val short = withSleep.filter { !it.first }.map { it.second }
-        if (good.size >= 4 && short.size >= 4) out += "Après une nuit de 7 h ou plus, ton humeur moyenne est de ${avg(good)}/5, " +
-            "contre ${avg(short)}/5 après une nuit plus courte (${withSleep.size} jours notés)."
+        if (good.size >= 4 && short.size >= 4) out += t("Après une nuit de 7 h ou plus, ton humeur moyenne est de %1\$s/5, contre %2\$s/5 après une nuit plus courte (%3\$s jours notés).", avg(good), avg(short), withSleep.size)
         out
     }
-    SectionCard(title = "Ce qui semble t'aider") {
+    SectionCard(title = t("Ce qui semble t'aider")) {
         if (lines.isEmpty()) Text(
-            "Note ton humeur et ton énergie quelques jours (sur l'accueil) : dès qu'il y a assez de jours à comparer, " +
-                "tu verras ici des tendances calculées sur tes propres données.",
+            t("Note ton humeur et ton énergie quelques jours (sur l'accueil) : dès qu'il y a assez de jours à comparer, tu verras ici des tendances calculées sur tes propres données."),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
         ) else {
             lines.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
-            Text("Ce sont des moyennes sur tes propres jours : une tendance observée, pas une preuve ni un avis médical.",
+            Text(t("Ce sont des moyennes sur tes propres jours : une tendance observée, pas une preuve ni un avis médical."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -241,15 +241,13 @@ fun CareCard(summary: GameSummary) {
             ChefMascot(size = 56.dp, mood = ChefMood.COEUR)
             Spacer(Modifier.width(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Le chef prend de tes nouvelles", style = MaterialTheme.typography.titleSmall)
+                Text(t("Le chef prend de tes nouvelles"), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Ces trois derniers jours, tes repas notés font moins de la moitié de tes besoins estimés. Peut-être que tu " +
-                        "n'as pas tout noté, et c'est très bien ainsi ! Mais si manger est compliqué en ce moment, c'est important " +
-                        "d'en parler à un proche ou à un médecin. Fil Santé Jeunes répond aussi, gratuitement et anonymement, au 0 800 235 236.",
+                    t("Ces trois derniers jours, tes repas notés font moins de la moitié de tes besoins estimés. Peut-être que tu n'as pas tout noté, et c'est très bien ainsi ! Mais si manger est compliqué en ce moment, c'est important d'en parler à un proche ou à un médecin. Fil Santé Jeunes répond aussi, gratuitement et anonymement, au 0 800 235 236."),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 TextButton(onClick = { Repo.updateSettings { it.copy(guardSnoozeUntil = System.currentTimeMillis() + 7 * 86_400_000L) } }) {
-                    Text("Merci, ne plus afficher cette semaine")
+                    Text(t("Merci, ne plus afficher cette semaine"))
                 }
             }
         }

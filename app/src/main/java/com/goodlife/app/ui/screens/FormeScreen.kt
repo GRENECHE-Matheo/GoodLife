@@ -1,5 +1,7 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.i18n.t
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,11 +34,11 @@ fun FormeScreen() {
         // Sur la carte, on garde toute la place pour elle : pas de grand titre
         if (!active && tab != 1) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
-                ScreenTitle("Forme", "Bouger, s'amuser, bien dormir")
+                ScreenTitle(t("Forme"), t("Bouger, s'amuser, bien dormir"))
             }
         }
         if (!active) PrimaryTabRow(selectedTabIndex = tab) {
-            listOf("Programme", "Carte", "Sommeil").forEachIndexed { i, label ->
+            listOf(t("Programme"), t("Carte"), t("Sommeil")).forEachIndexed { i, label ->
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label) })
             }
         }

@@ -1,5 +1,7 @@
 package com.goodlife.app.data
 
+import com.goodlife.app.i18n.t
+
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +64,7 @@ data class Settings(
     val waterGoalMl: Int = 1500,              // repère : environ 1,5 L de boisson par jour pour un adulte
     val notifWater: Boolean = false,          // rappel d'hydratation l'après-midi
     val guardSnoozeUntil: Long = 0L,          // garde-fou bienveillant mis en pause jusqu'à cette date
+    val language: String = "system",          // langue de l'app : « system » (celle du téléphone), « fr » ou « en »
     val lastNewsDay: String = "",
     // Amis : profil privé par défaut ; rien n'est partagé tant que « Profil public » est coupé
     val publicProfile: Boolean = false,
@@ -123,6 +126,7 @@ data class Settings(
         .put("waterGoalMl", waterGoalMl)
         .put("notifWater", notifWater)
         .put("guardSnoozeUntil", guardSnoozeUntil)
+        .put("language", language)
         .put("lastNewsDay", lastNewsDay)
         .put("publicProfile", publicProfile)
         .put("pseudo", pseudo)
@@ -182,6 +186,7 @@ data class Settings(
             waterGoalMl = o.optInt("waterGoalMl", 1500).coerceIn(500, 5000),
             notifWater = o.optBoolean("notifWater", false),
             guardSnoozeUntil = o.optLong("guardSnoozeUntil", 0L),
+            language = o.optString("language", "system").takeIf { it in setOf("system", "fr", "en") } ?: "system",
             lastNewsDay = o.optString("lastNewsDay"),
             publicProfile = o.optBoolean("publicProfile", false),
             pseudo = o.optString("pseudo"),
@@ -270,6 +275,10 @@ object Repo {
         if (::store.isInitialized) return
         appContext = context.applicationContext
         store = SecureStore(context.applicationContext)
+        // Langue choisie appliquée avant tout le reste (les libellés sont traduits dès leur premier usage)
+        com.goodlife.app.i18n.Lang.apply(
+            store.get(K_SETTINGS)?.let { runCatching { JSONObject(it).optString("language", "system") }.getOrNull() } ?: "system"
+        )
         _profile.value = store.get(K_PROFILE)?.let { runCatching { Profile.fromJson(JSONObject(it)) }.getOrNull() }
         _meals.value = store.get(K_MEALS)?.let { s ->
             runCatching { JSONArray(s).mapObjects { Meal.fromJson(it) } }.getOrNull()
@@ -648,6 +657,9 @@ object Repo {
 
     // ---------- Réglages ----------
     @Synchronized
+    /** Attend que tout soit écrit sur le disque (avant de redémarrer l'app). */
+    fun flush() = store.flush()
+
     fun updateSettings(transform: (Settings) -> Settings) {
         val s = transform(_settings.value)
         _settings.value = s
@@ -712,11 +724,11 @@ object Repo {
     @Synchronized
     fun restore(json: String) {
         val o = JSONObject(json)
-        require(o.optString("app") == "GoodLife") { "Ce fichier n'est pas une sauvegarde GoodLife." }
+        require(o.optString("app") == "GoodLife") { t("Ce fichier n'est pas une sauvegarde GoodLife.") }
         val profile = o.optJSONObject("profile")?.let { Profile.fromJson(it) }
-            ?: throw IllegalArgumentException("La sauvegarde ne contient pas de profil.")
+            ?: throw IllegalArgumentException(t("La sauvegarde ne contient pas de profil."))
         require(profile.age in com.goodlife.app.ai.Nutrition.MIN_AGE..110 && profile.weightKg in 25.0..350.0 && profile.heightCm in 100.0..250.0) {
-            "Le profil de la sauvegarde est invalide."
+            t("Le profil de la sauvegarde est invalide.")
         }
         _profile.value = profile
         put(K_PROFILE, profile.toJson().toString())

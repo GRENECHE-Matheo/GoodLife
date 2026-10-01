@@ -1,5 +1,7 @@
 package com.goodlife.app.track
 
+import com.goodlife.app.i18n.t
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -83,7 +85,7 @@ class TrackingService : Service() {
     @SuppressLint("MissingPermission") // vérifiée par TrackingService.start
     private fun startTracking(type: OutingType, routeId: Long) {
         Repo.init(applicationContext)
-        startForegroundCompat(notification("Sortie en cours", "Recherche du signal GPS…"))
+        startForegroundCompat(notification(t("Sortie en cours"), t("Recherche du signal GPS…")))
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             stopSelf(); return
         }
@@ -136,8 +138,8 @@ class TrackingService : Service() {
     private fun notifyProgress() {
         val l = Tracker.live.value ?: return
         val text = "${formatClock(l.movingMs)} · ${"%.2f".format(l.distanceM / 1000)} km" +
-            if (l.paused) " · en pause" else if (l.autoPaused) " · à l'arrêt" else ""
-        getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification("${l.type.emoji} ${l.type.label} en cours", text))
+            if (l.paused) t(" · en pause") else if (l.autoPaused) t(" · à l'arrêt") else ""
+        getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification(t("%1\$s %2\$s en cours", l.type.emoji, l.type.label), text))
     }
 
     private fun notification(title: String, text: String) = NotificationCompat.Builder(this, CHANNEL)
@@ -153,8 +155,8 @@ class TrackingService : Service() {
 
     private fun startForegroundCompat(n: android.app.Notification) {
         getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL, "Sorties GPS", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Temps et distance pendant une sortie"
+            NotificationChannel(CHANNEL, t("Sorties GPS"), NotificationManager.IMPORTANCE_LOW).apply {
+                description = t("Temps et distance pendant une sortie")
             }
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
