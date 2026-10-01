@@ -36,6 +36,9 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ContentPaste
@@ -186,65 +189,29 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
     val settings by Repo.settings.collectAsState()
     val social by Repo.social.collectAsState()
     val context = LocalContext.current
-    var pseudo by remember(settings.pseudo) { mutableStateOf(settings.pseudo) }
     var ranking by rememberSaveable { mutableStateOf("level") }
     var message by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
     var pasteOpen by remember { mutableStateOf(false) }
     if (pasteOpen) PasteCodeDialog(onDismiss = { pasteOpen = false }) { result -> info = result; pasteOpen = false }
     val unreadCheers = remember { social.cheersIn.filter { !it.seen } }
-    LaunchedEffect(Unit) { if (social.cheersIn.any { !it.seen }) Repo.markCheersSeen() }
+    LaunchedEffect(Unit) {
+        if (social.cheersIn.any { !it.seen }) Repo.markCheersSeen()
+        com.goodlife.app.social.SocialNotifier.cancelCheers(context)
+    }
 
     val askBt = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
-        if (res.values.all { it }) {
+        if (StreetPass.hasPermissions(context)) {
             Repo.updateSettings { it.copy(streetPass = true) }
             StreetPass.sync(context)
-        } else message = t("StreetPass a besoin de l'autorisation « Appareils à proximité ».")
+        } else message = t("Les croisements ont besoin de l'autorisation « Appareils à proximité ».")
     }
+    val friends = social.people.filter { it.friend }
+    val met = social.people.filter { !it.friend }.sortedByDescending { it.seenAt }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
             SubScreenHeader(t("Amis"), onBack)
-
-            // ---- Mon profil public ----
-            SectionCard(title = t("Mon profil"), icon = Icons.Filled.PhoneAndroid) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(if (settings.publicProfile) t("Profil public") else t("Profil privé"), style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            if (settings.publicProfile) t("Tes amis reçoivent seulement ce que tu coches ci-dessous, quand vous vous synchronisez.")
-                            else t("Personne ne reçoit rien. Tu peux quand même recevoir la carte des autres."),
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(settings.publicProfile, { on ->
-                        Repo.updateSettings { it.copy(publicProfile = on, streetPass = if (on) it.streetPass else false) }
-                        StreetPass.sync(context)
-                    })
-                }
-                if (settings.publicProfile) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            pseudo, { pseudo = it.take(Identity.MAX_PSEUDO) },
-                            label = { Text(t("Pseudo")) }, singleLine = true, modifier = Modifier.weight(1f),
-                            supportingText = { Text(t("Évite ton nom complet.")) }
-                        )
-                        TextButton(
-                            enabled = Identity.cleanPseudo(pseudo).length >= 2 && Identity.cleanPseudo(pseudo) != settings.pseudo,
-                            onClick = { Repo.updateSettings { it.copy(pseudo = Identity.cleanPseudo(pseudo)) }; StreetPass.sync(context) }
-                        ) { Text("OK") }
-                    }
-                    Text(t("Je partage :"), style = MaterialTheme.typography.labelLarge)
-                    ShareBox(t("Mon niveau"), settings.shareLevel) { v -> Repo.updateSettings { it.copy(shareLevel = v) } }
-                    ShareBox(t("Ma série"), settings.shareStreak) { v -> Repo.updateSettings { it.copy(shareStreak = v) } }
-                    ShareBox(t("Mon %1\$s (sans mes photos)", DEX_NAME), settings.shareDex) { v -> Repo.updateSettings { it.copy(shareDex = v) } }
-                    ShareBox(t("Mon défi de la semaine (jours validés, pas, XP)"), settings.shareWeek) { v -> Repo.updateSettings { it.copy(shareWeek = v) } }
-                    Text(
-                        t("Jamais partagé : ton poids, tes repas, ton sommeil, tes photos."),
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
 
             // ---- Encouragements reçus ----
             if (unreadCheers.isNotEmpty()) SectionCard(title = t("Encouragements"), icon = Icons.Filled.Favorite,
@@ -255,64 +222,78 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                 }
             }
 
-            // ---- Ajouter ----
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onTap, modifier = Modifier.weight(1f).height(56.dp)) {
-                    Icon(Icons.Filled.Contactless, null); Spacer(Modifier.width(8.dp)); Text(t("Tap to Sync"))
-                }
-                FilledTonalButton(onClick = onQr, modifier = Modifier.weight(1f).height(56.dp)) {
-                    Icon(Icons.Filled.QrCode2, null); Spacer(Modifier.width(8.dp)); Text(t("QR code"))
-                }
-            }
-            // ---- À distance : la carte part par message, toujours sans serveur ----
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = {
-                    val text = Social.shareText()
-                    if (text == null) message = t("Active « Profil public » et choisis un pseudo pour partager ta carte.")
-                    else runCatching {
-                        context.startActivity(android.content.Intent.createChooser(
-                            android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
-                                .putExtra(android.content.Intent.EXTRA_TEXT, text), t("Partager ma carte")))
+            // ---- Rencontres à accepter (croisements) ----
+            if (met.isNotEmpty()) SectionCard(title = t("Personnes croisées · %1\$s", met.size), icon = Icons.Filled.Sensors) {
+                Text(
+                    t("Ajoute-les en ami pour les suivre dans ton classement, ou ignore-les."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                met.take(20).forEach { p ->
+                    PersonCard(
+                        name = p.pseudo,
+                        details = listOfNotNull(p.level?.let { t("Niv. %1\$s", it) }, tp(p.encounters, "croisé une fois", "croisé %1\$s fois"), ago(p.seenAt)).joinToString(" · "),
+                        onClick = { onPerson(p.id) }
+                    ) {
+                        FilledTonalButton(onClick = { Repo.setFriend(p.id, true); info = t("%1\$s est maintenant ton ami !", p.pseudo) }) {
+                            Icon(Icons.Filled.PersonAdd, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(t("Ajouter"))
+                        }
+                        IconButton(onClick = { Repo.removePerson(p.id) }) { Icon(Icons.Filled.Close, t("Ignorer")) }
                     }
-                }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Partager ma carte"))
-                }
-                OutlinedButton(onClick = { pasteOpen = true }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Coller un code"))
                 }
             }
-            Text(
-                t("Pas à côté ? Envoie ta carte par message (WhatsApp, SMS…) : ton ami l'ouvre avec GoodLife. Elle passe seulement par la messagerie que tu choisis, jamais par un serveur GoodLife."),
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            // ---- Ajouter un ami ----
+            SectionCard(title = t("Ajouter un ami"), icon = Icons.Filled.PersonAdd) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AddTile(Icons.Filled.Contactless, t("Tap to Sync"), t("Collez vos téléphones"), Modifier.weight(1f), primary = true, onClick = onTap)
+                    AddTile(Icons.Filled.QrCode2, t("QR code"), t("Montre ou scanne"), Modifier.weight(1f), primary = true, onClick = onQr)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AddTile(Icons.Filled.Share, t("Partager ma carte"), t("Par message"), Modifier.weight(1f)) {
+                        val text = Social.shareText()
+                        if (text == null) message = t("Active « Profil public » et choisis un pseudo pour partager ta carte.")
+                        else runCatching {
+                            context.startActivity(android.content.Intent.createChooser(
+                                android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                                    .putExtra(android.content.Intent.EXTRA_TEXT, text), t("Partager ma carte")))
+                        }
+                    }
+                    AddTile(Icons.Filled.ContentPaste, t("Coller un code"), t("Reçu par message"), Modifier.weight(1f)) { pasteOpen = true }
+                }
+                if (!Social.canShare()) Text(
+                    t("Pour que tes amis te voient aussi, rends ton profil public (en bas de l'écran)."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             if (info != null) Text(info!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
 
-            // ---- Défi de la semaine ----
-            WeeklyChallenge(social.people.filter { it.friend }, settings.pseudo)
-
-            // ---- Classement entre amis ----
-            val friends = social.people.filter { it.friend }
-            SectionCard(title = t("Classement entre amis"), icon = Icons.Filled.EmojiEvents) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(ranking == "level", { ranking = "level" }, label = { Text(t("Niveau")) })
-                    FilterChip(ranking == "streak", { ranking = "streak" }, label = { Text(t("Série")) })
-                    FilterChip(ranking == "dex", { ranking = "dex" }, label = { Text(DEX_NAME) })
-                }
+            // ---- Mes amis (et classement) ----
+            SectionCard(title = if (friends.isEmpty()) t("Mes amis") else t("Mes amis · %1\$s", friends.size), icon = Icons.Filled.Group) {
                 if (friends.isEmpty()) {
                     Text(
                         t("Pas encore d'amis. Collez vos téléphones avec Tap to Sync ou scannez son QR code."),
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else Leaderboard(friends, ranking, onPerson)
+                } else {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(ranking == "level", { ranking = "level" }, label = { Text(t("Niveau")) })
+                        FilterChip(ranking == "streak", { ranking = "streak" }, label = { Text(t("Série")) })
+                        FilterChip(ranking == "dex", { ranking = "dex" }, label = { Text(DEX_NAME) })
+                    }
+                    Leaderboard(friends, ranking, onPerson)
+                }
             }
 
-            // ---- StreetPass ----
-            if (StreetPass.supported(context) && StreetPass.allowedForAge()) SectionCard(title = "StreetPass", icon = Icons.Filled.Sensors) {
+            // ---- Défi de la semaine ----
+            if (friends.isNotEmpty()) WeeklyChallenge(friends, settings.pseudo)
+
+            // ---- Croisements ----
+            if (StreetPass.supported(context) && StreetPass.allowedForAge()) SectionCard(title = t("Croisements"), icon = Icons.Filled.Sensors) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(t("Croiser d'autres joueurs"), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            t("En Bluetooth basse consommation, à quelques mètres. Une notification reste affichée tant que c'est actif. Nécessite un profil public."),
+                            t("À quelques mètres d'un joueur GoodLife, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -331,30 +312,129 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                         }
                     )
                 }
-                val met = social.people.filter { !it.friend }.sortedByDescending { it.seenAt }
-                if (met.isNotEmpty()) {
-                    Text(t("Rencontres"), style = MaterialTheme.typography.labelLarge)
-                    met.take(30).forEachIndexed { i, p ->
-                        if (i > 0) HorizontalDivider()
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f).clickable { onPerson(p.id) }) {
-                                Text(p.pseudo, fontWeight = FontWeight.Medium)
-                                Text(
-                                    listOfNotNull(p.level?.let { t("Niv. %1\$s", it) }, t("croisé %1\$s fois", p.encounters), ago(p.seenAt)).joinToString(" · "),
-                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            TextButton(onClick = { Repo.setFriend(p.id, true) }) { Icon(Icons.Filled.PersonAdd, t("Ajouter en ami")) }
-                            TextButton(onClick = { Repo.blockPerson(p.id) }) { Icon(Icons.Filled.Block, t("Masquer et bloquer")) }
-                        }
-                    }
-                }
+                if (settings.streetPass) Text(
+                    t("Pour garder le Bluetooth actif en arrière-plan, Android impose une notification : elle est réduite au minimum (silencieuse, sans icône en haut de l'écran). Sur Android 13 et plus, tu peux la balayer pour la masquer."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+
+            // ---- Mon profil d'ami ----
+            MyFriendProfile()
+
             if (message != null) Text(message!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             if (social.blocked.isNotEmpty()) {
                 TextButton(onClick = { Repo.unblockAll() }) { Text(t("Débloquer les %1\$s personne(s) bloquée(s)", social.blocked.size)) }
             }
         }
+    }
+}
+
+/** Grande tuile d'action (ajouter un ami). */
+@Composable
+private fun AddTile(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, modifier: Modifier, primary: Boolean = false, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick, modifier = modifier, shape = RoundedCornerShape(20.dp),
+        color = if (primary) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, null, tint = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary)
+            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1,
+                color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Carte d'une personne : avatar, pseudo, infos, et des actions à droite. */
+@Composable
+private fun PersonCard(
+    name: String, details: String, onClick: (() -> Unit)?, leading: String? = null, highlight: Boolean = false,
+    trailing: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    Surface(
+        onClick = { onClick?.invoke() }, enabled = onClick != null, shape = RoundedCornerShape(18.dp),
+        color = if (highlight) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (leading != null) Text(leading, modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
+            com.goodlife.app.ui.Avatar(null, name, 40.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(name, style = MaterialTheme.typography.titleSmall, fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+                if (details.isNotBlank()) Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+            trailing()
+        }
+    }
+}
+
+/** Mon profil d'ami : replié une fois prêt (pseudo choisi), avec un bouton « Modifier ». */
+@Composable
+private fun MyFriendProfile() {
+    val settings by Repo.settings.collectAsState()
+    val avatar by Repo.avatar.collectAsState()
+    val context = LocalContext.current
+    val ready = settings.publicProfile && settings.pseudo.isNotBlank()
+    var editing by rememberSaveable { mutableStateOf(false) }
+    var pseudo by remember(settings.pseudo) { mutableStateOf(settings.pseudo) }
+    SectionCard(title = t("Mon profil d'ami"), icon = Icons.Filled.PhoneAndroid) {
+        if (ready && !editing) {
+            val shared = listOfNotNull(
+                if (settings.shareLevel) t("niveau") else null, if (settings.shareStreak) t("série") else null,
+                if (settings.shareDex) DEX_NAME else null, if (settings.shareWeek) t("défi de la semaine") else null
+            ).joinToString(", ").ifEmpty { t("rien d'autre que ton pseudo") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                com.goodlife.app.ui.Avatar(avatar, settings.pseudo, 44.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(settings.pseudo, style = MaterialTheme.typography.titleMedium)
+                    Text(t("Profil public · tu partages : %1\$s", shared), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = { editing = true }) {
+                    Icon(Icons.Filled.Edit, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(t("Modifier"))
+                }
+            }
+            return@SectionCard
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(if (settings.publicProfile) t("Profil public") else t("Profil privé"), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    if (settings.publicProfile) t("Tes amis reçoivent seulement ce que tu coches ci-dessous, quand vous vous synchronisez.")
+                    else t("Personne ne reçoit rien. Tu peux quand même recevoir la carte des autres."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(settings.publicProfile, { on ->
+                Repo.updateSettings { it.copy(publicProfile = on, streetPass = if (on) it.streetPass else false) }
+                StreetPass.sync(context)
+            })
+        }
+        if (settings.publicProfile) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    pseudo, { pseudo = it.take(Identity.MAX_PSEUDO) },
+                    label = { Text(t("Pseudo")) }, singleLine = true, modifier = Modifier.weight(1f),
+                    supportingText = { Text(t("Évite ton nom complet.")) }
+                )
+                TextButton(
+                    enabled = Identity.cleanPseudo(pseudo).length >= 2 && Identity.cleanPseudo(pseudo) != settings.pseudo,
+                    onClick = { Repo.updateSettings { it.copy(pseudo = Identity.cleanPseudo(pseudo)) }; StreetPass.sync(context) }
+                ) { Text("OK") }
+            }
+            Text(t("Je partage :"), style = MaterialTheme.typography.labelLarge)
+            ShareBox(t("Mon niveau"), settings.shareLevel) { v -> Repo.updateSettings { it.copy(shareLevel = v) } }
+            ShareBox(t("Ma série"), settings.shareStreak) { v -> Repo.updateSettings { it.copy(shareStreak = v) } }
+            ShareBox(t("Mon %1\$s (sans mes photos)", DEX_NAME), settings.shareDex) { v -> Repo.updateSettings { it.copy(shareDex = v) } }
+            ShareBox(t("Mon défi de la semaine (jours validés, pas, XP)"), settings.shareWeek) { v -> Repo.updateSettings { it.copy(shareWeek = v) } }
+            Text(
+                t("Jamais partagé : ton poids, tes repas, ton sommeil, tes photos."),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (ready) Button(onClick = { editing = false }) { Text(t("Terminé")) }
     }
 }
 
@@ -413,7 +493,7 @@ private fun WeeklyChallenge(friends: List<Person>, myPseudo: String) {
         Text(kind.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
         val left = Weekly.daysLeft()
         Text(
-            tp(left, "Encore %1\$s jour", "Encore %1\$s jours") + t(" · les scores de tes amis arrivent à chaque échange de cartes (Tap to Sync, QR, StreetPass ou message)."),
+            tp(left, "Encore %1\$s jour", "Encore %1\$s jours") + t(" · les scores de tes amis arrivent à chaque échange de cartes (Tap to Sync, QR, croisement ou message)."),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         data class R(val name: String, val value: Int, val me: Boolean)
@@ -426,7 +506,7 @@ private fun WeeklyChallenge(friends: List<Person>, myPseudo: String) {
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}." }, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
                 Text(r.name, modifier = Modifier.weight(1f), fontWeight = if (r.me) FontWeight.Bold else FontWeight.Normal)
-                Text("${com.goodlife.app.coach.Coach.fmt(r.value)} ${kind.unit}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text("${com.goodlife.app.coach.Coach.fmt(r.value)} ${t(kind.unit)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
         val waiting = friends.filter { it.weekId != week }
@@ -438,7 +518,7 @@ private fun WeeklyChallenge(friends: List<Person>, myPseudo: String) {
     }
 }
 
-/** Classement : mes amis + moi, avec les infos qu'ils partagent. */
+/** Classement : mes amis + moi, en cartes, avec les infos qu'ils partagent. */
 @Composable
 private fun Leaderboard(friends: List<Person>, by: String, onPerson: (String) -> Unit) {
     val profile = Repo.profile.collectAsState().value
@@ -447,38 +527,32 @@ private fun Leaderboard(friends: List<Person>, by: String, onPerson: (String) ->
     val steps = Repo.steps.collectAsState().value
     val dex = Repo.dex.collectAsState().value
     val settings = Repo.settings.collectAsState().value
-    val me = remember(meals, game, steps, profile) { profile?.let { Game.summarize(meals, it, game, steps.days, newRulesFrom = settings.scoreRulesFrom) } }
+    val me = remember(meals, game, steps, profile) { profile?.let { Game.summarize(meals, it, game, steps.days, newRulesFrom = settings.scoreRulesFrom, foodOnlyFrom = settings.foodOnlyFrom) } }
 
-    data class Row3(val id: String?, val name: String, val value: Int?)
-    val rows = (friends.map {
-        Row3(it.id, it.pseudo, when (by) { "streak" -> it.streak; "dex" -> it.dex?.size; else -> it.level })
-    } + Row3(null, settings.pseudo.ifBlank { t("Moi") } + " (moi)", when (by) {
-        "streak" -> me?.streak; "dex" -> dex.unlocked.size; else -> me?.level?.level
-    })).sortedWith(compareByDescending<Row3> { it.value ?: -1 }.thenBy { it.name })
+    data class Row3(val id: String?, val name: String, val level: Int?, val streak: Int?, val dex: Int?) {
+        fun value(by: String): Int? = when (by) { "streak" -> this.streak; "dex" -> this.dex; else -> this.level }
+    }
+    val rows = (friends.map { Row3(it.id, it.pseudo, it.level, it.streak, it.dex?.size) } +
+        Row3(null, settings.pseudo.ifBlank { t("Moi") } + t(" (moi)"), me?.level?.level, me?.streak, dex.unlocked.size))
+        .sortedWith(compareByDescending<Row3> { it.value(by) ?: -1 }.thenBy { it.name })
 
-    rows.forEachIndexed { i, r ->
-        if (i > 0) HorizontalDivider()
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                .then(if (r.id != null) Modifier.clickable { onPerson(r.id) } else Modifier)
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}." },
-                modifier = Modifier.width(36.dp), textAlign = TextAlign.Center
-            )
-            Text(
-                r.name, modifier = Modifier.weight(1f),
-                fontWeight = if (r.id == null) FontWeight.Bold else FontWeight.Normal
-            )
-            Text(
-                r.value?.let {
-                    when (by) { "streak" -> t("%1\$s j", it); "dex" -> "$it/${Nutridex.ENTRIES.size}"; else -> t("Niv. %1\$s", it) }
-                } ?: t("caché"),
-                style = MaterialTheme.typography.labelLarge,
-                color = if (r.value == null) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEachIndexed { i, r ->
+            val details = listOfNotNull(
+                r.level?.let { t("Niv. %1\$s", it) }, r.streak?.let { "🔥 $it" }, r.dex?.let { "📖 $it" }
+            ).joinToString(" · ").ifEmpty { t("infos cachées") }
+            PersonCard(
+                name = r.name, details = details, onClick = r.id?.let { id -> { onPerson(id) } },
+                leading = when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}." }, highlight = r.id == null
+            ) {
+                val v = r.value(by)
+                Text(
+                    v?.let { when (by) { "streak" -> t("%1\$s j", it); "dex" -> "$it/${Nutridex.ENTRIES.size}"; else -> t("Niv. %1\$s", it) } } ?: t("caché"),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (v == null) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+                )
+                if (r.id != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
+            }
         }
     }
 }
@@ -498,7 +572,7 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
         ScreenColumn {
             SubScreenHeader(p.pseudo, onBack)
             SectionCard {
-                Text(if (p.friend) t("Ami") else t("Rencontre StreetPass"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(if (p.friend) t("Ami") else t("Personne croisée"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Stat(t("Niveau"), p.level?.let { "$it · ${Game.title(it)}" } ?: t("caché"), Modifier.weight(1f))
                     Stat(t("Série"), p.streak?.let { "$it j" } ?: t("cachée"), Modifier.weight(1f))
@@ -509,7 +583,7 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
                 }
                 Text(
                     t("Dernière synchro %1\$s · ajouté par %2\$s. Ses infos se mettent à jour à chaque nouvelle synchro.", ago(p.cardTime),
-                        when (p.via) { "tap" -> "Tap to Sync"; "street" -> "StreetPass"; "code" -> t("carte partagée"); else -> "QR code" }),
+                        when (p.via) { "tap" -> "Tap to Sync"; "street" -> t("croisement"); "code" -> t("carte partagée"); else -> "QR code" }),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -544,7 +618,7 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
         text = {
             Column {
                 Text(
-                    t("Il le recevra à votre prochaine synchro (Tap to Sync, QR code ou StreetPass). Un encouragement par jour."),
+                    t("Il le recevra à votre prochaine synchro (Tap to Sync, QR code, croisement ou message). Un encouragement par jour."),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 CHEERS.forEachIndexed { i, text ->

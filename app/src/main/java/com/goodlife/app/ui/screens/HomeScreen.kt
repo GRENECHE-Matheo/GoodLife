@@ -119,7 +119,7 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     val game by Repo.game.collectAsState()
     val p = profile ?: return
     val steps by Repo.steps.collectAsState()
-    val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom) }
+    val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom) }
     var overlay by rememberSaveable { mutableStateOf("") }
     SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress", "news", "coach" -> 1; else -> 2 } }) { screen ->
         when (screen) {
@@ -228,12 +228,48 @@ private fun HomeContent(
             }
         }
 
-        CoachCard(summary, p, onOpen = onCoach)
+        // D'abord l'essentiel : les calories du jour et le bouton photo
+        StepsAutoRefresh()
+        SectionCard {
+            val stepsData by Repo.steps.collectAsState()
+            val stepsProgress = if (settings.stepsEnabled) {
+                (stepsData.days[com.goodlife.app.data.localDay(0)]?.steps ?: 0).toFloat() / com.goodlife.app.steps.Steps.goal()
+            } else null
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CalorieRing(
+                    consumed = eaten, target = p.targetKcal,
+                    size = if (stepsProgress != null) 200.dp else 180.dp,
+                    stepsProgress = stepsProgress
+                )
+            }
+            Text(
+                if (remaining >= 0) t("Il te reste %1\$s kcal aujourd'hui", remaining)
+                else t("Objectif dépassé de %1\$s kcal", -remaining),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            StepsLine()
+            MacroBar(t("Protéines"), today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
+            MacroBar(t("Glucides"), today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
+            MacroBar(t("Lipides"), today.sumOf { it.fatG }, p.fatG, GoogleGreen)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onScan, modifier = Modifier.weight(1f).height(52.dp)) {
+                Icon(Icons.Filled.PhotoCamera, null)
+                Spacer(Modifier.width(8.dp))
+                Text(t("Scanner"))
+            }
+            FilledTonalButton(onClick = { showAdd = true }, modifier = Modifier.weight(1f).height(52.dp)) {
+                Icon(Icons.Filled.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text(t("Saisir"))
+            }
+        }
+        QuickMeals()
+
         CareCard(summary)
         NewBadgeCard(summary, onOpen = onProgress)
-        MissionsCard(summary)
-        if (!settings.notifAsked) NotifOptInCard()
-        NewsTeaser(onOpen = onNews)
 
         // Série cassée hier : le cuisto propose de la sauver
         if (summary.recoverableStreak > 0) {
@@ -283,6 +319,10 @@ private fun HomeContent(
             }
         }
 
+        CoachCard(summary, p, onOpen = onCoach)
+        MissionsCard(summary)
+        if (!settings.notifAsked) NotifOptInCard()
+
         val update = if (settings.checkUpdates) Updater.availableUpdate() else null
         if (update != null && update.tag != settings.dismissedTag) {
             SectionCard(
@@ -293,47 +333,6 @@ private fun HomeContent(
                 UpdatePanel(update, showDismiss = true)
             }
         }
-
-        StepsAutoRefresh()
-        SectionCard {
-            val stepsData by Repo.steps.collectAsState()
-            val stepsProgress = if (settings.stepsEnabled) {
-                (stepsData.days[com.goodlife.app.data.localDay(0)]?.steps ?: 0).toFloat() / com.goodlife.app.steps.Steps.goal()
-            } else null
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CalorieRing(
-                    consumed = eaten, target = p.targetKcal,
-                    size = if (stepsProgress != null) 200.dp else 180.dp,
-                    stepsProgress = stepsProgress
-                )
-            }
-            Text(
-                if (remaining >= 0) t("Il te reste %1\$s kcal aujourd'hui", remaining)
-                else t("Objectif dépassé de %1\$s kcal", -remaining),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            StepsLine()
-            MacroBar(t("Protéines"), today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
-            MacroBar(t("Glucides"), today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
-            MacroBar(t("Lipides"), today.sumOf { it.fatG }, p.fatG, GoogleGreen)
-        }
-        WaterCard()
-        FeelingCard()
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onScan, modifier = Modifier.weight(1f).height(52.dp)) {
-                Icon(Icons.Filled.PhotoCamera, null)
-                Spacer(Modifier.width(8.dp))
-                Text(t("Scanner"))
-            }
-            FilledTonalButton(onClick = { showAdd = true }, modifier = Modifier.weight(1f).height(52.dp)) {
-                Icon(Icons.Filled.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text(t("Saisir"))
-            }
-        }
-        QuickMeals()
 
         SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
             if (today.isEmpty()) {
@@ -347,6 +346,9 @@ private fun HomeContent(
                 MealRow(m, favorite = favs.any { it.name.trim().equals(m.name.trim(), ignoreCase = true) }, onFavorite = { Repo.toggleFavorite(m) }) { Repo.deleteMeal(m.id) }
             }
         }
+
+        WaterCard()
+        FeelingCard()
 
         SectionCard(title = t("Idées de repas"), icon = Icons.Filled.AutoAwesome) {
             if (!settings.aiEnabled) {
@@ -413,6 +415,8 @@ private fun HomeContent(
                 }
             }
         }
+
+        NewsTeaser(onOpen = onNews)
 
         SectionCard(title = t("7 derniers jours"), icon = Icons.Filled.BarChart) {
             val days = (-6..0).toList()

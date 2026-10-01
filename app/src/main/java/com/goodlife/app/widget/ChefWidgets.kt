@@ -8,6 +8,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.view.View
 import android.widget.RemoteViews
 import com.goodlife.app.MainActivity
 import com.goodlife.app.R
@@ -22,7 +23,7 @@ import java.util.Calendar
 
 /**
  * Widgets de l'écran d'accueil : le chef (dont l'humeur et la pose changent selon ta journée, et varient d'un jour
- * à l'autre), ta série, tes gels et, pour le grand widget, le score du jour et un petit mot.
+ * à l'autre), ta série, tes gels, tes calories et tes pas du jour, et pour le grand widget un petit mot.
  * Tout est calculé sur le téléphone. Si le verrouillage par empreinte est activé, aucun chiffre de santé n'est affiché.
  */
 object ChefWidgets {
@@ -63,26 +64,36 @@ object ChefWidgets {
         val streak = s?.streak ?: 0
         v.setTextViewText(R.id.widget_streak, buildString {
             if (streak == 0) append(if (small) "🔥 0" else t("🔥 Série à lancer"))
-            else { append("🔥 ").append(streak); if (!small) append(if (streak > 1) " jours" else " jour") }
+            else { append("🔥 "); append(if (small) streak.toString() else com.goodlife.app.ui.days(streak)) }
             if (freezes > 0) append("  ❄️ ").append(freezes)
         })
-        if (!small) {
-            if (s == null || p == null) {
-                v.setTextViewText(R.id.widget_line, "")
-                v.setTextViewText(R.id.widget_message, t("Ouvre GoodLife pour commencer avec le chef !"))
-                v.setProgressBar(R.id.widget_score, 100, 0, false)
-            } else if (locked) {
-                v.setTextViewText(R.id.widget_line, t("GoodLife est verrouillé"))
-                v.setTextViewText(R.id.widget_message, t("Ouvre l'app pour voir ta journée."))
-                v.setProgressBar(R.id.widget_score, 100, 0, false)
-            } else {
-                v.setProgressBar(R.id.widget_score, 100, s.today.score.coerceIn(0, 100), false)
-                v.setTextViewText(R.id.widget_line, buildString {
-                    append(t("Score ")).append(s.today.score).append("/100 · ")
-                    append(Coach.fmt(s.today.kcal)).append(" / ").append(Coach.fmt(p.targetKcal)).append(" kcal")
-                    if (s.today.stepGoal > 0) append(" · ").append(Coach.fmt(s.today.steps)).append(" pas")
-                })
-                v.setTextViewText(R.id.widget_message, Coach.homeMessage(s, p).second)
+        // Pas du jour : relevé enregistré (capteur ou Health Connect), si le suivi est activé
+        val stepsOn = Repo.settings.value.stepsEnabled && s != null
+        val stepsToday = Repo.steps.value.days[localDay(0)]?.steps ?: 0
+        val stepGoal = com.goodlife.app.steps.Steps.goal().coerceAtLeast(1)
+        val showNumbers = s != null && p != null && !locked
+        if (small) {
+            v.setTextViewText(R.id.widget_kcal, if (showNumbers) t("%1\$s kcal", Coach.fmt(s!!.today.kcal)) else "")
+            v.setTextViewText(R.id.widget_steps, if (showNumbers && stepsOn) t("%1\$s pas", Coach.fmt(stepsToday)) else "")
+            v.setViewVisibility(R.id.widget_kcal, if (showNumbers) View.VISIBLE else View.GONE)
+            v.setViewVisibility(R.id.widget_steps, if (showNumbers && stepsOn) View.VISIBLE else View.GONE)
+        } else {
+            v.setViewVisibility(R.id.widget_stats, if (showNumbers) View.VISIBLE else View.GONE)
+            when {
+                s == null || p == null -> v.setTextViewText(R.id.widget_message, t("Ouvre GoodLife pour commencer avec le chef !"))
+                locked -> v.setTextViewText(R.id.widget_message, t("GoodLife est verrouillé : ouvre l'app pour voir ta journée."))
+                else -> {
+                    v.setTextViewText(R.id.widget_kcal, t("%1\$s kcal", Coach.fmt(s.today.kcal)))
+                    v.setTextViewText(R.id.widget_kcal_sub, t("sur %1\$s · score %2\$s/100", Coach.fmt(p.targetKcal), s.today.score))
+                    v.setProgressBar(R.id.widget_kcal_bar, 100, (s.today.kcal * 100 / p.targetKcal.coerceAtLeast(1)).coerceIn(0, 100), false)
+                    v.setViewVisibility(R.id.widget_steps_box, if (stepsOn) View.VISIBLE else View.INVISIBLE)
+                    if (stepsOn) {
+                        v.setTextViewText(R.id.widget_steps, t("%1\$s pas", Coach.fmt(stepsToday)))
+                        v.setTextViewText(R.id.widget_steps_sub, t("objectif %1\$s", Coach.fmt(stepGoal)))
+                        v.setProgressBar(R.id.widget_steps_bar, 100, (stepsToday * 100 / stepGoal).coerceIn(0, 100), false)
+                    }
+                    v.setTextViewText(R.id.widget_message, Coach.homeMessage(s, p).second)
+                }
             }
         }
         val open = PendingIntent.getActivity(

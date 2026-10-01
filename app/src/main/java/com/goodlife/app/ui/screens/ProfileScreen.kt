@@ -47,6 +47,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +70,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProfileScreen() {
     var overlay by rememberSaveable { mutableStateOf("") }
+    val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
+    LaunchedEffect(navRequest) {
+        if (navRequest == "friends") { overlay = "friends"; com.goodlife.app.social.AppNav.request.value = null }
+    }
     SlideSwitch(overlay, depth = { if (it.isEmpty()) 0 else 1 }) { screen ->
         when (screen) {
             "settings" -> {

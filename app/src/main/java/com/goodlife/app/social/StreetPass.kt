@@ -42,9 +42,11 @@ import com.goodlife.app.data.Repo
 import java.util.UUID
 
 /**
- * StreetPass : quand deux téléphones GoodLife se croisent (quelques mètres), chacun lit la carte de l'autre
+ * Croisements : quand deux téléphones GoodLife se croisent (quelques mètres), chacun lit la carte de l'autre
  * en Bluetooth basse consommation. Réservé à Android 12+ (pas besoin de la localisation), désactivé par défaut,
- * seulement si le profil est public. Android impose une notification tant que c'est actif.
+ * seulement si le profil est public. Android impose une notification tant que c'est actif : elle est réduite au
+ * minimum (canal « min », silencieuse) ; une vraie notification n'arrive que pour une nouvelle rencontre ou un
+ * nouveau croisement (SocialNotifier). (« StreetPass » est une marque de Nintendo : le nom n'est pas affiché.)
  * Économie de batterie : émission et recherche en mode « basse consommation », une seule connexion à la fois,
  * et chaque téléphone n'est relu qu'une fois par heure au plus.
  */
@@ -87,7 +89,7 @@ class StreetPassService : Service() {
     private val lastRead = HashMap<String, Long>()       // adresse (aléatoire, change régulièrement) → dernière lecture
     private val queue = ArrayDeque<BluetoothDevice>()
     private var connecting: BluetoothGatt? = null
-    private var met = 0
+    private val lastNotified = HashMap<String, Long>()   // personne → dernière notification de croisement
 
     private val manager get() = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
 
@@ -113,22 +115,16 @@ class StreetPassService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     private fun startAsForeground() {
-        val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(
-            NotificationChannel(StreetPass.CHANNEL, "StreetPass", NotificationManager.IMPORTANCE_LOW).apply {
-                description = t("Indique que StreetPass est actif")
-            }
-        )
-        val open = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val n: Notification = NotificationCompat.Builder(this, StreetPass.CHANNEL)
+        SocialNotifier.channels(this)
+        val n: Notification = NotificationCompat.Builder(this, SocialNotifier.CH_ACTIVE)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(t("StreetPass actif"))
-            .setContentText(if (met == 0) t("À l'affût d'autres joueurs GoodLife") else t("%1\$s rencontre(s) depuis l'activation", met))
-            .setOngoing(true)
-            .setContentIntent(open)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentTitle(t("Croisements actifs"))
+            .setContentText(t("Touche pour gérer tes amis et tes rencontres."))
+            .setContentIntent(SocialNotifier.openFriends(this, 3000))
+            .setSilent(true)
+            .setShowWhen(false)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
@@ -224,12 +220,19 @@ class StreetPassService : Service() {
     private fun onRead(g: BluetoothGatt, value: ByteArray?, status: Int) = handler.post {
         if (status == BluetoothGatt.GATT_SUCCESS && value != null) {
             val e = Social.receive(value, "street")
-            if (e != null && (e.result == Repo.Received.NEW_ENCOUNTER || e.result == Repo.Received.SEEN_AGAIN)) {
-                met++
-                startAsForeground()   // met à jour le compteur de la notification
-            }
+            if (e != null && e.result != Repo.Received.IGNORED) notifyCrossing(e)
         }
         finish(g)
+    }
+
+    /** Une notification par personne au plus toutes les 6 h : nouvelle rencontre, ou recroisée (carte à jour). */
+    private fun notifyCrossing(e: SyncEvent) {
+        val now = System.currentTimeMillis()
+        val first = e.result == Repo.Received.NEW_ENCOUNTER
+        if (!first && now - (lastNotified[e.id] ?: 0L) < 6 * 3_600_000L) return
+        lastNotified[e.id] = now
+        val friend = Repo.social.value.people.firstOrNull { it.id == e.id }?.friend == true
+        SocialNotifier.encounter(this, e.id, e.pseudo, first, friend)
     }
 
     private fun finish(g: BluetoothGatt) {

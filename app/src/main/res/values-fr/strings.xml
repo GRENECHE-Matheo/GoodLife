@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">GoodLife</string>
+    <string name="tapsync_desc">GoodLife – échange de cartes entre amis</string>
+    <string name="widget_small">Le chef</string>
+    <string name="widget_medium">Ma journée</string>
+    <string name="widget_small_desc">Le chef, ta série, tes calories et tes pas</string>
+    <string name="widget_medium_desc">Le chef, ta série, tes calories, tes pas et un petit mot</string>
+    <string name="widget_chef_desc">Le chef de GoodLife</string>
+</resources>

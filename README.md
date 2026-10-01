@@ -22,7 +22,14 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9.5
+## 🆕 Nouveautés de la v0.9.6
+
+- **Accueil plus clair** : les calories et le bouton photo d'abord ; missions et badges en version compacte.
+- **Amis repensés** : tout en cartes, ajout en un geste, rencontres à accepter d'un bouton, profil replié avec « Modifier ».
+- **Notifications d'amis** : quand on t'encourage, et quand tu croises quelqu'un (fini la notification visible en permanence).
+- **Widget** plus complet (série, calories et pas du jour), et **score du jour** basé sur l'alimentation seule.
+
+## Nouveautés de la v0.9.5
 
 - **GoodLife en anglais** : l'app suit la langue du téléphone (ou se règle dans Paramètres › Langue).
 - Le chef et l'IA répondent dans la langue de l'app, et le quiz a ses noms d'aliments en anglais.
@@ -79,7 +86,8 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 ### 🏆 Motivation
 - **Le chef, ton coach** : un mot du jour sur l'accueil, une conversation pour tout lui demander (avec l'IA), et des
   notifications motivantes si tu les acceptes (bilan du matin, midi, soir si la série est en danger, dimanche).
-- **Score du jour** = 60 % alimentation + 40 % pas ; **série** validée dès 80/100, avec des **gels ❄️** pour sauver un jour raté.
+- **Score du jour** = ton alimentation ; **série** validée dès 80/100, avec des **gels ❄️** pour sauver un jour raté.
+  Les pas rapportent de l'XP (+10 XP les jours où l'objectif est atteint).
 - **Widgets du chef** pour l'écran d'accueil (série, score du jour, petit mot), qui change de pose selon ta journée.
 - **XP et niveaux**, de « Commis » à « Légende de la cuisine », courbes de score, calories et poids.
 - **Quiz du chef** : 5 questions par jour, jamais les mêmes pendant des années (questions fabriquées à partir de la
@@ -91,7 +99,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 
 ### 👥 Amis, sans serveur
 - Cartes de joueur signées échangées par **Tap to Sync** (NFC, en collant les téléphones), **QR code** ou
-  **StreetPass** (Bluetooth basse consommation, Android 12+ et 18+).
+  **croisements** (Bluetooth basse consommation, Android 12+ et 18+), avec une notification à chaque nouvelle rencontre.
 - **À distance** aussi : « Partager ma carte » par message (WhatsApp, SMS…), sans serveur GoodLife.
 - Classement entre amis, **défi de la semaine**, Nutridex des amis, encouragements tout prêts, blocage. Profil **privé par défaut**.
 

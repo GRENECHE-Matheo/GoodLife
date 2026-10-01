@@ -8,6 +8,26 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.6 — 01/10/2026
+
+**Plus simple à utiliser au quotidien.**
+
+- 🛠️ **Accueil réorganisé** : les calories du jour et les boutons « Scanner » / « Saisir » en premier. Les missions de
+  départ tiennent sur une ligne (à déplier) et les nouveaux badges sur une petite bannière.
+- 🛠️ **Écran Amis repensé** : des cartes pour chaque ami (avec ses infos et son rang), des tuiles pour ajouter un ami
+  (Tap to Sync, QR code, partager ma carte, coller un code), les personnes croisées à accepter d'un bouton « Ajouter »,
+  et ton profil d'ami replié en bas avec un bouton « Modifier ».
+- ✨ **Notifications d'amis** : quand un ami t'encourage (l'encouragement arrive avec sa carte, à la synchro), quand tu
+  croises quelqu'un pour la première fois (avec « Ajouter en ami » directement dans la notification) et quand tu
+  recroises quelqu'un (sa carte est à jour).
+- 🛠️ **Croisements** : la notification permanente est réduite au minimum (silencieuse, sans icône en haut de l'écran) ;
+  Android impose qu'il en reste une tant que le Bluetooth tourne en arrière-plan.
+- 🔒 « StreetPass » devient **« Croisements »** : StreetPass est une marque déposée de Nintendo.
+- 🛠️ **Widgets** : la série, les calories et les pas du jour (avec leurs barres), et un petit mot du chef.
+- 🛠️ **Score du jour = alimentation seule.** Les pas rapportent de l'XP (+10 XP les jours où l'objectif est atteint).
+  Les jours d'avant gardent leur score : aucune série n'est cassée.
+- 🔒 Politique de confidentialité v0.9.6 (notifications d'amis et croisements).
+
 ## v0.9.5 — 01/10/2026
 
 **GoodLife parle anglais.**
@@ -162,7 +182,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 - ✨ **Pas** : capteur du téléphone ou Health Connect, double anneau calories/pas à l'accueil, objectif automatique, manuel ou proposé par l'IA.
 - ✨ **Score du jour** = 60 % alimentation + 40 % pas ; série validée dès 80/100 (les anciens jours gardent les anciennes règles).
 - ✨ **Nutridex** : 161 aliments sains à débloquer en les prenant en photo, silhouettes pour ceux à découvrir, tri par catégorie.
-- ✨ **Amis sans serveur** : cartes de joueur signées échangées par **Tap to Sync** (NFC), **QR code** ou **StreetPass**
+- ✨ **Amis sans serveur** : cartes de joueur signées échangées par **Tap to Sync** (NFC), **QR code** ou **StreetPass** (renommé « Croisements » en v0.9.6)
   (Bluetooth, Android 12+ et 18+) ; classement entre amis, encouragements, blocage. Profil privé par défaut.
 - ✨ **Actus du jour** : une anecdote insolite et deux découvertes par jour, sans réseau.
 - 🛠️ Planning plus lisible ; semaine générée par l'IA avec budget et coût estimé par repas.

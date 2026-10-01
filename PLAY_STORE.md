@@ -77,7 +77,7 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 - **Sauvegarde chiffrée** : fichier écrit par l'utilisateur à l'endroit qu'il choisit, chiffré avec son mot de
   passe ; le développeur n'y a pas accès.
 - **Signalement IA** : e-mail rédigé et envoyé par l'utilisateur lui-même depuis sa messagerie.
-- **Amis (Tap to Sync, QR, StreetPass)** : si le profil est public, le pseudo et ce que l'utilisateur coche (niveau, série,
+- **Amis (Tap to Sync, QR, croisements)** : si le profil est public, le pseudo et ce que l'utilisateur coche (niveau, série,
   liste du Nutridex) partent **directement vers le téléphone d'un autre utilisateur**, sans serveur. Par prudence, déclarer
   comme données **partagées, facultatives, à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) »
   et « Activité dans l'appli › Autres actions (niveau, série, aliments découverts) ».
@@ -100,12 +100,12 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
 | `CAMERA` | Photo du repas et scan de code-barres (dans l'app) |
 | `ACTIVITY_RECOGNITION` | Détection du sommeil (Sleep API) et compteur de pas, seulement si activés |
 | `health.READ_STEPS` | Lecture seule des pas dans Health Connect, si l'utilisateur choisit cette source |
-| `RECEIVE_BOOT_COMPLETED` | Réactiver sommeil, StreetPass et les rappels du coach après un redémarrage |
+| `RECEIVE_BOOT_COMPLETED` | Réactiver sommeil, croisements et les rappels du coach après un redémarrage |
 | `INTERNET` | IA (si activée), Open Food Facts, carte, actus du jour (flux RSS publics) |
 | `NFC` | Tap to Sync : échange de cartes entre amis en collant les téléphones |
-| `BLUETOOTH_SCAN` (neverForLocation), `BLUETOOTH_ADVERTISE`, `BLUETOOTH_CONNECT` | StreetPass (Android 12+, 18+, désactivé par défaut) |
-| `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Service StreetPass avec sa notification |
-| `POST_NOTIFICATIONS` | Notifications du coach (acceptées par l'utilisateur), StreetPass et activités GPS |
+| `BLUETOOTH_SCAN` (neverForLocation), `BLUETOOTH_ADVERTISE`, `BLUETOOTH_CONNECT` | Croisements entre joueurs (Android 12+, 18+, désactivé par défaut) |
+| `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Service des croisements avec sa notification (discrète) |
+| `POST_NOTIFICATIONS` | Notifications du coach (acceptées par l'utilisateur), amis (encouragements, rencontres), croisements et activités GPS |
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | Activités GPS (course, marche, vélo), seulement pendant une activité lancée par l'utilisateur |
 | `FOREGROUND_SERVICE_LOCATION` | Suivi GPS écran éteint pendant l'activité, avec notification |
 
@@ -113,13 +113,13 @@ Pas de localisation en arrière-plan (`ACCESS_BACKGROUND_LOCATION`), ni de conta
 
 **Déclarations supplémentaires dans la Play Console :**
 - **Health Connect** : formulaire d'accès aux données Health Connect pour `READ_STEPS` — usage : afficher les pas du jour,
-  l'objectif de pas et le score quotidien ; lecture seule ; données jamais transmises.
+  l'objectif de pas et l'XP liée aux pas ; lecture seule ; données jamais transmises.
 - **Localisation** : déclaration « pendant l'utilisation » seulement ; usage = suivi des activités sportives (tracé, distance,
   vitesse, dénivelé) stocké sur le téléphone.
 - **Service de premier plan** (`location`) : suivi GPS d'une activité démarrée par l'utilisateur, notification permanente
   pendant l'activité ; **vidéo** demandée (démarrer une course, écran éteint, notification visible, arrêt).
-- **Service de premier plan** (`connectedDevice`) : StreetPass, échange Bluetooth entre appareils GoodLife proches, démarré
-  par l'utilisateur, notification permanente. Google demande une courte **vidéo** montrant l'activation.
+- **Service de premier plan** (`connectedDevice`) : croisements, échange Bluetooth entre appareils GoodLife proches, démarré
+  par l'utilisateur, notification permanente discrète (canal de faible importance). Google demande une courte **vidéo** montrant l'activation.
 
 ## 7. Déjà en place dans l'app
 
@@ -130,4 +130,4 @@ Pas de localisation en arrière-plan (`ACCESS_BACKGROUND_LOCATION`), ni de conta
 - Export (portabilité), effacement, retrait du consentement IA.
 - Mention « Généré par l'IA » + bouton « Signaler » sur chaque contenu d'IA.
 - Amis : profil privé par défaut, partage choisi champ par champ, cartes signées, blocage, encouragements sans texte libre,
-  StreetPass réservé aux 18+.
+  croisements réservés aux 18+.

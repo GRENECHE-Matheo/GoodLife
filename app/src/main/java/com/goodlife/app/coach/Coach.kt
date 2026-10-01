@@ -40,7 +40,7 @@ object Coach {
 
     fun summary(): GameSummary? {
         val p = Repo.profile.value ?: return null
-        return Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = Repo.settings.value.scoreRulesFrom)
+        return Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom)
     }
 
     /** Les 7 derniers jours, aujourd'hui compris (aujourd'hui compte comme un jour en cours). */

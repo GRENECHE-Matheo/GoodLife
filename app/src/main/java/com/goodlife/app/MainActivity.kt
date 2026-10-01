@@ -101,6 +101,7 @@ class MainActivity : FragmentActivity() {
             )
         enableEdgeToEdge()
         handleSharedCard(intent)
+        handleOpenRequest(intent)
         // Ouverte par Health Connect pour expliquer l'usage des données : on montre la politique de confidentialité
         val rationale = intent?.action in setOf(
             "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE", "android.intent.action.VIEW_PERMISSION_USAGE"
@@ -132,6 +133,12 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         handleSharedCard(intent)
+        handleOpenRequest(intent)
+    }
+
+    /** Ouverte depuis une notification d'amis : on affiche l'écran Amis. */
+    private fun handleOpenRequest(intent: android.content.Intent?) {
+        intent?.getStringExtra(com.goodlife.app.social.AppNav.EXTRA)?.let { com.goodlife.app.social.AppNav.request.value = it }
     }
 
     /** Carte d'ami reçue par message et ouverte avec GoodLife : vérifiée (signature) puis ajoutée. */
@@ -225,6 +232,9 @@ fun GoodLifeApp() {
 @Composable
 private fun MainTabs() {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    // Demande venue d'une notification (écran Amis, dans l'onglet Profil)
+    val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
+    LaunchedEffect(navRequest) { if (navRequest == "friends") tab = 4 }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
     val keyboardOpen = WindowInsets.isImeVisible
 

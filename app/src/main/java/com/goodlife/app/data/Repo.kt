@@ -76,6 +76,7 @@ data class Settings(
     val streetPass: Boolean = false,
     // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
     val scoreRulesFrom: String = "",
+    val foodOnlyFrom: String = "",            // à partir de ce jour, le score du jour ne compte que l'alimentation (v0.9.6)
     val preferredOuting: String = "RUN",    // activité préférée (course / marche / vélo), pré-choisie sur la carte
     // Notifications du coach : toutes coupées tant que la personne ne les a pas acceptées
     val notifMorning: Boolean = false,      // bilan de la veille, le matin
@@ -136,6 +137,7 @@ data class Settings(
         .put("shareWeek", shareWeek)
         .put("streetPass", streetPass)
         .put("scoreRulesFrom", scoreRulesFrom)
+        .put("foodOnlyFrom", foodOnlyFrom)
         .put("preferredOuting", preferredOuting)
         .put("notifMorning", notifMorning)
         .put("notifNoon", notifNoon)
@@ -196,6 +198,7 @@ data class Settings(
             shareWeek = o.optBoolean("shareWeek", true),
             streetPass = o.optBoolean("streetPass", false),
             scoreRulesFrom = o.optString("scoreRulesFrom"),
+            foodOnlyFrom = o.optString("foodOnlyFrom"),
             preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" },
             notifMorning = o.optBoolean("notifMorning", false),
             notifNoon = o.optBoolean("notifNoon", false),
@@ -268,7 +271,8 @@ object Repo {
         revision++
     }
 
-    private var appContext: Context? = null
+    var appContext: Context? = null
+        private set
 
     @Synchronized
     fun init(context: Context) {
@@ -308,6 +312,7 @@ object Repo {
         _water.value = store.get(K_WATER)?.let { waterFromJson(it) } ?: emptyMap()
         _feelings.value = store.get(K_FEEL)?.let { feelingsFromJson(it) } ?: emptyMap()
         if (_settings.value.scoreRulesFrom.isBlank()) updateSettings { it.copy(scoreRulesFrom = localDay(0)) }
+        if (_settings.value.foodOnlyFrom.isBlank()) updateSettings { it.copy(foodOnlyFrom = localDay(0)) }
         // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
         _profile.value?.let { p ->
             if (p.goal == Goal.PERTE && !com.goodlife.app.ai.Nutrition.weightLossAllowed(p)) {
@@ -508,7 +513,7 @@ object Repo {
 
     fun dexPhoto(id: String): ByteArray? = store.getBytes("dex_${id.replace('-', '_')}")
 
-    // ---------- Amis (Tap to Sync, QR code, StreetPass) ----------
+    // ---------- Amis (Tap to Sync, QR code, croisements) ----------
     enum class Received { NEW_FRIEND, UPDATED, NEW_ENCOUNTER, SEEN_AGAIN, IGNORED }
 
     @Synchronized
@@ -528,7 +533,7 @@ object Repo {
 
     /**
      * Enregistre une carte reçue (déjà vérifiée par sa signature). Par Tap to Sync ou QR code, la personne
-     * devient une amie ; par StreetPass, c'est une rencontre (ou une mise à jour si c'est déjà un ami).
+     * devient une amie ; par croisement (Bluetooth), c'est une rencontre (ou une mise à jour si c'est déjà un ami).
      */
     @Synchronized
     fun receiveCard(card: com.goodlife.app.social.PlayerCard, via: String, myId: String): Received {

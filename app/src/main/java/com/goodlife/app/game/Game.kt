@@ -46,9 +46,10 @@ data class GameSummary(
  * Règles (pensées pour la santé, et pour rester motivant) :
  * - Score alimentation 0..100 : 100 dans la zone idéale de l'objectif calorique, puis il baisse
  *   quand on s'en éloigne (trop OU trop peu : manger trop peu n'est jamais récompensé).
- * - Score pas 0..100 : part de l'objectif de pas atteinte.
- * - Score du jour = 60 % alimentation + 40 % pas (alimentation seule si le suivi des pas est coupé).
- * - Série validée dès 80/100 : pas besoin d'être parfait, mais il faut faire les deux.
+ * - Score du jour = score alimentation (depuis la v0.9.6 ; avant, 60 % alimentation + 40 % pas : les jours
+ *   d'avant gardent leur ancien score pour ne casser aucune série ni retirer d'XP).
+ * - Les pas rapportent de l'XP (+[STEP_GOAL_XP] les jours où l'objectif de pas est atteint).
+ * - Série validée dès 80/100 : pas besoin d'être parfait.
  * - Un jour sans aucun repas enregistré n'est pas réussi.
  */
 object Game {
@@ -56,6 +57,9 @@ object Game {
 
     /** Score du jour à partir duquel la série continue. */
     const val STREAK_SCORE = 80
+
+    /** XP gagnée les jours où l'objectif de pas est atteint (depuis que le score ne compte plus les pas). */
+    const val STEP_GOAL_XP = 10
 
     /** XP sport : 15 par séance du programme, selon la durée pour une sortie ; au plus 40 par jour. */
     const val SPORT_XP_PER_DAY = 40
@@ -96,7 +100,7 @@ object Game {
             Goal.MAINTIEN -> t("reste proche de ton objectif calorique")
             Goal.PRISE -> t("atteins ton objectif calorique, sans trop le dépasser")
         }
-        return t("Score du jour = 60 %% alimentation (%1\$s) + 40 %% pas si tu suis tes pas. Ta série continue dès %2\$s/100.", food, STREAK_SCORE)
+        return t("Score du jour = ton alimentation : %1\$s. Ta série continue dès %2\$s/100. Les pas rapportent de l'XP : +%3\$s XP les jours où tu atteins ton objectif.", food, STREAK_SCORE, STEP_GOAL_XP)
     }
 
     /** Score alimentation 0..100 pour une journée. */
@@ -127,13 +131,19 @@ object Game {
         return r >= min - 1e-9 && r <= max + 1e-9
     }
 
-    /** Score du jour (0..100) et réussite. [step] = null si les pas n'étaient pas suivis ce jour-là. */
-    fun evaluate(kcal: Int, target: Int, goal: Goal, step: StepDay?): Pair<Int, Boolean> {
+    /**
+     * Score du jour (0..100) et réussite. Depuis la v0.9.6, seule l'alimentation compte ([foodOnly]) ;
+     * avant, 60 % alimentation + 40 % pas ([step] = null si les pas n'étaient pas suivis ce jour-là).
+     */
+    fun evaluate(kcal: Int, target: Int, goal: Goal, step: StepDay?, foodOnly: Boolean = true): Pair<Int, Boolean> {
         val food = foodScore(kcal, target, goal)
-        val score = if (step == null || step.goal <= 0) food
+        val score = if (foodOnly || step == null || step.goal <= 0) food
                     else (food * 0.6 + stepScore(step.steps, step.goal) * 0.4).roundToInt()
         return score to (kcal > 0 && score >= STREAK_SCORE)
     }
+
+    /** Objectif de pas atteint ce jour-là. */
+    private fun stepGoalReached(step: StepDay?) = step != null && step.goal > 0 && step.steps >= step.goal
 
     fun levelFor(totalXp: Int): LevelInfo {
         var level = 1
@@ -166,8 +176,10 @@ object Game {
         game: GameState,
         steps: Map<String, StepDay> = emptyMap(),
         now: Calendar = Calendar.getInstance(),
-        newRulesFrom: String = ""   // AAAA-MM-JJ : avant ce jour, anciennes règles de validation
+        newRulesFrom: String = "",  // AAAA-MM-JJ : avant ce jour, anciennes règles de validation
+        foodOnlyFrom: String = ""   // AAAA-MM-JJ : à partir de ce jour, le score ne compte que l'alimentation
     ): GameSummary {
+        fun foodOnly(day: String) = foodOnlyFrom.isEmpty() || day >= foodOnlyFrom
         val byDay = meals.groupBy { fmt.format(java.util.Date(it.timestamp)) }.mapValues { e -> e.value.sumOf { it.kcal } }
         val todayKey = fmt.format(now.time)
         val firstDay = byDay.keys.minOrNull()
@@ -184,7 +196,7 @@ object Game {
                 if (key >= todayKey) break
                 val kcal = byDay[key] ?: 0
                 val step = steps[key]
-                val (score, newOk) = evaluate(kcal, profile.targetKcal, profile.goal, step)
+                val (score, newOk) = evaluate(kcal, profile.targetKcal, profile.goal, step, foodOnly(key))
                 val ok = if (newRulesFrom.isNotEmpty() && key < newRulesFrom) legacyOk(kcal, profile.targetKcal, profile.goal) else newOk
                 val status = when {
                     ok -> DayStatus.REUSSI
@@ -200,7 +212,7 @@ object Game {
                     DayStatus.RATTRAPE -> maxOf(10, score / 4)
                     DayStatus.RATE -> score / 4
                     DayStatus.VIDE -> 0
-                }
+                } + if (foodOnly(key) && stepGoalReached(step)) STEP_GOAL_XP else 0
                 history += DayResult(
                     key, kcal, score, status, xp, streak,
                     foodScore(kcal, profile.targetKcal, profile.goal), step?.steps ?: 0, step?.goal ?: 0
@@ -211,7 +223,7 @@ object Game {
 
         val todayKcal = byDay[todayKey] ?: 0
         val todayStep = steps[todayKey]
-        val (todayScore, todayOk) = evaluate(todayKcal, profile.targetKcal, profile.goal, todayStep)
+        val (todayScore, todayOk) = evaluate(todayKcal, profile.targetKcal, profile.goal, todayStep, foodOnly(todayKey))
         val today = DayResult(
             todayKey, todayKcal, todayScore,
             if (todayOk) DayStatus.REUSSI else if (todayKcal == 0) DayStatus.VIDE else DayStatus.RATE,

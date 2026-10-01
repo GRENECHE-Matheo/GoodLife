@@ -6,4 +6,5 @@
     <color name="widget_sub">#5F6368</color>
     <color name="widget_accent">#34A853</color>
     <color name="widget_track">#E3E7EE</color>
+    <color name="widget_steps">#4285F4</color>
 </resources>

@@ -169,6 +169,7 @@ class StepsWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         Repo.init(applicationContext)
         runCatching { Steps.refresh(applicationContext) }
         runCatching { StepGoalAi.refreshIfNeeded(applicationContext) }
+        runCatching { com.goodlife.app.widget.ChefWidgets.updateAll(applicationContext) }   // pas à jour sur le widget
         return Result.success()
     }
 }

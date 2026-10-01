@@ -1,9 +1,10 @@
 <resources>
+    <!-- Textes par défaut en anglais (comme l'app sur un téléphone qui n'est pas en français) ; français dans values-fr -->
     <string name="app_name">GoodLife</string>
-    <string name="tapsync_desc">GoodLife – échange de cartes entre amis</string>
-    <string name="widget_small">Le chef</string>
-    <string name="widget_medium">Ma journée</string>
-    <string name="widget_small_desc">Le chef et ta série</string>
-    <string name="widget_medium_desc">Le chef, ta série, ton score du jour et un petit mot</string>
-    <string name="widget_chef_desc">Le chef de GoodLife</string>
+    <string name="tapsync_desc">GoodLife – card exchange between friends</string>
+    <string name="widget_small">The chef</string>
+    <string name="widget_medium">My day</string>
+    <string name="widget_small_desc">The chef, your streak, your calories and your steps</string>
+    <string name="widget_medium_desc">The chef, your streak, your calories, your steps and a short note</string>
+    <string name="widget_chef_desc">The GoodLife chef</string>
 </resources>

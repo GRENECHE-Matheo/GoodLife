@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 
 /** Événement d'échange (pour afficher « Ami ajouté ! » à l'écran). */
-data class SyncEvent(val pseudo: String, val result: Repo.Received)
+data class SyncEvent(val pseudo: String, val result: Repo.Received, val id: String = "")
 
 object Social {
     private val _events = MutableSharedFlow<SyncEvent>(extraBufferCapacity = 8)
@@ -25,7 +25,7 @@ object Social {
         if (!canShare()) return null
         val s = Repo.settings.value
         val p = Repo.profile.value ?: return null
-        val summary = Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = s.scoreRulesFrom)
+        val summary = Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = s.scoreRulesFrom, foodOnlyFrom = s.foodOnlyFrom)
         val today = (System.currentTimeMillis() / 86_400_000L).toInt()
         val cheers = Repo.social.value.cheersOut.filter { today - it.day <= 7 }
             .sortedByDescending { it.at }.take(5).map { Cheer(it.to, it.message, it.day) }
@@ -67,8 +67,13 @@ object Social {
     }
 
     private fun record(card: PlayerCard, via: String): SyncEvent {
+        fun key(c: com.goodlife.app.data.CheerRecord) = "${c.from}|${c.message}|${c.day}"
+        val before = Repo.social.value.cheersIn.map { key(it) }.toSet()
         val result = Repo.receiveCard(card, via, Identity.myId())
-        val e = SyncEvent(card.pseudo, result)
+        // Encouragements arrivés avec cette carte : une notification
+        val fresh = Repo.social.value.cheersIn.filter { it.from == card.id && key(it) !in before }
+        if (fresh.isNotEmpty()) Repo.appContext?.let { SocialNotifier.cheers(it, card.pseudo, fresh.map { c -> c.message }) }
+        val e = SyncEvent(card.pseudo, result, card.id)
         _events.tryEmit(e)
         return e
     }

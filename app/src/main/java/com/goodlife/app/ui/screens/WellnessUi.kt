@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.WaterDrop
@@ -130,15 +133,32 @@ fun MissionsCard(summary: GameSummary) {
     val missions = remember(meals, game, water, feelings, social, outings, summary) { Milestones.missions(summary) }
     LaunchedEffect(missions) { Milestones.rewardMissions(missions) }
     if (!Milestones.showMissions(missions)) return
-    SectionCard(title = t("Tes missions de départ · %1\$s/%2\$s", missions.count { it.done }, missions.size), icon = Icons.Filled.EmojiEvents) {
-        missions.forEach { m ->
+    // Repliée par défaut : une ligne avec la prochaine mission ; on déplie pour voir la liste
+    var open by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val done = missions.count { it.done }
+    val next = missions.firstOrNull { !it.done }
+    Surface(onClick = { open = !open }, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(if (m.done) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked, null,
-                    tint = if (m.done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
+                Icon(Icons.Filled.EmojiEvents, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("${m.emoji} ${m.title}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
-                    color = if (m.done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
-                Text(t("+%1\$s XP", m.xp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Column(Modifier.weight(1f)) {
+                    Text(t("Missions de départ · %1\$s/%2\$s", done, missions.size), style = MaterialTheme.typography.titleSmall)
+                    if (!open && next != null) Text(t("Prochaine : %1\$s", "${next.emoji} ${next.title}"),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
+                Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, if (open) t("Replier") else t("Voir les missions"))
+            }
+            LinearProgressIndicator(progress = { done.toFloat() / missions.size }, modifier = Modifier.fillMaxWidth().height(6.dp), strokeCap = StrokeCap.Round)
+            if (open) missions.forEach { m ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (m.done) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked, null,
+                        tint = if (m.done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("${m.emoji} ${m.title}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                        color = if (m.done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+                    Text(t("+%1\$s XP", m.xp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
     }
@@ -152,19 +172,22 @@ fun NewBadgeCard(summary: GameSummary, onOpen: () -> Unit) {
     val all = remember(summary, dex, game, outings, social, water, steps) { Milestones.badges(summary) }
     var fresh by remember(all) { mutableStateOf(Milestones.newBadges(all)) }
     if (fresh.isEmpty()) return
-    SectionCard(container = MaterialTheme.colorScheme.tertiaryContainer) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(fresh.first().emoji, style = MaterialTheme.typography.displaySmall)
+    // Une seule ligne : on la touche pour voir les badges, ou on la ferme
+    Surface(
+        onClick = { Milestones.markBadgesSeen(all); fresh = emptyList(); onOpen() },
+        shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.tertiaryContainer
+    ) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(fresh.first().emoji, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(if (fresh.size > 1) t("%1\$s nouveaux badges !", fresh.size) else t("Nouveau badge !"), style = MaterialTheme.typography.labelLarge)
-                Text(fresh.take(3).joinToString(" · ") { it.title } + if (fresh.size > 3) t(" et %1\$s autres", fresh.size - 3) else "",
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(fresh.first().title + if (fresh.size > 1) t(" et %1\$s autres", fresh.size - 1) else "",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1)
             }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { Milestones.markBadgesSeen(all); fresh = emptyList(); onOpen() }) { Text(t("Voir mes badges")) }
-            TextButton(onClick = { Milestones.markBadgesSeen(all); fresh = emptyList() }) { Text("OK") }
+            androidx.compose.material3.IconButton(onClick = { Milestones.markBadgesSeen(all); fresh = emptyList() }) {
+                Icon(Icons.Filled.Close, t("Fermer"))
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.9.5 · mise à jour le 1er octobre 2026
+Version 0.9.6 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -10,7 +10,7 @@ GoodLife est un projet personnel développé par Mathéo Greneche, avec l'assist
 
 ## Qui peut utiliser GoodLife ?
 
-L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on peut consentir seul au traitement de ses données en France). Les fonctions IA sont réservées aux 18 ans et plus. L'objectif « Perdre du poids » n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5. StreetPass (rencontres avec des inconnus) est réservé aux 18 ans et plus.
+L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on peut consentir seul au traitement de ses données en France). Les fonctions IA sont réservées aux 18 ans et plus. L'objectif « Perdre du poids » n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5. Les croisements (rencontres avec des inconnus) sont réservés aux 18 ans et plus.
 
 ## Ce qui reste sur ton téléphone
 
@@ -74,12 +74,12 @@ Si tu ajoutes un widget GoodLife sur ton écran d'accueil, il affiche le chef, t
 
 Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, que la liste des aliments découverts.
 
-## Amis : Tap to Sync, QR code et StreetPass
+## Amis : Tap to Sync, QR code et croisements
 
-Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec StreetPass, ou par un message que tu envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), selon ses propres conditions, jamais par un serveur GoodLife. Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.
-• StreetPass (désactivé par défaut, 18 ans et plus, Android 12+) : tant qu'il est actif, une notification l'indique et les téléphones GoodLife à quelques mètres peuvent lire ta carte en Bluetooth. L'app ne demande pas la localisation. Tu peux masquer et bloquer une personne.
+Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec les croisements, ou par un message que tu envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), selon ses propres conditions, jamais par un serveur GoodLife. Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.
+• Croisements (désactivés par défaut, 18 ans et plus, Android 12+) : tant qu'ils sont actifs, une notification discrète l'indique (Android l'impose) et les téléphones GoodLife à quelques mètres peuvent lire ta carte en Bluetooth. Une notification te prévient quand tu croises quelqu'un pour la première fois ou que tu le recroises. L'app ne demande pas la localisation. Tu peux masquer et bloquer une personne.
 • Les cartes que tu reçois sont gardées chiffrées sur ton téléphone ; retire ou bloque une personne pour effacer la sienne.
-• Les encouragements sont des messages tout prêts, sans texte libre.
+• Les encouragements sont des messages tout prêts, sans texte libre. Quand une carte reçue contient un encouragement pour toi, une notification te prévient (préparée sur ton téléphone, sans serveur).
 Base légale : ton consentement (activation du profil public). Tu peux le retirer à tout moment en le rendant privé.
 
 ## Vérification des mises à jour (version GitHub uniquement)
