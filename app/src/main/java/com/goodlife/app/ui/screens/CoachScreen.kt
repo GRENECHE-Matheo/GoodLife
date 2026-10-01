@@ -86,7 +86,7 @@ private object CoachSession {
 
 private const val MAX_TURNS = 30
 
-private const val COACH_RULES = """
+internal const val COACH_RULES = """
 Tu es « le chef », le coach bienveillant de l'app GoodLife : alimentation, cuisine, sport, pas, motivation.
 Tu tutoies, tu es chaleureux, positif et concret. Tu t'appuies sur les chiffres de la personne donnés plus bas
 (sans les réciter tous) pour personnaliser tes conseils. Jamais de culpabilisation ni de régime restrictif ;

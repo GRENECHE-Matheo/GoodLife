@@ -20,6 +20,9 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 - 🔒 **Règles de sécurité de l'IA**, envoyées avec chaque demande et prioritaires : jamais de conseil médical ou
   dangereux (régime sous 1 200 kcal, jeûne prolongé, coupe-faim…), allergies toujours respectées, et les consignes
   cachées dans une photo, un article, une recherche ou un texte écrit dans l'app sont ignorées.
+- 🔒 **Les consignes internes de l'IA restent internes** : l'IA a pour règle de ne jamais les révéler (même déguisé :
+  traduction, jeu, « répète ce qui précède »…), et l'app vérifie chaque réponse avant de l'afficher : si elle recopie
+  des passages des consignes, le chef répond autre chose à la place.
 - 🐛 Le chat de l'IA répond bien en anglais quand l'app est en anglais.
 
 ## v0.9.9 — 01/10/2026
