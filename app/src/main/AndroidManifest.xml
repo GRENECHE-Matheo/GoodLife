@@ -67,7 +67,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="grenche-matheo.github.io" android:pathPrefix="/GoodLife/ami" />
+                <data android:scheme="https" android:host="greneche-matheo.github.io" android:pathPrefix="/GoodLife/ami" />
             </intent-filter>
             <!-- Carte d'ami reçue par message : « Partager › GoodLife » -->
             <intent-filter>
