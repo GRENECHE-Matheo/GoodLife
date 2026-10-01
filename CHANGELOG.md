@@ -8,6 +8,11 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.10.1 — 01/10/2026
+
+- 🐛 **La toque du chef est bien posée sur sa tête** (elle passait derrière) : dans l'app, les notifications, les widgets
+  et l'aperçu du widget.
+
 ## v0.10.0 — 01/10/2026
 
 **Une app plus légère, sans rien changer à l'écran.**

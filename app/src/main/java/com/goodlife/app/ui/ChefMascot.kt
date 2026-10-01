@@ -84,7 +84,12 @@ fun DrawScope.drawChef(mood: ChefMood) {
             lineTo(50 * u, 77 * u); lineTo(44 * u, 80 * u); close()
         }, SCARF)
 
-        // Toque : contour d'abord, puis remplissage pour masquer les traits intérieurs
+        // Tête
+        drawCircle(SKIN_DARK, 4 * u, o(30f, 56f))
+        drawCircle(SKIN_DARK, 4 * u, o(70f, 56f))
+        drawCircle(SKIN, 20 * u, o(50f, 55f))
+
+        // Toque, posée PAR-DESSUS la tête (dessinée après elle) : contour d'abord, puis remplissage pour masquer les traits intérieurs
         val hat: DrawScope.(Color, Stroke?) -> Unit = { c, st ->
             if (st == null) {
                 drawCircle(c, 11 * u, o(36f, 22f)); drawCircle(c, 11 * u, o(64f, 22f)); drawCircle(c, 13 * u, o(50f, 16f))
@@ -99,10 +104,6 @@ fun DrawScope.drawChef(mood: ChefMood) {
         drawRoundRect(WHITE, o(30f, 31f), Size(40 * u, 8 * u), androidx.compose.ui.geometry.CornerRadius(3 * u))
         drawRoundRect(OUTLINE, o(30f, 31f), Size(40 * u, 8 * u), androidx.compose.ui.geometry.CornerRadius(3 * u), style = Stroke(1.5f * u))
 
-        // Tête
-        drawCircle(SKIN_DARK, 4 * u, o(30f, 56f))
-        drawCircle(SKIN_DARK, 4 * u, o(70f, 56f))
-        drawCircle(SKIN, 20 * u, o(50f, 55f))
         drawOval(CHEEK, o(34f, 58.4f), Size(8 * u, 5.2f * u))
         drawOval(CHEEK, o(58f, 58.4f), Size(8 * u, 5.2f * u))
 
