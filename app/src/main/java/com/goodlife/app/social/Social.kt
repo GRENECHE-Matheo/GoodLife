@@ -35,7 +35,8 @@ object Social {
             bestStreak = if (s.shareStreak) summary.bestStreak else null,
             dex = if (s.shareDex) Repo.dex.value.unlocked.keys else null,
             timestamp = System.currentTimeMillis(),
-            cheers = cheers
+            cheers = cheers,
+            week = if (s.shareWeek) com.goodlife.app.game.Weekly.myStats() else null
         )
     }
 
@@ -50,6 +51,18 @@ object Social {
     fun receiveText(text: String, via: String): SyncEvent? {
         val card = Identity.fromText(text.trim()) ?: return null
         return record(card, via)
+    }
+
+    /** Retrouve une carte « GL1:… » dans un message (partagée par WhatsApp, SMS…) et l'enregistre. */
+    fun receiveFromMessage(message: String): SyncEvent? {
+        val code = Regex("""GL1:[A-Za-z0-9_-]{40,1900}""").find(message)?.value ?: return null
+        return receiveText(code, "code")
+    }
+
+    /** Texte à envoyer par message pour qu'un ami m'ajoute à distance (sans aucun serveur). */
+    fun shareText(): String? = mySignedCard()?.let {
+        "Ajoute-moi sur GoodLife 🍏 Ouvre ce message avec l'app GoodLife (Partager › GoodLife), " +
+            "ou copie-le dans Amis › Coller un code :\n" + Identity.toText(it)
     }
 
     private fun record(card: PlayerCard, via: String): SyncEvent {

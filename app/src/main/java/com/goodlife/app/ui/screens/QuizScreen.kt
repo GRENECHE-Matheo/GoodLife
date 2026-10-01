@@ -81,13 +81,18 @@ import kotlinx.coroutines.delay
 /**
  * Quiz du jour, présenté par le petit cuisto. Le premier essai du jour donne de l'XP ;
  * s'il y a une série cassée hier, 4 bonnes réponses sur 5 la récupèrent.
+ * Avec un gel ([gelMode]) : 10 questions, et la série est sauvée quel que soit le score.
+ * Les questions ratées reviennent à la fin pour réviser (sans changer le score).
  * [totalXp] est l'XP totale actuelle : elle sert à animer la barre d'XP à la fin.
  */
 @Composable
-fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClose: () -> Unit) {
+fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClose: () -> Unit, gelMode: Boolean = false) {
     BackHandler(onBack = onClose)
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val questions = remember { QuizBank.today(appContext) }
+    val questions = remember { QuizBank.today(appContext, if (gelMode) Game.FREEZE_QUESTIONS else QuizBank.PER_DAY) }
+    // Ordre de passage : les questions, puis celles ratées une 2e fois (révision)
+    var order by rememberSaveable { mutableStateOf(questions.indices.joinToString(",")) }
+    val seq = order.split(",").map { it.toInt() }
     var index by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     var correct by rememberSaveable { mutableIntStateOf(0) }
@@ -103,18 +108,21 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
 
     LaunchedEffect(finished) {
         if (finished && !startDone) {
-            val rescue = startRecoverable > 0 && correct >= QuizBank.PASS
+            val useGel = gelMode && startRecoverable > 0 && Repo.game.value.freezes > 0
+            val rescue = startRecoverable > 0 && (useGel || correct >= QuizBank.PASS)
             Repo.updateGame { g ->
                 g.copy(
                     quizResults = g.quizResults + (localDay(0) to correct),
-                    recoveredDays = if (rescue) g.recoveredDays + localDay(-1) else g.recoveredDays
+                    recoveredDays = if (rescue) g.recoveredDays + localDay(-1) else g.recoveredDays,
+                    freezes = if (useGel) (g.freezes - 1).coerceAtLeast(0) else g.freezes,
+                    freezeUsed = if (useGel) g.freezeUsed + localDay(-1) else g.freezeUsed
                 )
             }
         }
     }
 
     val quizProgress by animateFloatAsState(
-        (index + if (selected != null || finished) 1 else 0).toFloat() / questions.size,
+        (index + if (selected != null || finished) 1 else 0).toFloat() / seq.size,
         animationSpec = spring(stiffness = Spring.StiffnessLow), label = "quizProgress"
     )
 
@@ -136,9 +144,16 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                     targetState = index,
                     transitionSpec = { Motion.sharedAxisX(forward = true) },
                     label = "question"
-                ) { idx ->
+                ) { pos ->
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        val q = questions[idx]
+                        val idx = seq[pos]
+                        val review = pos >= questions.size
+                        val base = questions[idx]
+                        // En révision, les réponses sont remélangées : on retient la bonne, pas sa place
+                        val q = if (!review) base else remember(pos) {
+                            val opts = base.options.shuffled(kotlin.random.Random(pos * 31 + idx))
+                            base.copy(options = opts, correctIndex = opts.indexOf(base.options[base.correctIndex]))
+                        }
                         val answered = selected
                         Row(verticalAlignment = Alignment.Top) {
                             ChefMascot(
@@ -157,7 +172,8 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                             ) {
                                 Column(Modifier.padding(14.dp)) {
                                     Text(
-                                        "Question ${idx + 1} sur ${questions.size}",
+                                        if (review) "Révision : on retente celle-ci"
+                                        else "Question ${pos + 1} sur ${questions.size}" + if (gelMode) " · gel ❄️" else "",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -178,8 +194,12 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                                     if (answered == null) {
                                         selected = i
                                         val ok = i == q.correctIndex
-                                        if (ok) correct++
-                                        answers += if (ok) "1" else "0"
+                                        // Seul le premier passage compte ; une erreur reviendra à la fin pour réviser
+                                        if (!review) {
+                                            if (ok) correct++
+                                            answers += if (ok) "1" else "0"
+                                            if (!ok) order = "$order,$idx"
+                                        }
                                         Sounds.play(if (ok) Sfx.CORRECT else Sfx.WRONG)
                                         haptics.performHapticFeedback(
                                             if (ok) HapticFeedbackType.TextHandleMove else HapticFeedbackType.LongPress
@@ -201,26 +221,33 @@ fun QuizScreen(recoverableStreak: Int, alreadyDone: Boolean, totalXp: Int, onClo
                             ) {
                                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
-                                        if (ok) "Bien joué !" else "Pas tout à fait…",
+                                        when {
+                                            review && ok -> "Retenu ✓"
+                                            review -> "Pas encore… ça viendra !"
+                                            ok -> "Bien joué !"
+                                            else -> "Pas tout à fait… elle reviendra à la fin."
+                                        },
                                         fontWeight = FontWeight.Bold,
                                         color = if (ok) good else bad
                                     )
                                     Text(q.explanation, style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
+                            val last = pos >= order.split(",").size - 1
                             Button(
                                 onClick = {
-                                    if (index < questions.lastIndex) { index++; selected = null } else finished = true
+                                    if (!last) { index++; selected = null } else finished = true
                                 },
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
-                            ) { Text(if (index < questions.lastIndex) "Continuer" else "Voir le résultat") }
+                            ) { Text(if (!last) "Continuer" else "Voir le résultat") }
                         }
                         }
                     }
                 }
             } else {
                 QuizResult(
+                    gelMode = gelMode,
                     correct = correct,
                     total = questions.size,
                     answers = answers,
@@ -294,6 +321,7 @@ private fun AnswerButton(text: String, state: AnswerState, onClick: () -> Unit) 
 
 @Composable
 private fun QuizResult(
+    gelMode: Boolean,
     correct: Int,
     total: Int,
     answers: String,
@@ -303,7 +331,7 @@ private fun QuizResult(
     endXp: Int,
     onClose: () -> Unit
 ) {
-    val passed = correct >= QuizBank.PASS
+    val passed = correct >= QuizBank.PASS || gelMode
     val rescued = startRecoverable > 0 && passed && !startDone
     val good = successColor
     val bad = failColor
@@ -356,6 +384,7 @@ private fun QuizResult(
             Text(
                 when {
                     startDone -> "Entraînement terminé ! (L'XP du quiz n'est comptée qu'une fois par jour.)"
+                    rescued && gelMode -> "Gel utilisé ❄️ Ta série de ${days(startRecoverable)} continue !"
                     rescued -> "Série sauvée ! Ta série de ${days(startRecoverable)} continue."
                     startRecoverable > 0 -> "Il fallait ${QuizBank.PASS} bonnes réponses pour sauver ta série. " +
                         "Elle repart de zéro, mais tu gagnes quand même de l'XP. Demain est un nouveau jour !"

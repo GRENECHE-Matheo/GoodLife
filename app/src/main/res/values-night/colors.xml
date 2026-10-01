@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widgets du chef (thème sombre) -->
+<resources>
+    <color name="widget_bg">#F21F2329</color>
+    <color name="widget_text">#E8EAED</color>
+    <color name="widget_sub">#9AA0A6</color>
+    <color name="widget_accent">#81C995</color>
+    <color name="widget_track">#3C4043</color>
+</resources>

@@ -50,6 +50,8 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Refresh
@@ -123,9 +125,11 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
             "coach" -> CoachScreen(onBack = { overlay = "" })
             "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
             "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" })
+            "quizgel" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" }, gelMode = true)
             else -> HomeContent(
                 onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" },
-                onOpenProfile = onOpenProfile, onNews = { overlay = "news" }, onCoach = { overlay = "coach" }
+                onOpenProfile = onOpenProfile, onNews = { overlay = "news" }, onCoach = { overlay = "coach" },
+                onGel = { overlay = "quizgel" }
             )
         }
     }
@@ -139,7 +143,8 @@ private fun HomeContent(
     onQuiz: () -> Unit,
     onOpenProfile: () -> Unit,
     onNews: () -> Unit,
-    onCoach: () -> Unit
+    onCoach: () -> Unit,
+    onGel: () -> Unit
 ) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
@@ -149,6 +154,7 @@ private fun HomeContent(
     val p = profile ?: return
 
     val today = Repo.mealsOfDay(meals)
+    val favs by Repo.favMeals.collectAsState()
     val eaten = today.sumOf { it.kcal }
     val remaining = p.targetKcal - eaten
 
@@ -164,6 +170,10 @@ private fun HomeContent(
 
     val uri = LocalUriHandler.current
     LaunchedEffect(Unit) { Updater.check() }
+    val game by Repo.game.collectAsState()
+    LaunchedEffect(summary.streak) {
+        if (Game.freezesAfter(Repo.game.value, summary.streak) != null) Repo.updateGame { g -> Game.freezesAfter(g, summary.streak) ?: g }
+    }
 
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val hello = if (hour < 18) "Bonjour" else "Bonsoir"
@@ -206,6 +216,7 @@ private fun HomeContent(
                         modifier = Modifier.size(20.dp).graphicsLayer { scaleX = scale; scaleY = scale }
                     )
                     Text("${summary.streak}", fontWeight = FontWeight.Bold, color = FLAME)
+                    if (game.freezes > 0) Text("  ❄️${game.freezes}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(Modifier.width(4.dp))
@@ -227,12 +238,20 @@ private fun HomeContent(
                     Column(Modifier.weight(1f)) {
                         Text("Ta série de ${days(summary.recoverableStreak)} s'est arrêtée hier", style = MaterialTheme.typography.titleSmall)
                         Text(
-                            "Réponds au quiz du chef (${QuizBank.PASS}/${QuizBank.PER_DAY}) aujourd'hui pour la sauver.",
+                            if (game.freezes > 0) "Utilise un gel ❄️ : réponds aux ${Game.FREEZE_QUESTIONS} questions du chef, " +
+                                "et ta série est sauvée, quel que soit ton score (il t'en reste ${game.freezes})."
+                            else "Réponds au quiz du chef (${QuizBank.PASS}/${QuizBank.PER_DAY}) aujourd'hui pour la sauver. " +
+                                "Astuce : tous les ${Game.FREEZE_EVERY} jours de série, tu gagnes un gel.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
-                Button(onClick = onQuiz) { Text("Sauver ma série") }
+                if (game.freezes > 0) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onGel) { Text("Utiliser un gel ❄️") }
+                        TextButton(onClick = onQuiz) { Text("Quiz classique (${QuizBank.PASS}/${QuizBank.PER_DAY})") }
+                    }
+                } else Button(onClick = onQuiz) { Text("Sauver ma série") }
             }
         }
 
@@ -308,6 +327,7 @@ private fun HomeContent(
                 Text("Saisir")
             }
         }
+        QuickMeals()
 
         SectionCard(title = "Repas du jour", icon = Icons.Filled.Restaurant) {
             if (today.isEmpty()) {
@@ -318,7 +338,7 @@ private fun HomeContent(
             }
             today.forEachIndexed { i, m ->
                 if (i > 0) HorizontalDivider()
-                MealRow(m) { Repo.deleteMeal(m.id) }
+                MealRow(m, favorite = favs.any { it.name.trim().equals(m.name.trim(), ignoreCase = true) }, onFavorite = { Repo.toggleFavorite(m) }) { Repo.deleteMeal(m.id) }
             }
         }
 
@@ -472,17 +492,21 @@ private fun SuggestionRow(
 }
 
 @Composable
-private fun MealRow(m: Meal, onDelete: () -> Unit) {
+private fun MealRow(m: Meal, favorite: Boolean, onFavorite: () -> Unit, onDelete: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(m.name, fontWeight = FontWeight.Medium)
             Text(
-                "${formatTime(m.timestamp)} · ${when (m.source) { "photo" -> "photo IA"; "ciqual" -> "Ciqual"; "code-barres" -> "code-barres"; "planning" -> "planning"; else -> "saisie" }}",
+                "${formatTime(m.timestamp)} · ${when (m.source) { "photo" -> "photo IA"; "ciqual" -> "Ciqual"; "code-barres" -> "code-barres"; "planning" -> "planning"; "refait" -> "refait"; "frigo" -> "idée du chef"; else -> "saisie" }}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text("${m.kcal} kcal", style = MaterialTheme.typography.titleSmall)
+        IconButton(onClick = onFavorite) {
+            Icon(if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder, if (favorite) "Retirer des favoris" else "Ajouter aux favoris",
+                tint = if (favorite) GoogleYellow else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Supprimer") }
     }
 }

@@ -142,7 +142,8 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                                 summary.recoverableStreak > 0 ->
                                     "Ta série de ${days(summary.recoverableStreak)} s'est arrêtée hier. " +
                                         "${QuizBank.PASS} bonnes réponses sur ${QuizBank.PER_DAY} pour la sauver !"
-                                summary.quizDoneToday -> "Fait aujourd'hui : ${game.quizResults[summary.today.date] ?: 0}/${QuizBank.PER_DAY}. Nouvelles questions demain."
+                                summary.quizDoneToday -> "Fait aujourd'hui : ${game.quizResults[summary.today.date] ?: 0}/${QuizBank.PER_DAY}. Nouvelles questions demain." +
+                                    (if (game.freezes > 0) " Gels de série : ${game.freezes} ❄️" else "")
                                 else -> "${QuizBank.PER_DAY} questions sur l'alimentation, jusqu'à ${Game.quizXp(QuizBank.PER_DAY)} XP."
                             },
                             style = MaterialTheme.typography.bodySmall

@@ -35,6 +35,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
@@ -85,6 +88,7 @@ import com.goodlife.app.data.Repo
 import com.goodlife.app.dex.DEX_NAME
 import com.goodlife.app.dex.Nutridex
 import com.goodlife.app.game.Game
+import com.goodlife.app.game.Weekly
 import com.goodlife.app.security.findFragmentActivity
 import com.goodlife.app.social.CHEERS
 import com.goodlife.app.social.Identity
@@ -182,6 +186,9 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
     var pseudo by remember(settings.pseudo) { mutableStateOf(settings.pseudo) }
     var ranking by rememberSaveable { mutableStateOf("level") }
     var message by remember { mutableStateOf<String?>(null) }
+    var info by remember { mutableStateOf<String?>(null) }
+    var pasteOpen by remember { mutableStateOf(false) }
+    if (pasteOpen) PasteCodeDialog(onDismiss = { pasteOpen = false }) { result -> info = result; pasteOpen = false }
     val unreadCheers = remember { social.cheersIn.filter { !it.seen } }
     LaunchedEffect(Unit) { if (social.cheersIn.any { !it.seen }) Repo.markCheersSeen() }
 
@@ -228,6 +235,7 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                     ShareBox("Mon niveau", settings.shareLevel) { v -> Repo.updateSettings { it.copy(shareLevel = v) } }
                     ShareBox("Ma série", settings.shareStreak) { v -> Repo.updateSettings { it.copy(shareStreak = v) } }
                     ShareBox("Mon $DEX_NAME (sans mes photos)", settings.shareDex) { v -> Repo.updateSettings { it.copy(shareDex = v) } }
+                    ShareBox("Mon défi de la semaine (jours validés, pas, XP)", settings.shareWeek) { v -> Repo.updateSettings { it.copy(shareWeek = v) } }
                     Text(
                         "Jamais partagé : ton poids, tes repas, ton sommeil, tes photos.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -253,6 +261,32 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                     Icon(Icons.Filled.QrCode2, null); Spacer(Modifier.width(8.dp)); Text("QR code")
                 }
             }
+            // ---- À distance : la carte part par message, toujours sans serveur ----
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(onClick = {
+                    val text = Social.shareText()
+                    if (text == null) message = "Active « Profil public » et choisis un pseudo pour partager ta carte."
+                    else runCatching {
+                        context.startActivity(android.content.Intent.createChooser(
+                            android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                                .putExtra(android.content.Intent.EXTRA_TEXT, text), "Partager ma carte"))
+                    }
+                }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Partager ma carte")
+                }
+                OutlinedButton(onClick = { pasteOpen = true }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Coller un code")
+                }
+            }
+            Text(
+                "Pas à côté ? Envoie ta carte par message (WhatsApp, SMS…) : ton ami l'ouvre avec GoodLife. " +
+                    "Elle passe seulement par la messagerie que tu choisis, jamais par un serveur GoodLife.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (info != null) Text(info!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+
+            // ---- Défi de la semaine ----
+            WeeklyChallenge(social.people.filter { it.friend }, settings.pseudo)
 
             // ---- Classement entre amis ----
             val friends = social.people.filter { it.friend }
@@ -335,6 +369,74 @@ private fun ShareBox(label: String, checked: Boolean, onChange: (Boolean) -> Uni
     }
 }
 
+/** Coller la carte reçue par message. */
+@Composable
+private fun PasteCodeDialog(onDismiss: () -> Unit, onDone: (String) -> Unit) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    var text by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Coller un code d'ami") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Colle le message reçu (il contient un code qui commence par GL1:).", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(text, { text = it.take(3000); error = null }, minLines = 3, maxLines = 5, modifier = Modifier.fillMaxWidth())
+                TextButton(onClick = { clipboard.getText()?.text?.let { text = it.take(3000) } }) {
+                    Icon(Icons.Filled.ContentPaste, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Coller le presse-papiers")
+                }
+                if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val e = Social.receiveFromMessage(text)
+                if (e == null) error = "Ce message ne contient pas de carte GoodLife valide (ou elle a été modifiée)."
+                else onDone(resultText(e))
+            }) { Text("Ajouter") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+    )
+}
+
+/** Défi de la semaine : un objectif par semaine (jours validés, pas ou XP), entre amis. */
+@Composable
+private fun WeeklyChallenge(friends: List<Person>, myPseudo: String) {
+    val meals = Repo.meals.collectAsState().value
+    val game = Repo.game.collectAsState().value
+    val steps = Repo.steps.collectAsState().value
+    val week = Weekly.current()
+    val kind = Weekly.kind(week)
+    val mine = remember(meals, game, steps) { Weekly.myStats() }
+    SectionCard(title = "Défi de la semaine", icon = Icons.Filled.Flag) {
+        Text(kind.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        val left = Weekly.daysLeft()
+        Text(
+            "Encore $left jour${if (left > 1) "s" else ""} · les scores de tes amis arrivent à chaque échange de cartes (Tap to Sync, QR, StreetPass ou message).",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        data class R(val name: String, val value: Int, val me: Boolean)
+        val synced = friends.filter { it.weekId == week }
+        val rows = (synced.map { R(it.pseudo, Weekly.value(kind, it.weekDays, it.weekSteps, it.weekXp), false) } +
+            listOfNotNull(mine?.let { R(myPseudo.ifBlank { "Moi" } + " (moi)", Weekly.value(kind, it.days, it.steps, it.xp), true) }))
+            .sortedByDescending { it.value }
+        rows.forEachIndexed { i, r ->
+            if (i > 0) HorizontalDivider()
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}." }, modifier = Modifier.width(36.dp), textAlign = TextAlign.Center)
+                Text(r.name, modifier = Modifier.weight(1f), fontWeight = if (r.me) FontWeight.Bold else FontWeight.Normal)
+                Text("${com.goodlife.app.coach.Coach.fmt(r.value)} ${kind.unit}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        val waiting = friends.filter { it.weekId != week }
+        if (waiting.isNotEmpty()) Text(
+            "Pas encore de nouvelles cette semaine : " + waiting.take(6).joinToString { it.pseudo } +
+                (if (waiting.size > 6) "…" else "") + ". Échangez vos cartes pour voir leurs scores.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 /** Classement : mes amis + moi, avec les infos qu'ils partagent. */
 @Composable
 private fun Leaderboard(friends: List<Person>, by: String, onPerson: (String) -> Unit) {
@@ -405,7 +507,7 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
                     Stat(DEX_NAME, p.dex?.let { "${it.size}/${Nutridex.ENTRIES.size}" } ?: "caché", Modifier.weight(1f))
                 }
                 Text(
-                    "Dernière synchro ${ago(p.cardTime)} · ajouté par ${when (p.via) { "tap" -> "Tap to Sync"; "street" -> "StreetPass"; else -> "QR code" }}. " +
+                    "Dernière synchro ${ago(p.cardTime)} · ajouté par ${when (p.via) { "tap" -> "Tap to Sync"; "street" -> "StreetPass"; "code" -> "carte partagée"; else -> "QR code" }}. " +
                         "Ses infos se mettent à jour à chaque nouvelle synchro.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

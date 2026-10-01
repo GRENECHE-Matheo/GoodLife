@@ -231,13 +231,17 @@ data class GameState(
     val recoveredDays: Set<String> = emptySet(),
     val quizResults: Map<String, Int> = emptyMap(),   // jour → bonnes réponses (premier essai)
     val weights: List<Pair<String, Double>> = emptyList(),
-    val sportXp: Map<String, Int> = emptyMap()        // jour → XP gagnée en faisant du sport (plafonnée)
+    val sportXp: Map<String, Int> = emptyMap(),       // jour → XP gagnée en faisant du sport (plafonnée)
+    val freezes: Int = 0,                             // gels de série disponibles
+    val freezeMark: Int = -1,                         // palier de série déjà récompensé (-1 = pas encore calculé)
+    val freezeUsed: Set<String> = emptySet()          // jours sauvés avec un gel
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("recoveredDays", JSONArray(recoveredDays.toList()))
         .put("quizResults", JSONObject().apply { quizResults.forEach { (k, v) -> put(k, v) } })
         .put("weights", JSONArray().apply { weights.forEach { (d, w) -> put(JSONObject().put("date", d).put("kg", w)) } })
         .put("sportXp", JSONObject().apply { sportXp.forEach { (k, v) -> put(k, v) } })
+        .put("freezes", freezes).put("freezeMark", freezeMark).put("freezeUsed", JSONArray(freezeUsed.toList()))
 
     companion object {
         fun fromJson(o: JSONObject): GameState {
@@ -246,7 +250,10 @@ data class GameState(
                 recoveredDays = o.optJSONArray("recoveredDays")?.strings()?.toSet() ?: emptySet(),
                 quizResults = q?.keys()?.asSequence()?.associateWith { q.optInt(it) } ?: emptyMap(),
                 weights = o.optJSONArray("weights")?.mapObjects { it.optString("date") to it.optDouble("kg") } ?: emptyList(),
-                sportXp = o.optJSONObject("sportXp")?.let { x -> x.keys().asSequence().associateWith { x.optInt(it).coerceIn(0, Game.SPORT_XP_PER_DAY) } } ?: emptyMap()
+                sportXp = o.optJSONObject("sportXp")?.let { x -> x.keys().asSequence().associateWith { x.optInt(it).coerceIn(0, Game.SPORT_XP_PER_DAY) } } ?: emptyMap(),
+                freezes = o.optInt("freezes", 0).coerceIn(0, Game.MAX_FREEZES),
+                freezeMark = o.optInt("freezeMark", -1),
+                freezeUsed = o.optJSONArray("freezeUsed")?.strings()?.toSet() ?: emptySet()
             )
         }
     }
@@ -302,7 +309,11 @@ data class Person(
     val seenAt: Long = 0L,
     val via: String = "qr",         // tap | qr | street
     val friend: Boolean = false,
-    val encounters: Int = 1
+    val encounters: Int = 1,
+    val weekId: Int = -1,           // semaine du dernier bilan reçu (-1 = aucun)
+    val weekDays: Int = 0,
+    val weekSteps: Int = 0,
+    val weekXp: Int = 0
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("pk", publicKey).put("pseudo", pseudo)
@@ -310,6 +321,7 @@ data class Person(
         .put("dex", dex?.let { JSONArray(it.toList()) } ?: JSONObject.NULL)
         .put("cardTime", cardTime).put("seenAt", seenAt).put("via", via)
         .put("friend", friend).put("encounters", encounters)
+        .put("weekId", weekId).put("weekDays", weekDays).put("weekSteps", weekSteps).put("weekXp", weekXp)
 
     companion object {
         fun fromJson(o: JSONObject) = Person(
@@ -324,7 +336,11 @@ data class Person(
             seenAt = o.optLong("seenAt"),
             via = o.optString("via", "qr"),
             friend = o.optBoolean("friend", false),
-            encounters = o.optInt("encounters", 1)
+            encounters = o.optInt("encounters", 1),
+            weekId = o.optInt("weekId", -1),
+            weekDays = o.optInt("weekDays", 0),
+            weekSteps = o.optInt("weekSteps", 0),
+            weekXp = o.optInt("weekXp", 0)
         )
     }
 }

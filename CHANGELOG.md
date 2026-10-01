@@ -8,6 +8,24 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.2 — 01/10/2026
+
+**Amis à distance, défi de la semaine, gels de série et widgets du chef.**
+
+- ✨ **Partager ma carte** par message (WhatsApp, SMS…) : ton ami l'ouvre avec GoodLife (« Partager › GoodLife ») ou la
+  colle dans Amis. Toujours sans serveur : la carte est signée par ton téléphone et ne peut pas être modifiée.
+- ✨ **Défi de la semaine entre amis** : chaque semaine un défi (jours validés, pas ou XP), avec son classement.
+  Les scores de tes amis arrivent à chaque échange de cartes.
+- ✨ **Gels de série ❄️** : tu en gagnes un tous les 7 jours de série (2 au maximum). Si tu rates un jour, un gel
+  sauve ta série : il suffit de répondre aux 10 questions du chef, quel que soit le score.
+- ✨ **Révision dans le quiz** : les questions ratées reviennent à la fin (réponses remélangées) pour mieux retenir.
+- ✨ **Refaire un repas** : tes favoris (⭐) et tes repas fréquents se rajoutent en un appui, avec exactement les mêmes valeurs.
+- ✨ **Widgets du chef** pour l'écran d'accueil : un petit (le chef et ta série) et un grand (série, gels, score du jour,
+  calories, pas et un petit mot). Le chef change de pose selon ta journée et d'un jour à l'autre (il dort la nuit !).
+- 🔒 Avec le verrouillage par empreinte, les widgets n'affichent aucun chiffre de santé.
+- 🔒 La mémoire du quiz et des actus est maintenant incluse dans la sauvegarde chiffrée (pas de répétition après un changement de téléphone).
+- 🐛 « 1 exercice » au singulier dans le programme sportif.
+
 ## v0.9.1 — 01/10/2026
 
 **Quiz sans fin, vérification sécurité et droit, et résumé des articles officiels.**

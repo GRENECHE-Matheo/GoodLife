@@ -30,6 +30,9 @@ val CHEERS = listOf(
 /** Encouragement envoyé à [target] (id d'ami), le jour [day] (jours depuis 1970). */
 data class Cheer(val target: String, val message: Int, val day: Int)
 
+/** Bilan de la semaine [week] (numéro de semaine, lundi → dimanche) pour le défi entre amis. */
+data class WeekStats(val week: Int, val days: Int, val steps: Int, val xp: Int)
+
 /**
  * Carte d'un joueur, échangée par Tap to Sync, QR code ou StreetPass. Ne contient que ce que la personne
  * a choisi de partager, et elle est signée avec sa clé (Android Keystore) : impossible de la falsifier
@@ -43,7 +46,8 @@ data class PlayerCard(
     val bestStreak: Int?,
     val dex: Set<String>?,    // ids du Nutridex débloqués, null = non partagé
     val timestamp: Long,
-    val cheers: List<Cheer> = emptyList()
+    val cheers: List<Cheer> = emptyList(),
+    val week: WeekStats? = null   // null = non partagé (v2)
 ) {
     val id: String get() = idOf(publicKey)
 
@@ -56,7 +60,8 @@ data class PlayerCard(
 object Identity {
     private const val KEYSTORE = "AndroidKeyStore"
     private const val ALIAS = "goodlife_identity"
-    private const val VERSION = 1
+    /** v2 : ajoute le bilan de la semaine (défi entre amis). Les cartes v1 restent lisibles. */
+    private const val VERSION = 2
     const val PREFIX = "GL1:"
     const val MAX_PSEUDO = 20
 
@@ -96,6 +101,7 @@ object Identity {
             if (c.level != null) flags = flags or 1
             if (c.streak != null) flags = flags or 2
             if (c.dex != null) flags = flags or 4
+            if (c.week != null) flags = flags or 8
             writeByte(flags)
             writeShort(c.publicKey.size); write(c.publicKey)
             val p = cleanPseudo(c.pseudo).toByteArray(Charsets.UTF_8).take(60).toByteArray()
@@ -110,6 +116,9 @@ object Identity {
             cheers.forEach { ch ->
                 write(ch.target.chunked(2).map { it.toInt(16).toByte() }.toByteArray().copyOf(8))
                 writeByte(ch.message); writeShort(ch.day)
+            }
+            c.week?.let { w ->
+                writeShort(w.week); writeByte(w.days.coerceIn(0, 7)); writeInt(w.steps.coerceIn(0, 1_000_000)); writeShort(w.xp.coerceIn(0, 9999))
             }
         }
         return out.toByteArray()
@@ -134,7 +143,8 @@ object Identity {
     fun verify(bytes: ByteArray): PlayerCard? = runCatching {
         if (bytes.size > 1024) return null
         val input = DataInputStream(bytes.inputStream())
-        if (input.readUnsignedByte() != VERSION) return null
+        val version = input.readUnsignedByte()
+        if (version != 1 && version != 2) return null
         val flags = input.readUnsignedByte()
         val pk = ByteArray(input.readUnsignedShort().also { require(it in 50..200) }).also { input.readFully(it) }
         val pseudo = ByteArray(input.readUnsignedByte().also { require(it <= 60) }).also { input.readFully(it) }
@@ -146,6 +156,9 @@ object Identity {
             val t = ByteArray(8).also { input.readFully(it) }.joinToString("") { b -> "%02x".format(b) }
             Cheer(t, input.readUnsignedByte(), input.readUnsignedShort())
         }
+        val week = if (version >= 2 && flags and 8 != 0)
+            WeekStats(input.readUnsignedShort(), input.readUnsignedByte().coerceIn(0, 7), input.readInt().coerceIn(0, 1_000_000), input.readUnsignedShort())
+        else null
         val bodyLen = bytes.size - input.available()
         val sig = ByteArray(input.readUnsignedByte()).also { input.readFully(it) }
         val publicKey: PublicKey = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(pk))
@@ -164,7 +177,8 @@ object Identity {
                 i / 8 < bits.size && (bits[i / 8].toInt() shr (i % 8)) and 1 == 1
             }.map { it.id }.toSet() else null,
             timestamp = ts,
-            cheers = cheers.filter { it.message in CHEERS.indices }
+            cheers = cheers.filter { it.message in CHEERS.indices },
+            week = week
         )
     }.getOrNull()
 }

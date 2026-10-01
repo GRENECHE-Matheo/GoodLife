@@ -181,19 +181,18 @@ object QuizBank {
      * Les questions du jour sont gardées toute la journée (même si on rouvre le quiz).
      */
     @Synchronized
-    fun today(context: Context): List<DailyQuestion> {
+    fun today(context: Context, count: Int = PER_DAY): List<DailyQuestion> {
         val day = localDay(0)
         val st = runCatching { JSONObject(Repo.getExtra(KEY) ?: "{}") }.getOrElse { JSONObject() }
-        if (st.optString("day") == day) {
-            st.optJSONArray("qs")?.let { a ->
-                val saved = (0 until a.length()).map { i ->
-                    val o = a.getJSONObject(i)
-                    val opts = o.getJSONArray("o").let { oa -> (0 until oa.length()).map { oa.getString(it) } }
-                    DailyQuestion(o.getString("q"), opts, o.getInt("c"), o.getString("e"))
-                }
-                if (saved.size == PER_DAY) return saved
+        // Questions déjà tirées aujourd'hui : gardées (et complétées si un gel demande 10 questions)
+        val already = if (st.optString("day") == day) st.optJSONArray("qs")?.let { a ->
+            (0 until a.length()).map { i ->
+                val o = a.getJSONObject(i)
+                val opts = o.getJSONArray("o").let { oa -> (0 until oa.length()).map { oa.getString(it) } }
+                DailyQuestion(o.getString("q"), opts, o.getInt("c"), o.getString("e"))
             }
-        }
+        } ?: emptyList() else emptyList()
+        if (already.size >= count) return already.take(count)
         val dayNum = dayIndex(Calendar.getInstance())
         // Questions classiques : jour (numéro) de dernière pose, par indice
         val classic = st.optJSONObject("classic") ?: JSONObject().also { c ->
@@ -210,9 +209,11 @@ object QuizBank {
         var lastClassic = st.optLong("lastClassic", -1_000L)
 
         val picked = mutableListOf<DailyQuestion>()
-        val rnd = Random(dayNum * 1_000_003L + (st.optLong("salt").takeIf { it != 0L } ?: Random.nextLong().also { st.put("salt", it) }))
+        val rnd = Random(dayNum * 1_000_003L + already.size + (st.optLong("salt").takeIf { it != 0L } ?: Random.nextLong().also { st.put("salt", it) }))
         val never = Q.indices.filter { !classic.has(it.toString()) }.shuffled(rnd)
-        if (never.isNotEmpty()) {
+        if (already.isNotEmpty()) {
+            // complément du jour : seulement des questions fabriquées
+        } else if (never.isNotEmpty()) {
             never.take(CLASSIC_FIRST_ROUND).forEach { i -> picked += classicQuestion(i, rnd); classic.put(i.toString(), dayNum) }
             lastClassic = dayNum
         } else if (dayNum - lastClassic >= CLASSIC_GAP_DAYS) {
@@ -224,26 +225,28 @@ object QuizBank {
         val foods = QuizGen.load(context)
         val usedTypes = mutableListOf<Int>()
         var tries = 0
-        while (picked.size < PER_DAY && tries < 3000) {
+        val need = count - already.size
+        while (picked.size < need && tries < 3000) {
             tries++
             val type = rnd.nextInt(QuizGen.TYPES)
             if (usedTypes.count { it == type } >= 1 && tries < 2000) continue
             val made = QuizGen.make(foods, rnd, type) ?: continue
             val h = hash(made.key)
-            if (h in seen || picked.any { it.question == made.question.question && it.options == made.question.options }) continue
+            if (h in seen || (already + picked).any { it.question == made.question.question && it.options == made.question.options }) continue
             seen += h; usedTypes += type
             picked += made.question
         }
         picked.shuffle(rnd)
+        val all = already + picked
         st.put("day", day)
             .put("qs", JSONArray().apply {
-                picked.forEach { q -> put(JSONObject().put("q", q.question).put("o", JSONArray(q.options)).put("c", q.correctIndex).put("e", q.explanation)) }
+                all.forEach { q -> put(JSONObject().put("q", q.question).put("o", JSONArray(q.options)).put("c", q.correctIndex).put("e", q.explanation)) }
             })
             .put("classic", classic)
             .put("lastClassic", lastClassic)
             .put("seen", JSONArray(seen.toList()))
         Repo.putExtra(KEY, st.toString())
-        return picked
+        return all
     }
 
     private fun classicQuestion(i: Int, rnd: Random): DailyQuestion {

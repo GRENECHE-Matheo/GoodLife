@@ -64,6 +64,7 @@ data class Settings(
     val shareLevel: Boolean = true,
     val shareStreak: Boolean = true,
     val shareDex: Boolean = true,
+    val shareWeek: Boolean = true,      // bilan de la semaine (jours validés, pas, XP) pour le défi entre amis
     val streetPass: Boolean = false,
     // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
     val scoreRulesFrom: String = "",
@@ -118,6 +119,7 @@ data class Settings(
         .put("shareLevel", shareLevel)
         .put("shareStreak", shareStreak)
         .put("shareDex", shareDex)
+        .put("shareWeek", shareWeek)
         .put("streetPass", streetPass)
         .put("scoreRulesFrom", scoreRulesFrom)
         .put("preferredOuting", preferredOuting)
@@ -171,6 +173,7 @@ data class Settings(
             shareLevel = o.optBoolean("shareLevel", true),
             shareStreak = o.optBoolean("shareStreak", true),
             shareDex = o.optBoolean("shareDex", true),
+            shareWeek = o.optBoolean("shareWeek", true),
             streetPass = o.optBoolean("streetPass", false),
             scoreRulesFrom = o.optString("scoreRulesFrom"),
             preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" },
@@ -225,6 +228,10 @@ object Repo {
     private val _outings = MutableStateFlow<List<Outing>>(emptyList())
     val outings: StateFlow<List<Outing>> = _outings
 
+    /** Repas favoris (modèles à rajouter en un appui), valeurs telles qu'elles ont été enregistrées. */
+    private val _favMeals = MutableStateFlow<List<Meal>>(emptyList())
+    val favMeals: StateFlow<List<Meal>> = _favMeals
+
     /** Compteur de modifications des données (hors réglages), pour ne sauvegarder que si besoin. */
     @Volatile var revision = 0L
         private set
@@ -267,6 +274,7 @@ object Repo {
             ?: SportState()
         _outings.value = store.get(K_OUTINGS)?.let { s -> runCatching { JSONArray(s).mapObjects { Outing.fromJson(it) } }.getOrNull() }
             ?: emptyList()
+        _favMeals.value = store.get(K_FAVS)?.let { s -> runCatching { JSONArray(s).mapObjects { Meal.fromJson(it) } }.getOrNull() } ?: emptyList()
         if (_settings.value.scoreRulesFrom.isBlank()) updateSettings { it.copy(scoreRulesFrom = localDay(0)) }
         // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
         _profile.value?.let { p ->
@@ -333,6 +341,31 @@ object Repo {
     fun mealsOfDay(all: List<Meal>, dayOffset: Int = 0): List<Meal> {
         val (from, to) = dayBounds(dayOffset)
         return all.filter { it.timestamp in from until to }
+    }
+
+    /** Ajoute ou retire un repas des favoris (reconnu par son nom). */
+    @Synchronized
+    fun toggleFavorite(m: Meal) {
+        val key = m.name.trim().lowercase()
+        _favMeals.value = if (_favMeals.value.any { it.name.trim().lowercase() == key }) _favMeals.value.filterNot { it.name.trim().lowercase() == key }
+                          else (_favMeals.value + m.copy(id = 0, timestamp = 0)).takeLast(30)
+        put(K_FAVS, JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } }.toString())
+    }
+
+    fun isFavorite(name: String): Boolean = _favMeals.value.any { it.name.trim().lowercase() == name.trim().lowercase() }
+
+    /**
+     * Repas fréquents : ceux notés au moins 2 fois ces 60 derniers jours (hors favoris), avec les valeurs
+     * de la dernière fois. Aucun calcul : on reprend exactement ce qui avait été enregistré.
+     */
+    fun frequentMeals(limit: Int = 8): List<Meal> {
+        val since = System.currentTimeMillis() - 60L * 86_400_000L
+        return _meals.value.filter { it.timestamp >= since && !isFavorite(it.name) }
+            .groupBy { it.name.trim().lowercase() }.values
+            .filter { it.size >= 2 }
+            .sortedByDescending { it.size }
+            .take(limit)
+            .map { list -> list.maxBy { it.timestamp } }
     }
 
     // ---------- Sommeil ----------
@@ -446,7 +479,8 @@ object Repo {
         val base = old ?: Person(id, android.util.Base64.encodeToString(card.publicKey, android.util.Base64.NO_WRAP), card.pseudo, via = via)
         val updated = (if (fresh) base.copy(
             pseudo = card.pseudo, level = card.level, streak = card.streak, bestStreak = card.bestStreak,
-            dex = card.dex, cardTime = card.timestamp
+            dex = card.dex, cardTime = card.timestamp,
+            weekId = card.week?.week ?: -1, weekDays = card.week?.days ?: 0, weekSteps = card.week?.steps ?: 0, weekXp = card.week?.xp ?: 0
         ) else base).copy(
             seenAt = now,
             friend = base.friend || via != "street",
@@ -597,6 +631,8 @@ object Repo {
             .put("social", _social.value.toJson())
             .put("sport", _sport.value.toJson())
             .put("outings", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
+            .put("favMeals", JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } })
+            .put("extras", JSONObject().apply { BACKUP_EXTRAS.forEach { k -> getExtra(k)?.let { put(k, it) } } })
             .put("tracks", JSONObject().apply { _outings.value.forEach { o -> put(o.id.toString(), Outing.encodeTrack(track(o.id))) } })
             .put("dexPhotos", JSONObject().apply {
                 _dex.value.unlocked.keys.forEach { id ->
@@ -656,6 +692,9 @@ object Repo {
         } }
         _outings.value = outs
         persistOutings()
+        _favMeals.value = o.optJSONArray("favMeals")?.mapObjects { Meal.fromJson(it) }?.take(30) ?: emptyList()
+        put(K_FAVS, JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } }.toString())
+        o.optJSONObject("extras")?.let { x -> BACKUP_EXTRAS.forEach { k -> x.optString(k).takeIf { it.isNotBlank() }?.let { putExtra(k, it) } } }
         val social = o.optJSONObject("social")?.let { runCatching { SocialState.fromJson(it) }.getOrNull() } ?: SocialState()
         _social.value = social
         put(K_SOCIAL, social.toJson().toString())
@@ -698,6 +737,7 @@ object Repo {
         _social.value = SocialState()
         _sport.value = SportState()
         _outings.value = emptyList()
+        _favMeals.value = emptyList()
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
         appContext?.let { com.goodlife.app.coach.CoachNotifier.schedule(it) }
@@ -729,6 +769,9 @@ object Repo {
     private const val K_SOCIAL = "social"
     private const val K_SPORT = "sport"
     private const val K_OUTINGS = "outings"
+    private const val K_FAVS = "fav_meals"
+    /** États annexes gardés dans la sauvegarde (mémoire du quiz et des actus, pour ne jamais rien répéter). */
+    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed")
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -749,6 +792,7 @@ object Repo {
             .put("amis", _social.value.toJson())
             .put("sport", _sport.value.toJson())
             .put("sorties", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
+            .put("repasFavoris", JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } })
             .put("settings", JSONObject()
                 .put("aiEnabled", s.aiEnabled)
                 .put("aiConsentAt", s.aiConsentAt)

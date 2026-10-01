@@ -126,14 +126,22 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "• Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page " +
         "publique de l'article et envoie son titre et son texte à Google Gemini, avec ta clé, pour le résumer. Aucune donnée " +
         "te concernant n'est envoyée. Le résumé n'est pas gardé.",
+    "Widgets" to
+        "Si tu ajoutes un widget GoodLife sur ton écran d'accueil, il affiche le chef, ta série et, pour le grand widget, " +
+        "ton score du jour, tes calories, tes pas et un petit mot. Tout est calculé sur le téléphone. Les widgets sont " +
+        "visibles par toute personne qui voit ton écran d'accueil : si le verrouillage par empreinte est activé, ils " +
+        "n'affichent aucun chiffre de santé.",
     "Le Nutridex" to
         "Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. " +
         "Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, " +
         "que la liste des aliments découverts.",
     "Amis : Tap to Sync, QR code et StreetPass" to
         "Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, " +
-        "liste du Nutridex). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre " +
-        "téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, ou avec StreetPass. " +
+        "liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). " +
+        "Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans " +
+        "aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec StreetPass, ou par un message que tu " +
+        "envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), " +
+        "selon ses propres conditions, jamais par un serveur GoodLife. " +
         "Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.\n" +
         "• StreetPass (désactivé par défaut, 18 ans et plus, Android 12+) : tant qu'il est actif, une notification l'indique " +
         "et les téléphones GoodLife à quelques mètres peuvent lire ta carte en Bluetooth. L'app ne demande pas la localisation. " +
@@ -193,7 +201,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.9.1 · mise à jour le 1er octobre 2026",
+                "Version 0.9.2 · mise à jour le 1er octobre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

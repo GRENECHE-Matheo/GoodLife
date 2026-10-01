@@ -244,5 +244,6 @@ class CoachReceiver : BroadcastReceiver() {
         val kind = CoachNotifier.Kind.entries.firstOrNull { intent.action == "com.goodlife.app.COACH_${it.name}" } ?: return
         runCatching { CoachNotifier.fire(context, kind) }
         CoachNotifier.schedule(context)
+        runCatching { com.goodlife.app.widget.ChefWidgets.updateAll(context) }
     }
 }

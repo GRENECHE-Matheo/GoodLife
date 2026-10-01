@@ -94,6 +94,7 @@ class MainActivity : FragmentActivity() {
                 SystemClock.elapsedRealtime() - savedInstanceState.getLong(KEY_SAVED_AT, 0L) > AppLock.GRACE_MS
             )
         enableEdgeToEdge()
+        handleSharedCard(intent)
         // Ouverte par Health Connect pour expliquer l'usage des données : on montre la politique de confidentialité
         val rationale = intent?.action in setOf(
             "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE", "android.intent.action.VIEW_PERMISSION_USAGE"
@@ -122,6 +123,28 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleSharedCard(intent)
+    }
+
+    /** Carte d'ami reçue par message et ouverte avec GoodLife : vérifiée (signature) puis ajoutée. */
+    private fun handleSharedCard(intent: android.content.Intent?) {
+        if (intent?.action != android.content.Intent.ACTION_SEND) return
+        val text = intent.getStringExtra(android.content.Intent.EXTRA_TEXT) ?: return
+        if (Repo.profile.value == null) return
+        val e = com.goodlife.app.social.Social.receiveFromMessage(text)
+        android.widget.Toast.makeText(
+            this,
+            when {
+                e == null -> "Ce message ne contient pas de carte GoodLife valide."
+                e.result == Repo.Received.IGNORED -> "Carte ignorée."
+                else -> "${e.pseudo} est dans tes amis !"
+            },
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_LOCKED, locked.value)
@@ -134,6 +157,7 @@ class MainActivity : FragmentActivity() {
         // Sauvegarde chiffrée automatique (seulement si activée et si des données ont changé)
         val app = applicationContext
         Thread { Backup.autoBackup(app) }.start()
+        com.goodlife.app.widget.ChefWidgets.updateAll(app)
     }
 
     override fun onStart() {

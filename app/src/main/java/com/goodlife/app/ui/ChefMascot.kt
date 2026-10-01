@@ -21,7 +21,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-enum class ChefMood { CONTENT, QUESTION, BRAVO, TRISTE }
+/** Humeurs et poses du cuisto (les cinq dernières servent surtout aux widgets, pour varier chaque jour). */
+enum class ChefMood { CONTENT, QUESTION, BRAVO, TRISTE, SOMMEIL, CLIN, FIER, COEUR, SPORT }
 
 private val WHITE = Color(0xFFFFFFFF)
 private val OUTLINE = Color(0xFFD5DBE3)
@@ -108,9 +109,18 @@ fun DrawScope.drawChef(mood: ChefMood) {
         // Yeux
         val line = Stroke(1.8f * u, cap = StrokeCap.Round)
         when (mood) {
-            ChefMood.BRAVO -> {
+            ChefMood.BRAVO, ChefMood.FIER -> {
                 drawPath(p { moveTo(39 * u, 53 * u); quadraticTo(42 * u, 48 * u, 45 * u, 53 * u) }, INK, style = line)
                 drawPath(p { moveTo(55 * u, 53 * u); quadraticTo(58 * u, 48 * u, 61 * u, 53 * u) }, INK, style = line)
+            }
+            ChefMood.SOMMEIL -> {
+                drawPath(p { moveTo(39 * u, 52 * u); quadraticTo(42 * u, 55 * u, 45 * u, 52 * u) }, INK, style = line)
+                drawPath(p { moveTo(55 * u, 52 * u); quadraticTo(58 * u, 55 * u, 61 * u, 52 * u) }, INK, style = line)
+            }
+            ChefMood.CLIN -> {
+                drawOval(INK, o(39.4f, 48.6f), Size(5.2f * u, 6.8f * u))
+                drawCircle(WHITE, 0.9f * u, o(43f, 51f))
+                drawPath(p { moveTo(55 * u, 52 * u); quadraticTo(58 * u, 49 * u, 61 * u, 52 * u) }, INK, style = line)
             }
             else -> {
                 drawOval(INK, o(39.4f, 48.6f), Size(5.2f * u, 6.8f * u))
@@ -141,12 +151,43 @@ fun DrawScope.drawChef(mood: ChefMood) {
 
         // Bouche
         when (mood) {
-            ChefMood.CONTENT -> drawPath(p { moveTo(45 * u, 65 * u); quadraticTo(50 * u, 70 * u, 55 * u, 65 * u) }, MOUTH, style = line)
-            ChefMood.BRAVO -> drawPath(p {
+            ChefMood.CONTENT, ChefMood.CLIN, ChefMood.COEUR, ChefMood.SPORT ->
+                drawPath(p { moveTo(45 * u, 65 * u); quadraticTo(50 * u, 70 * u, 55 * u, 65 * u) }, MOUTH, style = line)
+            ChefMood.BRAVO, ChefMood.FIER -> drawPath(p {
                 moveTo(44 * u, 64.5f * u); quadraticTo(50 * u, 73 * u, 56 * u, 64.5f * u); close()
             }, MOUTH)
             ChefMood.QUESTION -> drawOval(MOUTH, o(48f, 64.5f), Size(4 * u, 4 * u))
+            ChefMood.SOMMEIL -> drawOval(MOUTH, o(48.6f, 65f), Size(2.8f * u, 2.8f * u))
             ChefMood.TRISTE -> drawPath(p { moveTo(45 * u, 68 * u); quadraticTo(50 * u, 63.5f * u, 55 * u, 68 * u) }, MOUTH, style = line)
+        }
+
+        // Accessoires des poses
+        when (mood) {
+            ChefMood.SOMMEIL -> {   // petits « z »
+                listOf(Triple(70f, 34f, 5f), Triple(78f, 25f, 7f)).forEach { (x, y, sz) ->
+                    drawPath(p { moveTo(x * u, y * u); lineTo((x + sz) * u, y * u); lineTo(x * u, (y + sz) * u); lineTo((x + sz) * u, (y + sz) * u) },
+                        APRON, style = Stroke(1.8f * u, cap = StrokeCap.Round))
+                }
+            }
+            ChefMood.SPORT -> {     // bandeau et goutte d'effort
+                drawRoundRect(SCARF, o(30.5f, 40f), Size(39 * u, 4.5f * u), androidx.compose.ui.geometry.CornerRadius(2 * u))
+                drawPath(p { moveTo(73 * u, 44 * u); quadraticTo(76 * u, 49 * u, 73 * u, 51 * u); quadraticTo(70 * u, 49 * u, 73 * u, 44 * u); close() }, Color(0xFF8AB4F8))
+            }
+            ChefMood.FIER -> {      // pouce levé
+                drawCircle(SKIN, 6 * u, o(81f, 82f))
+                drawRoundRect(SKIN, o(78.5f, 70f), Size(5 * u, 11 * u), androidx.compose.ui.geometry.CornerRadius(2.5f * u))
+                drawCircle(SKIN_DARK, 1.2f * u, o(81f, 84f))
+            }
+            ChefMood.COEUR -> {      // cœur tenu contre lui
+                drawPath(p {
+                    moveTo(50 * u, 95 * u)
+                    cubicTo(38 * u, 87 * u, 40 * u, 78 * u, 46 * u, 79 * u)
+                    cubicTo(48.5f * u, 79.5f * u, 50 * u, 82 * u, 50 * u, 82 * u)
+                    cubicTo(50 * u, 82 * u, 51.5f * u, 79.5f * u, 54 * u, 79 * u)
+                    cubicTo(60 * u, 78 * u, 62 * u, 87 * u, 50 * u, 95 * u); close()
+                }, SCARF)
+            }
+            else -> Unit
         }
     }
 }

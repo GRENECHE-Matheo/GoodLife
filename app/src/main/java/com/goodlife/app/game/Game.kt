@@ -59,6 +59,24 @@ object Game {
     const val SPORT_XP_PER_DAY = 40
     const val SESSION_XP = 15
 
+    /** Gels de série : 1 gagné tous les 7 jours de série, 2 au maximum. Un gel = quiz de 10 questions. */
+    const val MAX_FREEZES = 2
+    const val FREEZE_EVERY = 7
+    const val FREEZE_QUESTIONS = 10
+
+    /** Nouvel état des gels après une série de [streak] jours (null si rien ne change). */
+    fun freezesAfter(g: GameState, streak: Int): GameState? {
+        val palier = streak - streak % FREEZE_EVERY
+        return when {
+            g.freezeMark < 0 -> g.copy(freezeMark = palier, freezes = if (streak >= FREEZE_EVERY) maxOf(g.freezes, 1) else g.freezes)
+            streak < g.freezeMark -> g.copy(freezeMark = palier)
+            palier > g.freezeMark -> g.copy(
+                freezes = minOf(MAX_FREEZES, g.freezes + (palier - g.freezeMark) / FREEZE_EVERY), freezeMark = palier
+            )
+            else -> null
+        }
+    }
+
     /** Une sortie GPS : 1 XP par tranche de 2 minutes en mouvement, au plus 30. */
     fun outingXp(movingMinutes: Long): Int = (movingMinutes / 2).toInt().coerceIn(0, 30)
 

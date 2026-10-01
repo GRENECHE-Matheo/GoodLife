@@ -1,3 +1,9 @@
 <resources>
     <color name="ic_launcher_background">#1A73E8</color>
+    <!-- Widgets du chef (thème clair) -->
+    <color name="widget_bg">#F2FFFFFF</color>
+    <color name="widget_text">#1C1B1F</color>
+    <color name="widget_sub">#5F6368</color>
+    <color name="widget_accent">#34A853</color>
+    <color name="widget_track">#E3E7EE</color>
 </resources>

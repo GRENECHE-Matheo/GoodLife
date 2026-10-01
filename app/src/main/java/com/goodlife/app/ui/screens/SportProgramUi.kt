@@ -306,7 +306,7 @@ private fun SessionCard(s: SportSession, isToday: Boolean, doneToday: Boolean, o
                     style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary
                 )
                 Text(s.title, style = MaterialTheme.typography.titleMedium)
-                Text("${s.minutes} min · ${s.exercises.size} exercices", style = MaterialTheme.typography.bodySmall)
+                Text("${s.minutes} min · ${s.exercises.size} exercice${if (s.exercises.size > 1) "s" else ""}", style = MaterialTheme.typography.bodySmall)
             }
             if (doneToday) Icon(Icons.Filled.CheckCircle, "Faite", tint = successColor)
             Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)

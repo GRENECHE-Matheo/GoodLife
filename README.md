@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9
+## 🆕 Nouveautés de la v0.9.2
+
+- **Amis à distance** : partage ta carte par message, toujours sans serveur, et **défi de la semaine** entre amis.
+- **Gels de série ❄️** : un gel tous les 7 jours de série pour sauver un jour raté (10 questions du chef).
+- **Widgets du chef** sur l'écran d'accueil, **repas favoris** en un appui, et **révision** des erreurs du quiz.
+
+## Nouveautés de la v0.9
 
 - **Parler au chef** : un coach qui connaît tes chiffres et te conseille sur l'alimentation, le sport et la motivation ;
   il peut te proposer des repas à ajouter au planning d'un geste.
@@ -56,7 +62,8 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 ### 🏆 Motivation
 - **Le chef, ton coach** : un mot du jour sur l'accueil, une conversation pour tout lui demander (avec l'IA), et des
   notifications motivantes si tu les acceptes (bilan du matin, midi, soir si la série est en danger, dimanche).
-- **Score du jour** = 60 % alimentation + 40 % pas ; **série** validée dès 80/100.
+- **Score du jour** = 60 % alimentation + 40 % pas ; **série** validée dès 80/100, avec des **gels ❄️** pour sauver un jour raté.
+- **Widgets du chef** pour l'écran d'accueil (série, score du jour, petit mot), qui change de pose selon ta journée.
 - **XP et niveaux**, de « Commis » à « Légende de la cuisine », courbes de score, calories et poids.
 - **Quiz du chef** : 5 questions par jour, jamais les mêmes pendant des années (questions fabriquées à partir de la
   table Ciqual de l'Anses), qui peuvent sauver une série cassée ; sons et barre d'XP animée.
@@ -68,7 +75,8 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 ### 👥 Amis, sans serveur
 - Cartes de joueur signées échangées par **Tap to Sync** (NFC, en collant les téléphones), **QR code** ou
   **StreetPass** (Bluetooth basse consommation, Android 12+ et 18+).
-- Classement entre amis, Nutridex des amis, encouragements tout prêts, blocage. Profil **privé par défaut**.
+- **À distance** aussi : « Partager ma carte » par message (WhatsApp, SMS…), sans serveur GoodLife.
+- Classement entre amis, **défi de la semaine**, Nutridex des amis, encouragements tout prêts, blocage. Profil **privé par défaut**.
 
 ### ⚙️ Confort
 - Thème clair / sombre / système, couleurs Material You ou 5 couleurs au choix, sons désactivables.
