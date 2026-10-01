@@ -293,7 +293,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                         Column(Modifier.weight(1f)) {
                             Text(if (keySaved) t("Clé enregistrée") else t("Clé enregistrée et chiffrée"), style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                t("Se termine par …%1\$s · elle n'est plus affichée par sécurité", settings.apiKey.takeLast(4)),
+                                t("Elle n'est jamais réaffichée, même en partie : personne ne peut la lire dans l'app."),
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -307,7 +307,6 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                         }
                     }
                 } else {
-                    NoScreenshotsWhileVisible()
                     OutlinedTextField(
                         value = keyDraft,
                         onValueChange = { keyDraft = it.trim(); keySaved = false },

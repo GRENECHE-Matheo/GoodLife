@@ -274,7 +274,6 @@ fun ScanScreen(onDone: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium
                 )
                 TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text(t("Créer ma clé chez Google")) }
-                NoScreenshotsWhileVisible()
                 OutlinedTextField(
                     value = keyDraft, onValueChange = { keyDraft = it.trim() },
                     label = { Text(t("Clé API Gemini")) }, singleLine = true,

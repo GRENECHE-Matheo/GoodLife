@@ -24,7 +24,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 
 ## 🆕 Nouveautés de la v0.9.7
 
-- **Clé API blindée** : coffre chiffré par la puce de sécurité du téléphone, saisie protégée, réseau HTTPS strict.
+- **Clé API blindée** : coffre chiffré par la puce de sécurité du téléphone, jamais réaffichée, réseau HTTPS strict.
 - **Export protégé par mot de passe** et **invitations d'ami en lien cliquable**.
 
 ## Nouveautés de la v0.9.6

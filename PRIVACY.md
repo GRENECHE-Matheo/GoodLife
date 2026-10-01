@@ -39,7 +39,7 @@ Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que t
 
 ## Ta clé API
 
-Ta clé Gemini est rangée dans un coffre à part, chiffrée par une clé de la puce de sécurité du téléphone (Android Keystore, StrongBox quand le téléphone en a une). Cette clé ne peut pas être extraite, et elle ne fonctionne que téléphone déverrouillé (Android 9 et plus) : même avec les fichiers de l'app, personne ne peut lire ta clé API, ni toi, ni le développeur. Pendant la saisie, les captures d'écran sont bloquées, le clavier n'apprend pas la clé, et elle est retirée du presse-papiers si tu l'as collée. Elle est conservée lors des mises à jour de l'app et envoyée uniquement à Google, en HTTPS (aucun certificat ajouté à la main n'est accepté), dans l'en-tête des requêtes. Elle n'apparaît dans aucune exportation ni sauvegarde, et « Effacer toutes mes données » détruit aussi la clé du coffre.
+Ta clé Gemini est rangée dans un coffre à part, chiffrée par une clé de la puce de sécurité du téléphone (Android Keystore, StrongBox quand le téléphone en a une). Cette clé ne peut pas être extraite, et elle ne fonctionne que téléphone déverrouillé (Android 9 et plus) : même avec les fichiers de l'app, personne ne peut lire ta clé API, ni toi, ni le développeur. Le clavier n'apprend pas la clé (elle ne pourra jamais apparaître en suggestion), et elle est retirée du presse-papiers si tu l'as collée. Elle est conservée lors des mises à jour de l'app et envoyée uniquement à Google, en HTTPS (aucun certificat ajouté à la main n'est accepté), dans l'en-tête des requêtes. Elle n'apparaît dans aucune exportation ni sauvegarde, et « Effacer toutes mes données » détruit aussi la clé du coffre.
 
 ## Scan de code-barres (sans IA)
 

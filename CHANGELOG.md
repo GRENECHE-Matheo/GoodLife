@@ -15,8 +15,8 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 - 🔒 **Clé API dans un coffre** : chiffrée par une clé de la puce de sécurité du téléphone (StrongBox quand il y en a une),
   utilisable seulement téléphone déverrouillé, impossible à extraire. Même avec les fichiers de l'app, personne ne peut
   la lire. « Effacer toutes mes données » détruit aussi la clé du coffre.
-- 🔒 **Saisie de la clé** : captures d'écran bloquées, le clavier ne l'apprend pas (plus de suggestion possible), et elle
-  est retirée du presse-papiers si elle a été collée.
+- 🔒 **Une fois enregistrée, la clé n'est plus jamais affichée, même en partie.** Le clavier ne l'apprend pas (elle ne
+  peut pas réapparaître en suggestion) et elle est retirée du presse-papiers si elle a été collée.
 - 🔒 **Réseau** : HTTPS uniquement, et aucun certificat ajouté à la main n'est accepté (pas d'interception par un proxy).
 - 🔒 La clé de la sauvegarde chiffrée rejoint le même coffre.
 - ✨ La clé peut être **limitée à GoodLife** dans la console Google Cloud (restriction « Applications Android ») :
