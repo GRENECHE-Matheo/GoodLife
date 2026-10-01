@@ -8,6 +8,16 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.8 — 01/10/2026
+
+**Audit de sécurité de la clé API.**
+
+- 🔒 La clé ne peut plus apparaître dans aucun texte de l'app (même un texte technique interne), ni dans un message
+  d'erreur renvoyé par Google.
+- 🔒 Les requêtes vers Google ne suivent plus les redirections : la clé ne peut pas être renvoyée vers une autre adresse.
+- 🔒 Le nom du modèle d'IA est vérifié avant chaque requête : l'adresse ne peut viser que l'API Gemini de Google.
+- 🐛 Lien d'invitation : bonne adresse GitHub Pages pour ouvrir le lien directement dans l'app.
+
 ## v0.9.7 — 01/10/2026
 
 **Ta clé API blindée, un export protégé et des invitations en un clic.**

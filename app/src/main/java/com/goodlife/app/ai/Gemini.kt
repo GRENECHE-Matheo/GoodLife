@@ -275,8 +275,11 @@ class Gemini(private val apiKey: String, private val model: String) {
     }
 
     private fun post(model: String, body: JSONObject): Pair<Int, String> {
+        // Nom du modèle contrôlé : l'adresse ne peut pas être détournée vers autre chose que l'API Gemini de Google
+        require(MODEL_NAME.matches(model)) { t("Modèle %1\$s indisponible", model.take(40)) }
         val conn = (URL("$BASE/$model:generateContent").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
+            instanceFollowRedirects = false   // la clé (en-tête) ne suit jamais une redirection vers une autre adresse
             connectTimeout = 20_000
             readTimeout = 90_000
             doOutput = true
@@ -315,7 +318,11 @@ class Gemini(private val apiKey: String, private val model: String) {
 
     private fun errorMessage(body: String): String = runCatching {
         JSONObject(body).getJSONObject("error").optString("message")
-    }.getOrNull()?.take(160) ?: t("réponse invalide")
+    }.getOrNull()?.let { redact(it) }?.take(160) ?: t("réponse invalide")
+
+    /** Retire la clé d'un texte (au cas où un message d'erreur la répéterait). */
+    private fun redact(text: String): String =
+        if (apiKey.length >= 8) text.replace(apiKey, "•••") else text
 
     /** Texte de la réponse (sans les « pensées » du modèle). */
     private fun text(body: String): String {
@@ -619,6 +626,7 @@ class Gemini(private val apiKey: String, private val model: String) {
 
     companion object {
         private const val BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+        private val MODEL_NAME = Regex("[a-z0-9][a-z0-9.\\-]{1,60}")
         /** Si un modèle n'existe plus chez Google, on essaie automatiquement les suivants. */
         val FALLBACK_MODELS = listOf("gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash")
 

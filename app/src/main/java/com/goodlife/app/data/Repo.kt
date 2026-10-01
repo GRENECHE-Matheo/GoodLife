@@ -89,6 +89,9 @@ data class Settings(
 ) {
     val anyNotif: Boolean get() = notifMorning || notifNoon || notifEvening || notifWeekly
 
+    /** Jamais les secrets dans un texte (le toString() automatique d'une data class les écrirait en clair). */
+    override fun toString(): String = "Settings(apiKey=${if (apiKey.isEmpty()) "" else "•••"}, backupKey=${if (backupKey.isEmpty()) "" else "•••"}, model=$model)"
+
 
     fun toJson(): JSONObject = JSONObject()
         .put("model", model).put("sleepAuto", sleepAuto)
