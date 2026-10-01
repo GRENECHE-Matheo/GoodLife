@@ -17,6 +17,9 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
   la lire. « Effacer toutes mes données » détruit aussi la clé du coffre.
 - 🔒 **Une fois enregistrée, la clé n'est plus jamais affichée, même en partie.** Le clavier ne l'apprend pas (elle ne
   peut pas réapparaître en suggestion) et elle est retirée du presse-papiers si elle a été collée.
+- 🔒 **Changer de clé sans laisser de trace** : « Remplacer la clé » propose seulement d'en taper une nouvelle (l'ancienne
+  n'est jamais montrée). À l'enregistrement, ou avec « Retirer ma clé », la clé du coffre est détruite dans la puce et
+  recréée : l'ancienne clé API devient illisible pour toujours, même si une copie chiffrée traînait encore.
 - 🔒 **Réseau** : HTTPS uniquement, et aucun certificat ajouté à la main n'est accepté (pas d'interception par un proxy).
 - 🔒 La clé de la sauvegarde chiffrée rejoint le même coffre.
 - ✨ La clé peut être **limitée à GoodLife** dans la console Google Cloud (restriction « Applications Android ») :

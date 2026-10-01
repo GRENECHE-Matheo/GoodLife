@@ -106,6 +106,20 @@ class SecureStore(context: Context) {
 
     fun hasSecret(name: String): Boolean = prefs.contains(SECRET_PREFIX + name)
 
+    /**
+     * Remplace tous les secrets d'un coup, sans laisser de trace : les anciens sont effacés, la clé du coffre est
+     * détruite dans la puce puis recréée, et seuls les secrets donnés sont rechiffrés avec la nouvelle clé.
+     * Une ancienne copie chiffrée (restée par exemple dans la mémoire flash) ne pourra donc plus jamais être lue.
+     */
+    @Synchronized
+    fun replaceSecrets(values: Map<String, String?>) {
+        val editor = prefs.edit()
+        prefs.all.keys.filter { it.startsWith(SECRET_PREFIX) }.forEach { editor.remove(it) }
+        editor.commit()
+        runCatching { KeyStore.getInstance(KEYSTORE).apply { load(null) }.deleteEntry(SECRET_ALIAS) }
+        values.forEach { (name, value) -> if (!value.isNullOrEmpty()) putSecret(name, value) }
+    }
+
     /** Écrit tout de suite sur le disque (avant un redémarrage de l'app, par exemple). */
     fun flush() {
         prefs.edit().commit()

@@ -701,8 +701,10 @@ object Repo {
         val old = _settings.value
         val s = transform(old)
         _settings.value = s
-        if (s.apiKey != old.apiKey) runCatching { store.putSecret(S_API_KEY, s.apiKey) }
-        if (s.backupKey != old.backupKey) runCatching { store.putSecret(S_BACKUP_KEY, s.backupKey) }
+        // Un secret change (clé remplacée ou retirée) : nouveau coffre, l'ancien est détruit sans trace
+        if (s.apiKey != old.apiKey || s.backupKey != old.backupKey) {
+            runCatching { store.replaceSecrets(mapOf(S_API_KEY to s.apiKey, S_BACKUP_KEY to s.backupKey)) }
+        }
         store.put(K_SETTINGS, s.toJson().toString())
     }
 
