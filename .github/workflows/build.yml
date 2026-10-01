@@ -71,3 +71,17 @@ jobs:
           name: GoodLife ${{ github.ref_name }}
           files: GoodLife-*.apk
           body_path: notes.md
+          # « Latest » est réglé juste après, d'après CHANGELOG.md (plusieurs tags peuvent compiler en même temps)
+          make_latest: false
+
+      # L'app (version GitHub) cherche sa mise à jour dans la release « Latest » : ce doit être la plus récente
+      - name: Marquer la version la plus récente comme « Latest »
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          newest=$(grep -oE '^## v[0-9][^ ]*' CHANGELOG.md | head -1 | cut -c4-)
+          if gh release view "$newest" > /dev/null 2>&1; then
+            gh release edit "$newest" --latest
+            echo "Latest : $newest"
+          fi

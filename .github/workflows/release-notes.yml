@@ -5,7 +5,7 @@ name: Notes de version
 on:
   push:
     branches: [ main ]
-    paths: [ 'CHANGELOG.md', '.github/release-notes.sh' ]
+    paths: [ 'CHANGELOG.md', '.github/release-notes.sh', '.github/workflows/release-notes.yml' ]
   workflow_dispatch:
 
 permissions:
@@ -30,3 +30,9 @@ jobs:
               echo "– $tag : pas de release"
             fi
           done
+          # La release « Latest » (lue par la mise à jour de l'app) = la plus récente du journal
+          newest=$(grep -oE '^## v[0-9][^ ]*' CHANGELOG.md | head -1 | cut -c4-)
+          if gh release view "$newest" > /dev/null 2>&1; then
+            gh release edit "$newest" --latest
+            echo "Latest : $newest"
+          fi
