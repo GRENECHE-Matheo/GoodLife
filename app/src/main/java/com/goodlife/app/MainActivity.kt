@@ -84,6 +84,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         Repo.init(this)
         Repo.reloadSecretsIfNeeded()
+        // Nouveau lancement : le bandeau de mise à jour masqué la dernière fois réapparaît
+        if (savedInstanceState == null && Repo.settings.value.dismissedTag.isNotEmpty()) Repo.updateSettings { it.copy(dismissedTag = "") }
         com.goodlife.app.net.appContext = applicationContext
         UpdateInstaller.cleanup(this, onlyInstalled = true)
         com.goodlife.app.steps.Steps.schedule(this)
@@ -91,7 +93,10 @@ class MainActivity : FragmentActivity() {
         com.goodlife.app.coach.CoachNotifier.schedule(this)
         // Objectif de pas conseillé par l'IA : recalculé une fois par jour, à la première ouverture
         val ctx = applicationContext
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { com.goodlife.app.steps.StepGoalAi.refreshIfNeeded(ctx) }
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            com.goodlife.app.steps.StepGoalAi.refreshIfNeeded(ctx)
+            com.goodlife.app.ai.WaterGoalAi.refreshIfNeeded(ctx)   // objectif d'eau du jour (IA)
+        }
         val s = Repo.settings.value
         applyScreenshotBlock(s.blockScreenshots)
         // Rotation / changement de thème : pas de re-verrouillage ; retour après plus d'1 min : verrouillage.
@@ -180,6 +185,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         Repo.reloadSecretsIfNeeded()
+        // Mise à jour disponible ? Vérifié à chaque ouverture de l'app (une petite requête), affiché sur l'accueil
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { com.goodlife.app.net.Updater.check() }
         super.onStart()
         val away = SystemClock.elapsedRealtime() - backgroundAt
         if (Repo.settings.value.appLock && backgroundAt > 0 && away > AppLock.GRACE_MS) {
@@ -241,6 +248,9 @@ private fun MainTabs() {
     // Demande venue d'une notification (écran Amis, dans l'onglet Profil)
     val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
     LaunchedEffect(navRequest) { if (navRequest == "friends") tab = 4 }
+    // Retour du téléphone : depuis Scanner, Planning, Forme ou Profil, on revient à l'accueil (seul l'accueil ferme l'app).
+    // Les écrans ouverts par-dessus (paramètres, amis, quiz…) gèrent leur propre retour en premier.
+    androidx.activity.compose.BackHandler(enabled = tab != 0) { tab = 0 }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
     val keyboardOpen = WindowInsets.isImeVisible
 

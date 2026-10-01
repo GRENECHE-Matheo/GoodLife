@@ -30,7 +30,8 @@ class AiException(message: String) : Exception(message)
 fun mealName(count: Int, name: String): String = t("%1\$s× %2\$s", count.coerceAtLeast(1), name.trim())
 
 /** Un message de conversation avec l'IA. */
-data class ChatMessage(val fromUser: Boolean, val text: String)
+/** Message d'une conversation ; [image] : photo envoyée par la personne (JPEG réduit), jamais enregistrée. */
+data class ChatMessage(val fromUser: Boolean, val text: String, val image: ByteArray? = null)
 
 /** Article de la liste de courses. */
 data class ShopItem(val name: String, val qty: String, val aisle: String, val checked: Boolean = false)
@@ -46,7 +47,7 @@ data class FridgeResult(val seen: List<String>, val ideas: List<FridgeIdea>, val
 /** Repas proposé par le coach, ajouté au planning seulement si la personne appuie sur « Ajouter ». */
 data class CoachMeal(val date: String, val slot: MealSlot, val name: String, val kcal: Int, val description: String)
 
-data class CoachReply(val text: String, val meals: List<CoachMeal>)
+data class CoachReply(val text: String, val meals: List<CoachMeal>, val shopping: List<ShopItem> = emptyList())
 
 /**
  * Client minimal de l'API Gemini (Google AI Studio), avec la clé personnelle de chaque utilisateur.
@@ -107,8 +108,11 @@ class Gemini(private val apiKey: String, private val model: String) {
     suspend fun coach(system: String, history: List<ChatMessage>): CoachReply = withContext(Dispatchers.IO) {
         guard()
         val contents = JSONArray()
-        history.forEach { m ->
-            contents.put(JSONObject().put("role", if (m.fromUser) "user" else "model").put("parts", parts(m.text, null)))
+        // Les photos ne sont renvoyées que pour les 4 derniers messages (au-delà, une simple mention), pour limiter les envois
+        history.forEachIndexed { i, m ->
+            val recent = i >= history.size - 4
+            val text = if (m.image != null && !recent) m.text + " [photo envoyée plus tôt]" else m.text
+            contents.put(JSONObject().put("role", if (m.fromUser) "user" else "model").put("parts", parts(text, if (recent) m.image else null)))
         }
         val body = JSONObject()
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
@@ -131,7 +135,10 @@ class Gemini(private val apiKey: String, private val model: String) {
             )
         }?.filter { it.name.isNotBlank() && it.date.matches(Regex("""\d{4}-\d{2}-\d{2}""")) && it.date in today..last }?.take(21)
             ?: emptyList()
-        CoachReply(reply.take(3000), meals)
+        val shopping = o.optJSONArray("courses")?.mapObjects {
+            ShopItem(it.optString("nom").trim().take(60), it.optString("quantite").trim().take(30), it.optString("rayon").trim().ifBlank { t("Autres") }.take(30))
+        }?.filter { it.name.isNotBlank() }?.take(80) ?: emptyList()
+        CoachReply(reply.take(3000), meals, shopping)
     }
 
     /**
@@ -439,7 +446,8 @@ class Gemini(private val apiKey: String, private val model: String) {
         startDate: String,
         budgetEur: Int,
         people: Int,
-        slots: List<MealSlot>
+        slots: List<MealSlot>,
+        notes: String = ""
     ): Pair<List<PlannedMeal>, String> {
         val slotNames = slots.joinToString(", ") { it.label.lowercase() }
         val prompt = """
@@ -453,6 +461,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             Objectif de la personne : ${p.goal.label}, environ ${p.targetKcal} kcal par jour pour elle.
             Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}
             ALLERGIES (à exclure absolument) : ${p.allergies.ifBlank { "aucune" }}
+            ${if (notes.isNotBlank()) "Précisions du foyer, à respecter (goûts, aliments que quelqu'un n'aime pas, contraintes) : ${notes.take(400)}" else ""}
             Varie les plats, réutilise les restes et les mêmes ingrédients dans la semaine pour limiter le coût.
             Réponds UNIQUEMENT en JSON :
             {"repas": [{"jour": 0, "moment": "déjeuner", "nom": "nom court (max 5 mots)",
@@ -562,6 +571,32 @@ class Gemini(private val apiKey: String, private val model: String) {
         if (previous > 0) steps = steps.coerceIn((previous * 0.85).roundToInt(), (previous * 1.15).roundToInt())
         steps = ((steps / 250.0).roundToInt() * 250).coerceIn(3000, 20_000)
         return steps to o.optString("explication")
+    }
+
+    /**
+     * Objectif d'eau du jour (ml de boissons) selon les besoins de la personne et son activité d'hier.
+     * Bornes de l'app : 1 à 4 L, arrondi à 250 ml, ±25 % par rapport à l'objectif d'hier.
+     */
+    suspend fun recommendWater(p: Profile, stepsYesterday: Int, sessionsYesterday: Int, outingMinutesYesterday: Int, previous: Int = 0): Pair<Int, String> {
+        val prompt = """
+            Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose la quantité de BOISSONS
+            (surtout de l'eau) à viser AUJOURD'HUI, en ml, en t'appuyant sur les repères officiels (EFSA : apport total en eau
+            d'environ 2,0 L/jour pour une femme et 2,5 L/jour pour un homme adultes, dont environ 20 à 30 % viennent des aliments ;
+            besoins plus élevés avec le poids, l'activité physique et la transpiration).
+            Âge : ${p.age} ans · Sexe : ${p.sex.label} · Poids : ${p.weightKg} kg · Taille : ${p.heightCm} cm
+            Activité habituelle : ${p.activity.label} · Objectif : ${p.goal.label} · Apport visé : ${p.targetKcal} kcal/jour
+            Hier : ${if (stepsYesterday > 0) "$stepsYesterday pas" else "pas inconnus"}, $sessionsYesterday séance(s) de sport,
+            $outingMinutesYesterday min de sortie (course, marche, vélo).
+            Objectif d'eau d'hier : ${if (previous > 0) "$previous ml" else "aucun"}.
+            Reste raisonnable et progressif ; ne dépasse jamais 4 L.
+            Réponds UNIQUEMENT en JSON : {"ml": 0, "explication": "1 à 2 phrases simples en français, avec les vrais chiffres"}
+        """.trimIndent()
+        val o = call(prompt, null)
+        var ml = o.optDouble("ml", 0.0).roundToInt()
+        if (ml <= 0) throw AiException(t("Réponse IA illisible."))
+        if (previous > 0) ml = ml.coerceIn((previous * 0.75).roundToInt(), (previous * 1.25).roundToInt())
+        ml = ((ml / 250.0).roundToInt() * 250).coerceIn(1000, 4000)
+        return ml to o.optString("explication").take(300)
     }
 
     suspend fun suggestMeals(p: Profile, today: List<Meal>, slot: MealSlot? = null, avoid: List<String> = emptyList()): List<MealSuggestion> {

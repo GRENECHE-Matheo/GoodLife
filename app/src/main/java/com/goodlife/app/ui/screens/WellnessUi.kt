@@ -64,7 +64,7 @@ fun WaterCard() {
     val settings by Repo.settings.collectAsState()
     val today = rememberToday()
     val ml = water[today] ?: 0
-    val goal = settings.waterGoalMl
+    val goal = remember(settings) { Repo.waterGoal() }
     SectionCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.WaterDrop, null, tint = MaterialTheme.colorScheme.primary)
@@ -78,6 +78,10 @@ fun WaterCard() {
             FilledTonalButton(onClick = { Repo.addWater(GLASS_ML) }) { Text(t("+ 1 verre")) }
         }
         LinearProgressIndicator(progress = { (ml.toFloat() / goal).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp), strokeCap = StrokeCap.Round)
+        if (Repo.waterGoalFromAi() && settings.waterGoalIaWhy.isNotBlank()) {
+            Text(t("Objectif du jour conseillé par l'IA : %1\$s", settings.waterGoalIaWhy),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

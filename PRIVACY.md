@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.9.7 · mise à jour le 1er octobre 2026
+Version 0.9.9 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -23,14 +23,15 @@ L'IA est désactivée par défaut, demande un consentement séparé (réservé a
 • Objectif calorique : âge, sexe, poids, taille, activité, objectif, habitudes, allergies.
 • Idées de repas : ton objectif, les repas du jour, tes habitudes et allergies.
 • Recette : le nom du plat, tes habitudes et allergies.
-• Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget et le nombre de personnes.
+• Planning de la semaine : ton objectif, tes habitudes et allergies, ton budget, le nombre de personnes et les précisions que tu écris (goûts du foyer…) ; si tu le demandes, les repas prévus pour préparer la liste de courses.
+• Objectif d'eau (si l'IA est activée et que tu n'as pas choisi un objectif fixe) : âge, sexe, poids, taille, activité, objectif et apport visé, tes pas, séances et minutes de sortie d'hier, et l'objectif d'hier. Envoyé une fois par jour, automatiquement.
 • Objectif de pas (si tu choisis « Conseil de l'IA ») : âge, sexe, activité, objectif, tes pas et objectifs des 7 derniers jours. Envoyé une fois par jour, automatiquement (à la première ouverture de l'app ou au relevé des pas), tant que ce mode est choisi.
 • Liste de courses (si tu la prépares avec l'IA) : les repas prévus (noms, descriptions, ingrédients des recettes) et le nombre de personnes.
 • « J'ai ça dans mon frigo » : la photo de ton frigo ou de tes placards (si tu en prends une) et ce que tu écris, avec tes allergies, habitudes, objectif et calories restantes. La photo est supprimée du téléphone juste après l'analyse.
 • Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites que tu écris (données de santé).
 • Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné (photo et analyse, recette, programme, ou titre, extrait et lien de l'actu), tes allergies et habitudes. Pour une actu, l'IA peut faire des recherches Google (outil de recherche de Gemini) pour savoir de quoi parle l'article : Google reçoit alors les recherches que l'IA formule ; les sources et les suggestions de recherche de Google sont affichées avec la réponse. La conversation n'est pas gardée après fermeture.
-• Coach (« Parler au chef ») : tes questions, et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains jours. Ces envois demandent ton accord, une fois, avant ta première question au coach (retiré si tu désactives l'IA). Les repas qu'il propose ne sont ajoutés au planning que si tu appuies sur « Ajouter ». La conversation reste en mémoire tant que l'app est ouverte, sans être enregistrée.
-Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celle que tu fais analyser), tes positions GPS, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
+• Coach (« Parler au chef ») : tes questions, les photos que tu joins toi-même à un message (elles ne sont pas gardées), et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton programme sportif et les repas déjà prévus au planning pour les 7 prochains jours. Ces envois demandent ton accord, une fois, avant ta première question au coach (retiré si tu désactives l'IA). Les repas et listes de courses qu'il propose ne sont ajoutés que si tu appuies sur « Ajouter ». La conversation reste en mémoire tant que l'app est ouverte, sans être enregistrée.
+Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celles que tu fais analyser ou que tu joins au coach), tes positions GPS, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
 
 ## À qui ces données sont envoyées
 
@@ -84,7 +85,7 @@ Base légale : ton consentement (activation du profil public). Tu peux le retire
 
 ## Vérification des mises à jour (version GitHub uniquement)
 
-Dans la version téléchargée depuis GitHub, si l'option est activée (Paramètres › Mises à jour), l'app demande à GitHub, au plus toutes les 30 minutes, quelle est la dernière version publiée ; si tu appuies sur « Installer », elle télécharge l'APK depuis la page officielle du projet. GitHub voit alors ton adresse IP ; aucune autre donnée n'est envoyée. Avant l'installation, l'app vérifie l'empreinte du fichier et qu'il est signé avec la même clé que l'app installée, puis Android te demande de confirmer. Rien n'est installé sans ton accord. La version Google Play n'a pas cette fonction : ses mises à jour passent par le Play Store.
+Dans la version téléchargée depuis GitHub, si l'option est activée (Paramètres › Mises à jour), l'app demande à GitHub, à chaque ouverture, quelle est la dernière version publiée ; si tu appuies sur « Installer », elle télécharge l'APK depuis la page officielle du projet. GitHub voit alors ton adresse IP ; aucune autre donnée n'est envoyée. Avant l'installation, l'app vérifie l'empreinte du fichier et qu'il est signé avec la même clé que l'app installée, puis Android te demande de confirmer. Rien n'est installé sans ton accord. La version Google Play n'a pas cette fonction : ses mises à jour passent par le Play Store.
 
 ## Sauvegarde chiffrée (si tu l'actives)
 

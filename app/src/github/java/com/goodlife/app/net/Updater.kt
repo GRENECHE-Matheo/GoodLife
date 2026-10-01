@@ -13,7 +13,9 @@ data class AvailableUpdate(val tag: String, val pageUrl: String, val apkUrl: Str
  * Ne fait confiance qu'aux adresses de ce dépôt ; l'APK est ensuite vérifié par [UpdateInstaller].
  */
 object Updater {
-    private const val INTERVAL_MS = 30 * 60_000L
+    /** Écart minimal entre deux vérifications automatiques (évite de redemander en passant d'une app à l'autre). */
+    private const val INTERVAL_MS = 5 * 60_000L
+    @Volatile private var checkedAt = 0L
     val RELEASES = "https://github.com/${BuildConfig.UPDATE_REPO}/releases/"
 
     /** Compare « v0.3.1 » et « 0.3 » numériquement. */
@@ -31,12 +33,14 @@ object Updater {
         return false
     }
 
-    /** Vérifie à chaque ouverture de l'app (au plus toutes les 30 min), ou tout de suite si [force]. */
+    /**
+     * Vérifie à chaque ouverture de l'app (une seule petite requête, rien en arrière-plan), ou tout de suite si [force].
+     */
     suspend fun check(force: Boolean = false): String? = withContext(Dispatchers.IO) {
         val s = Repo.settings.value
-        if (!force && (!s.checkUpdates || System.currentTimeMillis() - s.lastUpdateCheck < INTERVAL_MS)) {
-            return@withContext null
-        }
+        val now = System.currentTimeMillis()
+        if (!force && (!s.checkUpdates || now - checkedAt < INTERVAL_MS)) return@withContext null
+        checkedAt = now
         runCatching {
             val (code, body) = httpGet(
                 "https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest",

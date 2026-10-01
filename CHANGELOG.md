@@ -8,6 +8,26 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.9 — 01/10/2026
+
+**Un coach qui voit tes photos, l'eau à ta mesure et des courses qui se font toutes seules.**
+
+- 🛠️ **Bouton retour** : depuis Scanner, Planning, Forme ou Profil, le retour du téléphone ramène à l'accueil
+  (seul l'accueil ferme l'app).
+- ✨ **Photos dans la conversation avec le coach** : un aliment, un plat, une étiquette… le chef analyse et conseille.
+  La photo est envoyée à Gemini avec ton message, jamais gardée.
+- ✨ **Liste de courses par le coach** : demande-lui une liste, un bouton l'ajoute à ta liste de courses.
+- ✨ **Planning de la semaine** : un champ « Précisions » (ex. quelqu'un qui n'aime pas un aliment), retenu pour la
+  prochaine fois, et la **liste de courses se remplit toute seule** avec la semaine (case cochée par défaut).
+- ✨ **Objectif d'eau calculé chaque jour par l'IA** (si elle est activée) selon tes besoins et ton activité d'hier ;
+  sinon, objectif fixe au choix.
+- 🛠️ **En-tête de l'accueil** : le chef ouvre la conversation avec le coach, et un bouton 🧠 lance le quiz du jour
+  (avec un point tant qu'il n'est pas fait).
+- 🛠️ **Nutridex** : un aliment débloqué se colorie dans la grille ; ta photo s'affiche quand tu le touches.
+- 🛠️ **Mises à jour** : vérifiées à chaque ouverture de l'app (une petite requête) et toujours affichées en haut de
+  l'accueil tant qu'elles ne sont pas installées.
+- 🔒 Politique de confidentialité v0.9.9 (photos au coach, objectif d'eau, précisions du planning).
+
 ## v0.9.8 — 01/10/2026
 
 **Audit de sécurité de la clé API.**

@@ -205,7 +205,7 @@ fun ShoppingScreen(onBack: () -> Unit) {
 // ====================================================================== « J'ai ça dans mon frigo »
 
 /** Photo réduite (1280 px max, JPEG) pour l'envoyer à l'IA. */
-private fun readPhoto(context: android.content.Context, uri: Uri): ByteArray? = runCatching {
+internal fun readPhoto(context: android.content.Context, uri: Uri): ByteArray? = runCatching {
     val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
     var sample = 1

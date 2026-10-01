@@ -13,6 +13,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.graphicsLayer
 import com.goodlife.app.ui.SlideSwitch
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -172,7 +174,6 @@ private fun HomeContent(
     val recipes = remember { mutableStateMapOf<String, Recipe>() }
 
     val uri = LocalUriHandler.current
-    LaunchedEffect(Unit) { Updater.check() }
     val game by Repo.game.collectAsState()
     LaunchedEffect(summary.streak) {
         if (Game.freezesAfter(Repo.game.value, summary.streak) != null) Repo.updateGame { g -> Game.freezesAfter(g, summary.streak) ?: g }
@@ -223,7 +224,18 @@ private fun HomeContent(
                 }
             }
             Spacer(Modifier.width(4.dp))
-            Surface(onClick = onQuiz, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            // Quiz du jour : en un appui depuis l'en-tête (un point tant qu'il n'est pas fait aujourd'hui)
+            Box {
+                Surface(onClick = onQuiz, shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Text("🧠", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                }
+                if (!summary.quizDoneToday) Box(
+                    Modifier.align(Alignment.TopEnd).size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error)
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+            // Le chef en haut ouvre la conversation avec le coach
+            Surface(onClick = onCoach, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 ChefMascot(Modifier.padding(2.dp), size = 44.dp, mood = if (summary.quizDoneToday) ChefMood.CONTENT else ChefMood.QUESTION)
             }
         }
@@ -267,6 +279,18 @@ private fun HomeContent(
             }
         }
         QuickMeals()
+
+        // Mise à jour disponible : bien visible, en haut (vérifiée à chaque ouverture de l'app)
+        val update = if (settings.checkUpdates) Updater.availableUpdate() else null
+        if (update != null && update.tag != settings.dismissedTag) {
+            SectionCard(
+                title = t("Nouvelle version %1\$s disponible", update.tag),
+                icon = Icons.Filled.SystemUpdate,
+                container = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                UpdatePanel(update, showDismiss = true)
+            }
+        }
 
         CareCard(summary)
         NewBadgeCard(summary, onOpen = onProgress)
@@ -322,17 +346,6 @@ private fun HomeContent(
         CoachCard(summary, p, onOpen = onCoach)
         MissionsCard(summary)
         if (!settings.notifAsked) NotifOptInCard()
-
-        val update = if (settings.checkUpdates) Updater.availableUpdate() else null
-        if (update != null && update.tag != settings.dismissedTag) {
-            SectionCard(
-                title = t("Nouvelle version %1\$s disponible", update.tag),
-                icon = Icons.Filled.SystemUpdate,
-                container = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                UpdatePanel(update, showDismiss = true)
-            }
-        }
 
         SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
             if (today.isEmpty()) {

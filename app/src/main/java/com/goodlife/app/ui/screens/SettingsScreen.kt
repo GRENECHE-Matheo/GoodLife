@@ -224,12 +224,22 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 settings.notifWater
             ) { on -> Repo.updateSettings { it.copy(notifWater = on) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
             Text(t("Objectif d'eau par jour"), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val aiWater = Repo.aiAllowed() && settings.apiKey.isNotBlank()
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (aiWater) androidx.compose.material3.FilterChip(settings.waterGoalMode == "ia",
+                    { Repo.updateSettings { it.copy(waterGoalMode = "ia", waterGoalIaDay = "") }
+                      scope.launch { com.goodlife.app.ai.WaterGoalAi.refreshIfNeeded(context) } },
+                    label = { Text(t("Conseil de l'IA")) })
                 listOf(1500 to t("1,5 L"), 2000 to t("2 L"), 2500 to t("2,5 L")).forEach { (ml, label) ->
-                    androidx.compose.material3.FilterChip(settings.waterGoalMl == ml, { Repo.updateSettings { it.copy(waterGoalMl = ml) } }, label = { Text(label) })
+                    androidx.compose.material3.FilterChip((!aiWater || settings.waterGoalMode == "fixed") && settings.waterGoalMl == ml,
+                        { Repo.updateSettings { it.copy(waterGoalMl = ml, waterGoalMode = "fixed") } }, label = { Text(label) })
                 }
             }
-            Text(t("Repère pour un adulte : environ 1,5 L de boissons par jour, plus s'il fait chaud ou si tu fais du sport."),
+            Text(
+                if (aiWater && settings.waterGoalMode == "ia")
+                    t("Chaque jour, l'IA calcule ton objectif selon tes besoins (âge, sexe, poids, activité, apport visé) et ton activité d'hier (pas, sport).") +
+                        (if (settings.waterGoalIa > 0) t(" Aujourd'hui : %1\$s ml.", settings.waterGoalIa) else "")
+                else t("Repère pour un adulte : environ 1,5 L de boissons par jour, plus s'il fait chaud ou si tu fais du sport."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -361,7 +371,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         if (BuildConfig.SELF_UPDATE) SectionCard(title = t("Mises à jour"), icon = Icons.Filled.SystemUpdate) {
             SettingSwitch(
                 title = t("Me prévenir des nouvelles versions"),
-                subtitle = t("À chaque ouverture de l'app (au plus toutes les 30 min), vérifie les versions publiées sur GitHub."),
+                subtitle = t("À chaque ouverture de l'app, vérifie s'il existe une nouvelle version sur GitHub (une seule petite requête, rien en arrière-plan)."),
                 checked = settings.checkUpdates,
                 onChange = { v -> Repo.updateSettings { it.copy(checkUpdates = v) } }
             )

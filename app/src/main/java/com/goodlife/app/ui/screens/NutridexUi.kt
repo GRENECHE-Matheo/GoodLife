@@ -79,8 +79,8 @@ import com.goodlife.app.ui.formatDay
 import kotlinx.coroutines.delay
 
 /**
- * Vignette d'une entrée : ta photo si tu l'as débloquée, sinon l'émoji ; en silhouette tant que
- * l'aliment n'est pas trouvé (comme un Pokédex).
+ * Vignette d'une entrée : l'émoji en couleur une fois débloqué (ou ta photo, dans la fiche détaillée), en silhouette
+ * tant que l'aliment n'est pas trouvé.
  */
 @Composable
 fun DexTile(entry: DexEntry, unlocked: Boolean, photo: ByteArray?, size: Dp, modifier: Modifier = Modifier) {
@@ -188,12 +188,12 @@ fun NutridexScreen(onBack: () -> Unit, title: String = DEX_NAME, unlockedIds: Se
                 }
                 items(entries, key = { it.id }) { e ->
                     val isUnlocked = e.id in unlocked
-                    val photo = remember(e.id, isUnlocked, mine) { if (mine && isUnlocked) Repo.dexPhoto(e.id) else null }
                     Column(
                         Modifier.clip(RoundedCornerShape(16.dp)).clickable { open = e }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        DexTile(e, isUnlocked, photo, 88.dp)
+                        // Débloqué : l'aliment se colorie ; la photo s'affiche quand on le touche
+                        DexTile(e, isUnlocked, null, 88.dp)
                         Text(
                             "#%03d".format(e.number),
                             style = MaterialTheme.typography.labelSmall,
@@ -218,7 +218,8 @@ fun NutridexScreen(onBack: () -> Unit, title: String = DEX_NAME, unlockedIds: Se
             title = { Text("#%03d · %s".format(e.number, e.name)) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    DexTile(e, isUnlocked, if (mine && isUnlocked) Repo.dexPhoto(e.id) else null, 200.dp)
+                    val photo = remember(e.id) { if (mine && isUnlocked) Repo.dexPhoto(e.id) else null }
+                    DexTile(e, isUnlocked, photo, 200.dp)
                     Text(e.category.label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Text(
                         when {
@@ -262,7 +263,7 @@ fun DexUnlockedBanner(ids: List<String>, onOpen: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 entries.forEach { e ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        DexTile(e, true, Repo.dexPhoto(e.id), 64.dp)
+                        DexTile(e, true, null, 64.dp)
                         Text(e.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
                     }
                 }

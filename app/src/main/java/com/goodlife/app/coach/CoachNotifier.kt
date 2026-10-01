@@ -163,7 +163,7 @@ object CoachNotifier {
             }
             Kind.WATER -> {
                 val ml = Repo.water.value[localDay(0)] ?: 0
-                val goal = Repo.settings.value.waterGoalMl
+                val goal = Repo.waterGoal()
                 if (ml >= goal / 2) return null
                 Note(t("Pense à boire 💧"), t("Tu en es à %1\$s ml sur %2\$s ml aujourd'hui. Un grand verre d'eau ?", Coach.fmt(ml), Coach.fmt(goal)), ChefMood.CONTENT)
             }

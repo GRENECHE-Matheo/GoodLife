@@ -62,6 +62,12 @@ data class Settings(
     val stepsGoalIaDay: String = "",          // jour du dernier calcul par l'IA (une fois par jour)
     val newsThemes: String = "food,sport,insolite,anecdote",   // thèmes d'actus choisis (vide = pas d'actus)
     val waterGoalMl: Int = 1500,              // repère : environ 1,5 L de boisson par jour pour un adulte
+    val planNotes: String = "",               // précisions pour le planning de la semaine (goûts du foyer…)
+    val planShopping: Boolean = true,         // préparer la liste de courses avec le planning de la semaine
+    val waterGoalMode: String = "ia",         // « ia » : calculé chaque jour par l'IA (si activée), sinon objectif fixe
+    val waterGoalIa: Int = 0,                 // dernier objectif conseillé par l'IA (ml)
+    val waterGoalIaWhy: String = "",
+    val waterGoalIaDay: String = "",          // jour du dernier calcul (une fois par jour)
     val notifWater: Boolean = false,          // rappel d'hydratation l'après-midi
     val guardSnoozeUntil: Long = 0L,          // garde-fou bienveillant mis en pause jusqu'à cette date
     val language: String = "system",          // langue de l'app : « system » (celle du téléphone), « fr » ou « en »
@@ -127,6 +133,12 @@ data class Settings(
         .put("stepsGoalIaDay", stepsGoalIaDay)
         .put("newsThemes", newsThemes)
         .put("waterGoalMl", waterGoalMl)
+        .put("planNotes", planNotes)
+        .put("planShopping", planShopping)
+        .put("waterGoalMode", waterGoalMode)
+        .put("waterGoalIa", waterGoalIa)
+        .put("waterGoalIaWhy", waterGoalIaWhy)
+        .put("waterGoalIaDay", waterGoalIaDay)
         .put("notifWater", notifWater)
         .put("guardSnoozeUntil", guardSnoozeUntil)
         .put("language", language)
@@ -188,6 +200,12 @@ data class Settings(
             stepsGoalIaDay = o.optString("stepsGoalIaDay"),
             newsThemes = if (o.has("newsThemes")) o.optString("newsThemes") else "food,sport,insolite,anecdote",
             waterGoalMl = o.optInt("waterGoalMl", 1500).coerceIn(500, 5000),
+            planNotes = o.optString("planNotes").take(400),
+            planShopping = o.optBoolean("planShopping", true),
+            waterGoalMode = o.optString("waterGoalMode", "ia").takeIf { it == "ia" || it == "fixed" } ?: "ia",
+            waterGoalIa = o.optInt("waterGoalIa", 0).coerceIn(0, 5000),
+            waterGoalIaWhy = o.optString("waterGoalIaWhy"),
+            waterGoalIaDay = o.optString("waterGoalIaDay"),
             notifWater = o.optBoolean("notifWater", false),
             guardSnoozeUntil = o.optLong("guardSnoozeUntil", 0L),
             language = o.optString("language", "system").takeIf { it in setOf("system", "fr", "en") } ?: "system",
@@ -896,6 +914,15 @@ object Repo {
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
+
+    /** L'objectif d'eau vient-il de l'IA aujourd'hui ? (IA activée, clé, mode « ia » et un calcul disponible) */
+    fun waterGoalFromAi(): Boolean {
+        val s = _settings.value
+        return s.waterGoalMode == "ia" && aiAllowed() && s.apiKey.isNotBlank() && s.waterGoalIa > 0
+    }
+
+    /** Objectif d'eau du jour (ml) : celui de l'IA s'il y en a un, sinon l'objectif fixe choisi. */
+    fun waterGoal(): Int = if (waterGoalFromAi()) _settings.value.waterGoalIa else _settings.value.waterGoalMl
 
     /** Export RGPD (droit à la portabilité) : toutes les données locales, sans la clé API. */
     fun exportJson(): String {

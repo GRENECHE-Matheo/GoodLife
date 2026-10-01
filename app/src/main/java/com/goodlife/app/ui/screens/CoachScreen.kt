@@ -25,6 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.RestartAlt
@@ -69,7 +72,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 /** Un message de la conversation avec le coach, et les repas qu'il propose d'ajouter au planning. */
-private class CoachEntry(val message: ChatMessage, val meals: List<CoachMeal> = emptyList())
+private class CoachEntry(val message: ChatMessage, val meals: List<CoachMeal> = emptyList(), val shopping: List<com.goodlife.app.ai.ShopItem> = emptyList())
 
 /**
  * La conversation reste en mémoire tant que l'app est ouverte (pour pouvoir revenir à l'accueil et y retourner),
@@ -77,7 +80,7 @@ private class CoachEntry(val message: ChatMessage, val meals: List<CoachMeal> = 
  */
 private object CoachSession {
     val entries = mutableStateListOf<CoachEntry>()
-    val added = mutableStateMapOf<String, Boolean>()   // "message#repas" → ajouté au planning
+    val added = mutableStateMapOf<String, Boolean>()   // "message#repas" → ajouté au planning ; "message#courses" → liste
     fun clear() { entries.clear(); added.clear() }
 }
 
@@ -88,7 +91,12 @@ Tu es « le chef », le coach bienveillant de l'app GoodLife : alimentation, cui
 Tu tutoies, tu es chaleureux, positif et concret. Tu t'appuies sur les chiffres de la personne donnés plus bas
 (sans les réciter tous) pour personnaliser tes conseils. Jamais de culpabilisation ni de régime restrictif ;
 ne pousse jamais à manger sous l'objectif calorique. Réponse courte (2 à 8 phrases, listes « • » permises).
-Réponds UNIQUEMENT en JSON : {"reply": "ta réponse", "meals": []}
+Réponds UNIQUEMENT en JSON : {"reply": "ta réponse", "meals": [], "courses": []}
+Si la personne envoie une photo (aliment, plat, étiquette, frigo, menu…), décris prudemment ce que tu vois et donne
+un conseil adapté ; une estimation de calories reste approximative : dis-le, et ne prétends jamais en être sûr.
+"courses" reste vide, SAUF si la personne demande une liste de courses (ou des repas pour plusieurs jours et une liste) :
+chaque article {"nom": "...", "quantite": "...", "rayon": "Fruits et légumes|Viandes et poissons|Produits frais|Épicerie|Surgelés|Boulangerie|Autres"},
+ingrédients regroupés et quantités additionnées, sans sel, poivre, huile ni eau.
 "meals" reste vide, SAUF si la personne demande des repas à prévoir (idées pour un repas précis, menu de demain,
 planning de la semaine…). Chaque repas : {"date": "AAAA-MM-JJ", "slot": "PETIT_DEJ|DEJEUNER|COLLATION|DINER",
 "name": "nom court", "kcal": 0, "description": "ingrédients et quantités, en une ou deux phrases"}.
@@ -115,9 +123,27 @@ fun CoachScreen(onBack: () -> Unit) {
     }
 
     var askConsent by remember { mutableStateOf<String?>(null) }
+    // Photo jointe au prochain message (aliment, plat, étiquette…) : envoyée à Gemini, jamais enregistrée
+    var pendingPhoto by remember { mutableStateOf<ByteArray?>(null) }
+    var photoMenu by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val shotFile = remember { java.io.File(java.io.File(context.cacheDir, "camera").apply { mkdirs() }, "coach.jpg") }
+    val shotUri = remember { androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".camera", shotFile) }
+    val takePhoto = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { ok ->
+        if (ok) scope.launch {
+            pendingPhoto = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { readPhoto(context, shotUri) }
+            runCatching { shotFile.delete() }   // la photo n'est pas gardée sur le téléphone
+        }
+    }
+    val askCamera = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) takePhoto.launch(shotUri) else error = t("Sans l'accès à la caméra, choisis plutôt une photo dans ta galerie.")
+    }
+    val pickPhoto = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch { pendingPhoto = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { readPhoto(context, uri) } }
+    }
 
     fun send(text: String) {
-        val q = text.trim().take(600)
+        val q = text.trim().take(600).ifEmpty { if (pendingPhoto != null) t("Qu'en penses-tu ?") else "" }
         if (q.isEmpty() || loading) return
         // Première fois : accord explicite pour envoyer le résumé de ses chiffres (données de santé)
         if (Repo.settings.value.coachConsentAt == 0L) { askConsent = q; return }
@@ -125,16 +151,17 @@ fun CoachScreen(onBack: () -> Unit) {
             error = t("On a beaucoup discuté ! Appuie sur « Nouvelle conversation » pour recommencer.")
             return
         }
-        entries.add(CoachEntry(ChatMessage(true, q)))
-        input = ""; error = null; loading = true
+        val photo = pendingPhoto
+        entries.add(CoachEntry(ChatMessage(true, q, photo)))
+        input = ""; pendingPhoto = null; error = null; loading = true
         scope.launch {
             try {
                 val system = CHAT_RULES + "\n" + COACH_RULES + t("\nChiffres et contexte de la personne :\n") + Coach.aiContext()
                 val r = Gemini(settings.apiKey, settings.model).coach(system, entries.map { it.message })
-                entries.add(CoachEntry(ChatMessage(false, r.text), r.meals))
+                entries.add(CoachEntry(ChatMessage(false, r.text), r.meals, r.shopping))
             } catch (e: Exception) {
                 entries.removeAt(entries.lastIndex)
-                input = q
+                input = q; pendingPhoto = photo
                 error = e.message
             } finally {
                 loading = false
@@ -184,9 +211,11 @@ fun CoachScreen(onBack: () -> Unit) {
                     }
                     itemsIndexed(entries) { i, e ->
                         Column(Modifier.fillMaxWidth(), horizontalAlignment = if (e.message.fromUser) Alignment.End else Alignment.Start) {
+                            e.message.image?.let { bytes -> PhotoBubble(bytes) }
                             Bubble(e.message.fromUser, e.message.text)
                             if (!e.message.fromUser) {
                                 if (e.meals.isNotEmpty()) MealProposals(i, e.meals)
+                                if (e.shopping.isNotEmpty()) ShoppingProposal(i, e.shopping)
                                 AiContentFooter(t("Coach GoodLife\n%1\$s", e.message.text), Modifier.widthIn(max = 340.dp))
                             }
                         }
@@ -213,7 +242,27 @@ fun CoachScreen(onBack: () -> Unit) {
                             t("Comment s'est passée ma semaine ?"), t("Une idée de collation")
                         ).forEach { s -> AssistChip(onClick = { send(s) }, label = { Text(s) }) }
                     }
+                    pendingPhoto?.let { bytes ->
+                        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            PhotoBubble(bytes, size = 72)
+                            TextButton(onClick = { pendingPhoto = null }) { Text(t("Retirer la photo")) }
+                        }
+                    }
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box {
+                            IconButton(onClick = { photoMenu = true }) { Icon(Icons.Filled.AddPhotoAlternate, t("Envoyer une photo au chef")) }
+                            androidx.compose.material3.DropdownMenu(expanded = photoMenu, onDismissRequest = { photoMenu = false }) {
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(t("Prendre une photo")) }, onClick = {
+                                    photoMenu = false
+                                    if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) takePhoto.launch(shotUri)
+                                    else askCamera.launch(android.Manifest.permission.CAMERA)
+                                })
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(t("Choisir dans la galerie")) }, onClick = {
+                                    photoMenu = false
+                                    pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                })
+                            }
+                        }
                         OutlinedTextField(
                             input, { input = it.take(600) },
                             placeholder = { Text(t("Écris au chef…")) },
@@ -222,7 +271,7 @@ fun CoachScreen(onBack: () -> Unit) {
                             shape = RoundedCornerShape(24.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        FilledIconButton(enabled = input.isNotBlank() && !loading, onClick = { send(input) }) {
+                        FilledIconButton(enabled = (input.isNotBlank() || pendingPhoto != null) && !loading, onClick = { send(input) }) {
                             Icon(Icons.AutoMirrored.Filled.Send, t("Envoyer"))
                         }
                     }
@@ -237,7 +286,7 @@ fun CoachScreen(onBack: () -> Unit) {
                         )
                     }
                     Text(
-                        t("Tes questions et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. Rien n'est gardé après la fermeture de l'app."),
+                        t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. Rien n'est gardé après la fermeture de l'app."),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                     )
@@ -255,7 +304,7 @@ private fun CoachConsentDialog(onAccept: () -> Unit, onDismiss: () -> Unit) {
         title = { Text(t("Le chef a besoin de tes chiffres")) },
         text = {
             Text(
-                t("Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\nJamais ton prénom, ton sommeil, tes photos ni tes positions GPS. Tu peux retirer cet accord en désactivant l'IA dans Paramètres.")
+                t("Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\nJamais ton prénom, ton sommeil ni tes positions GPS ; une photo n'est envoyée que si tu la joins toi-même à un message. Tu peux retirer cet accord en désactivant l'IA dans Paramètres.")
             )
         },
         confirmButton = { TextButton(onClick = onAccept) { Text(t("J'accepte")) } },
@@ -311,4 +360,31 @@ private fun coachDayLabel(date: String): String = when (date) {
         SimpleDateFormat("EEEE d MMM", com.goodlife.app.i18n.Lang.locale).format(SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)!!)
             .replaceFirstChar { it.uppercase() }
     }.getOrDefault(date)
+}
+
+/** Photo jointe à un message (affichée en petit, jamais enregistrée). */
+@Composable
+private fun PhotoBubble(bytes: ByteArray, size: Int = 160) {
+    val bmp = remember(bytes) { android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
+    if (bmp != null) androidx.compose.foundation.Image(
+        bmp, t("Photo envoyée au chef"),
+        Modifier.padding(bottom = 4.dp).size(size.dp).clip(RoundedCornerShape(16.dp)),
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+    )
+}
+
+/** Liste de courses proposée par le coach : ajoutée à « Liste de courses » seulement sur appui. */
+@Composable
+private fun ShoppingProposal(entry: Int, items: List<com.goodlife.app.ai.ShopItem>) {
+    val added = CoachSession.added
+    val key = "$entry#courses"
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.widthIn(max = 360.dp).padding(top = 6.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(t("🛒 Liste de courses proposée (%1\$s articles)", items.size), style = MaterialTheme.typography.titleSmall)
+            Text(items.take(6).joinToString(", ") { it.name } + if (items.size > 6) "…" else "",
+                style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            if (added[key] == true) Text(t("Ajoutée à ta liste de courses ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            else FilledTonalButton(onClick = { Shopping.add(items); added[key] = true }) { Text(t("Ajouter à ma liste de courses")) }
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.goodlife.app.steps
 
+import com.goodlife.app.i18n.t
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -169,6 +170,7 @@ class StepsWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         Repo.init(applicationContext)
         runCatching { Steps.refresh(applicationContext) }
         runCatching { StepGoalAi.refreshIfNeeded(applicationContext) }
+        runCatching { com.goodlife.app.ai.WaterGoalAi.refreshIfNeeded(applicationContext) }
         runCatching { com.goodlife.app.widget.ChefWidgets.updateAll(applicationContext) }   // pas à jour sur le widget
         return Result.success()
     }

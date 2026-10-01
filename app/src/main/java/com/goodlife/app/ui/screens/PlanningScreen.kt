@@ -304,6 +304,8 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
     var budget by rememberSaveable { mutableStateOf("50") }
     var people by rememberSaveable { mutableIntStateOf(1) }
     var slots by remember { mutableStateOf(setOf(MealSlot.DEJEUNER, MealSlot.DINER)) }
+    var notes by rememberSaveable { mutableStateOf(Repo.settings.value.planNotes) }
+    var withShopping by rememberSaveable { mutableStateOf(Repo.settings.value.planShopping) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<Pair<List<PlannedMeal>, String>?>(null) }
@@ -342,6 +344,16 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                         )
                     }
                 }
+                OutlinedTextField(
+                    notes, { notes = it.take(400) },
+                    label = { Text(t("Précisions (facultatif)")) },
+                    placeholder = { Text(t("Ex : Léa n'aime pas les champignons, repas rapides le soir, végétarien le lundi…")) },
+                    minLines = 2, maxLines = 4, modifier = Modifier.fillMaxWidth()
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(withShopping, { withShopping = it })
+                    Text(t("Préparer aussi ma liste de courses"), style = MaterialTheme.typography.bodyMedium)
+                }
                 if (loading) Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
@@ -372,10 +384,12 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                     enabled = !loading && b != null && b in 5..2000 && slots.isNotEmpty() && profile != null,
                     onClick = {
                         loading = true; error = null
+                        // Les précisions sont retenues pour la prochaine fois (chiffrées sur le téléphone)
+                        Repo.updateSettings { it.copy(planNotes = notes.trim(), planShopping = withShopping) }
                         scope.launch {
                             try {
                                 result = Gemini(settings.apiKey, settings.model)
-                                    .planWeek(profile!!, startDate, b!!, people, MealSlot.entries.filter { it in slots })
+                                    .planWeek(profile!!, startDate, b!!, people, MealSlot.entries.filter { it in slots }, notes.trim())
                             } catch (e: Exception) {
                                 error = e.message
                             } finally {
@@ -387,6 +401,15 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
             } else {
                 TextButton(onClick = {
                     Repo.addPlannedWeek(r.first, r.first.map { it.date }.toSet() + weekDaysFrom(startDate), slots)
+                    // Liste de courses remplie toute seule à partir de la semaine (en arrière-plan, même si le dialogue se ferme)
+                    if (withShopping) {
+                        val meals = r.first
+                        val key = settings.apiKey; val model = settings.model; val n = people
+                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                            val items = runCatching { Gemini(key, model).shoppingList(meals, n) }.getOrNull()
+                            if (!items.isNullOrEmpty()) Shopping.add(items)
+                        }
+                    }
                     onDone(startDate)
                     onDismiss()
                 }) { Text(t("Ajouter au planning")) }

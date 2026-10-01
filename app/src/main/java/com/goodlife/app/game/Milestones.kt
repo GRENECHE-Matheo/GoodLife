@@ -23,7 +23,7 @@ object Milestones {
     fun missions(s: GameSummary?): List<Mission> {
         val st = Repo.settings.value
         val meals = Repo.meals.value
-        val goal = st.waterGoalMl
+        val goal = Repo.waterGoal()
         val list = mutableListOf(
             Mission("repas", "🍽️", t("Note ton premier repas"), 20, meals.isNotEmpty()),
             Mission("scan", "📸", t("Ajoute un repas en photo ou par code-barres"), 20, meals.any { it.source == "photo" || it.source == "code-barres" }),
@@ -59,7 +59,7 @@ object Milestones {
         val steps = Repo.steps.value.days.values
         val outs = Repo.outings.value.filter { it.valid }
         val friends = Repo.social.value.people.count { it.friend }
-        val waterDays = Repo.water.value.values.count { it >= Repo.settings.value.waterGoalMl }
+        val waterDays = Repo.water.value.values.count { it >= Repo.waterGoal() }
         val list = mutableListOf<Badge>()
         listOf(3, 7, 14, 30, 60, 100).forEach { n -> list += Badge("serie$n", "🔥", t("Série de %1\$s jours", n), t("Valide %1\$s jours d'affilée", n), best >= n) }
         listOf(10, 25, 50, 100, 161).forEach { n -> list += Badge("dex$n", "📖", if (n == 161) t("Nutridex complet") else t("%1\$s aliments au Nutridex", n), t("Débloque %1\$s aliments en photo", n), dex >= n) }

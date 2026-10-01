@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9.7
+## 🆕 Nouveautés de la v0.9.9
+
+- **Photos dans la conversation avec le coach**, et des **listes de courses** qu'il prépare pour toi.
+- **Objectif d'eau calculé chaque jour par l'IA**, planning avec **précisions** et liste de courses automatique.
+- **Retour** vers l'accueil depuis chaque onglet, **quiz** en un appui depuis l'en-tête, **Nutridex** qui se colorie.
+
+## Nouveautés de la v0.9.7
 
 - **Clé API blindée** : coffre chiffré par la puce de sécurité du téléphone, jamais réaffichée, réseau HTTPS strict.
 - **Export protégé par mot de passe** et **invitations d'ami en lien cliquable**.
