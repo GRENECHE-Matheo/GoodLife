@@ -166,6 +166,7 @@ private fun HomeContent(
     var sugSlot by remember { mutableStateOf<MealSlot?>(null) }
     var planFor by remember { mutableStateOf<MealSuggestion?>(null) }
     var recipeFor by remember { mutableStateOf<MealSuggestion?>(null) }
+    var fridgeOpen by remember { mutableStateOf(false) }
     val recipes = remember { mutableStateMapOf<String, Recipe>() }
 
     val uri = LocalUriHandler.current
@@ -226,6 +227,9 @@ private fun HomeContent(
         }
 
         CoachCard(summary, p, onOpen = onCoach)
+        CareCard(summary)
+        NewBadgeCard(summary, onOpen = onProgress)
+        MissionsCard(summary)
         if (!settings.notifAsked) NotifOptInCard()
         NewsTeaser(onOpen = onNews)
 
@@ -314,6 +318,8 @@ private fun HomeContent(
             MacroBar("Glucides", today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
             MacroBar("Lipides", today.sumOf { it.fatG }, p.fatG, GoogleGreen)
         }
+        WaterCard()
+        FeelingCard()
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(onClick = onScan, modifier = Modifier.weight(1f).height(52.dp)) {
@@ -396,6 +402,7 @@ private fun HomeContent(
                         Spacer(Modifier.width(8.dp))
                         Text(if (suggestions.isEmpty()) "Proposer des repas" else "Régénérer")
                     }
+                    TextButton(onClick = { fridgeOpen = true }) { Text("🧊 Mon frigo") }
                     if (suggestions.isNotEmpty()) {
                         TextButton(enabled = !sugLoading, onClick = { ask(append = true) }) {
                             Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
@@ -437,6 +444,7 @@ private fun HomeContent(
         )
     }
 
+    if (fridgeOpen) FridgeDialog(onDismiss = { fridgeOpen = false })
     if (showAdd) AddMealDialog(onDismiss = { showAdd = false }) { Repo.addMeal(it); showAdd = false }
 }
 

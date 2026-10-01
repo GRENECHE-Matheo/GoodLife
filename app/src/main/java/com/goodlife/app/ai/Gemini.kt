@@ -24,8 +24,22 @@ import kotlin.math.roundToInt
 
 class AiException(message: String) : Exception(message)
 
+/** Nom affiché d'un repas : nombre et aliment (« 2× Banane »). Les calories affichées à côté sont le total. */
+fun mealName(count: Int, name: String): String = "${count.coerceAtLeast(1)}× ${name.trim()}"
+
 /** Un message de conversation avec l'IA. */
 data class ChatMessage(val fromUser: Boolean, val text: String)
+
+/** Article de la liste de courses. */
+data class ShopItem(val name: String, val qty: String, val aisle: String, val checked: Boolean = false)
+
+/** Idée de recette à partir de ce qu'il y a dans le frigo. */
+data class FridgeIdea(
+    val name: String, val moment: String, val kcal: Int, val minutes: Int,
+    val uses: List<String>, val missing: List<String>, val steps: List<String>
+)
+
+data class FridgeResult(val seen: List<String>, val ideas: List<FridgeIdea>, val tip: String)
 
 /** Repas proposé par le coach, ajouté au planning seulement si la personne appuie sur « Ajouter ». */
 data class CoachMeal(val date: String, val slot: MealSlot, val name: String, val kcal: Int, val description: String)
@@ -136,6 +150,56 @@ class Gemini(private val apiKey: String, private val model: String) {
         val o = call(prompt, null)
         return o.optJSONArray("points")?.strings()?.map { it.trim().take(300) }?.filter { it.isNotBlank() }?.take(6)
             ?.ifEmpty { null } ?: throw AiException("L'IA n'a pas pu résumer cet article.")
+    }
+
+    /** Liste de courses regroupée par rayon pour les repas prévus ([people] personnes). */
+    suspend fun shoppingList(meals: List<PlannedMeal>, people: Int): List<ShopItem> {
+        val lines = meals.joinToString("\n") { m ->
+            "- ${m.name}" + (m.recipe?.let { r -> " (recette pour ${r.servings} : ${r.ingredients.joinToString(", ")})" } ?: "") +
+                (if (m.description.isNotBlank()) " — ${m.description}" else "")
+        }
+        val prompt = """
+            Fais la liste de courses pour préparer ces repas pour $people personne(s), en France.
+            Regroupe les ingrédients identiques et additionne les quantités (quantités réalistes, en g, kg, L ou unités).
+            N'ajoute PAS le sel, le poivre, l'huile ni l'eau. Range chaque article dans un rayon parmi :
+            "Fruits et légumes", "Viandes et poissons", "Produits frais", "Épicerie", "Surgelés", "Boulangerie", "Autres".
+            Repas :
+            $lines
+            Réponds UNIQUEMENT en JSON : {"articles": [{"nom": "...", "quantite": "...", "rayon": "..."}]}
+        """.trimIndent()
+        val o = call(prompt, null)
+        return o.optJSONArray("articles")?.mapObjects {
+            ShopItem(it.optString("nom").trim().take(60), it.optString("quantite").trim().take(30), it.optString("rayon").trim().ifBlank { "Autres" }.take(30))
+        }?.filter { it.name.isNotBlank() }?.take(80) ?: emptyList()
+    }
+
+    /** Que cuisiner avec ce qu'il y a dans le frigo (photo et/ou liste écrite). */
+    suspend fun fridge(jpeg: ByteArray?, written: String, p: Profile, remainingKcal: Int): FridgeResult {
+        val prompt = """
+            Tu es un chef bienveillant. ${if (jpeg != null) "Regarde la photo du frigo ou des placards (jointe)." else ""}
+            ${if (written.isNotBlank()) "La personne a aussi écrit qu'elle a : $written." else ""}
+            1) Liste les ingrédients que tu vois ou qui sont écrits (seulement ceux dont tu es sûr).
+            2) Propose 3 recettes simples, avec surtout ces ingrédients (anti-gaspi), pour 1 personne.
+               Il lui reste environ $remainingKcal kcal pour aujourd'hui ; objectif : ${p.goal.label}.
+               ALLERGIES (à exclure absolument) : ${p.allergies.ifBlank { "aucune" }}. Habitudes : ${p.habits.ifBlank { "non précisées" }}.
+               Pour chaque recette : les ingrédients utilisés, ceux qui manquent (le moins possible), et des étapes courtes.
+            Réponds UNIQUEMENT en JSON :
+            {"vus": ["..."], "recettes": [{"nom": "...", "moment": "déjeuner/dîner/petit-déjeuner/collation", "kcal": 0,
+              "minutes": 0, "utilise": ["..."], "manque": ["..."], "etapes": ["..."]}], "conseil": "une phrase"}
+        """.trimIndent()
+        val o = call(prompt, jpeg)
+        return FridgeResult(
+            seen = o.optJSONArray("vus")?.strings()?.map { it.take(40) }?.take(40) ?: emptyList(),
+            ideas = o.optJSONArray("recettes")?.mapObjects {
+                FridgeIdea(
+                    name = it.optString("nom").take(60), moment = it.optString("moment"),
+                    kcal = it.optDouble("kcal", 0.0).roundToInt().coerceIn(0, 2500), minutes = it.optInt("minutes", 0).coerceIn(0, 300),
+                    uses = it.optJSONArray("utilise")?.strings() ?: emptyList(), missing = it.optJSONArray("manque")?.strings() ?: emptyList(),
+                    steps = it.optJSONArray("etapes")?.strings()?.take(12) ?: emptyList()
+                )
+            }?.filter { it.name.isNotBlank() }?.take(4) ?: emptyList(),
+            tip = o.optString("conseil")
+        )
     }
 
     /** Réponse avec recherche Google : texte, sources consultées et suggestions de recherche (à afficher, règles Google). */
@@ -269,13 +333,16 @@ class Gemini(private val apiKey: String, private val model: String) {
             Catalogue Nutridex (id=nom) : ${com.goodlife.app.dex.Nutridex.promptList()}
             Dans "dex", liste au plus 4 id du catalogue CLAIREMENT visibles sur la photo (le plat lui-même s'il y est,
             et ses ingrédients bien reconnaissables). Liste vide si rien ne correspond ou si ce n'est pas une vraie photo de nourriture.
+            Dans "portions", donne chaque aliment ou plat servi avec son NOMBRE visible (ex. 2 bananes → {"nom": "Banane", "nombre": 2} ;
+            une assiette de pâtes → {"nom": "Assiette de pâtes", "nombre": 1}). Noms courts, au singulier, avec une majuscule.
             Réponds UNIQUEMENT en JSON, en français, avec exactement ce format :
             {"plat": "nom court du plat",
              "aliments": [{"nom": "...", "quantite_g": 0, "kcal": 0}],
              "kcal": 0, "proteines_g": 0, "glucides_g": 0, "lipides_g": 0,
              "allergenes_detectes": ["..."], "confiance": 0.0,
              "conseil": "une phrase courte et bienveillante",
-             "dex": ["id"]}
+             "dex": ["id"],
+             "portions": [{"nom": "...", "nombre": 1}]}
         """.trimIndent()
         val o = call(prompt, jpeg)
         val items = o.optJSONArray("aliments")?.mapObjects { a ->
@@ -283,8 +350,12 @@ class Gemini(private val apiKey: String, private val model: String) {
             val k = a.optDouble("kcal", 0.0).roundToInt()
             "${a.optString("nom")} · ${q} g · $k kcal"
         } ?: emptyList()
+        val portions = o.optJSONArray("portions")?.mapObjects { p ->
+            val n = p.optInt("nombre", 1).coerceIn(1, 50)
+            p.optString("nom").trim().take(40).takeIf { it.isNotBlank() }?.let { mealName(n, it) }
+        }?.filterNotNull()?.take(6) ?: emptyList()
         return FoodAnalysis(
-            dish = o.optString("plat", "Repas").ifBlank { "Repas" },
+            dish = portions.joinToString(", ").take(80).ifBlank { mealName(1, o.optString("plat", "Repas").ifBlank { "Repas" }) },
             kcal = o.optDouble("kcal", 0.0).roundToInt().coerceIn(0, Repo.MAX_MEAL_KCAL),
             proteinG = o.optDouble("proteines_g", 0.0).coerceIn(0.0, 1000.0),
             carbsG = o.optDouble("glucides_g", 0.0).coerceIn(0.0, 1000.0),

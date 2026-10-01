@@ -57,6 +57,8 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
     var grams by remember { mutableStateOf("100") }
     var name by remember { mutableStateOf("") }
     var kcal by remember { mutableStateOf("") }
+    var count by remember { mutableStateOf("1") }
+    val n = count.toNumber()?.toInt()?.takeIf { it in 1..50 }
 
     // Recherche avec un petit délai pour ne pas relancer à chaque lettre
     LaunchedEffect(query) {
@@ -67,10 +69,11 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
 
     val g = grams.toNumber()
     val food = chosen
-    val computed = if (food != null && g != null) (food.kcal * g / 100).roundToInt() else null
+    val computed = if (food != null && g != null && n != null) (food.kcal * g / 100 * n).roundToInt() else null
     val k = kcal.toNumber()?.toInt()
-    val canAdd = if (byFood) food != null && g != null && g > 0 && g <= 3000 && (computed ?: 0) <= Repo.MAX_MEAL_KCAL
-                 else name.isNotBlank() && k != null && k in 0..Repo.MAX_MEAL_KCAL
+    val total = if (k != null && n != null) k * n else null
+    val canAdd = if (byFood) food != null && g != null && n != null && g > 0 && g <= 3000 && (computed ?: 0) <= Repo.MAX_MEAL_KCAL
+                 else name.isNotBlank() && total != null && total in 0..Repo.MAX_MEAL_KCAL
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -116,41 +119,56 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
                                 TextButton(onClick = { chosen = null }) { Text("Changer d'aliment") }
                             }
                         }
-                        OutlinedTextField(
-                            grams, { grams = it.take(6) }, label = { Text("Quantité (g)") }, singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                count, { count = it.take(2) }, label = { Text("Nombre") }, singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                grams, { grams = it.take(6) }, label = { Text("Grammes (pour 1)") }, singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(2f)
+                            )
+                        }
                         Text(
-                            if (computed != null) "= $computed kcal" else "Indique une quantité en grammes.",
+                            if (computed != null) "= $computed kcal" else "Indique un nombre et une quantité en grammes.",
                             style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Text(Ciqual.SOURCE, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    OutlinedTextField(name, { name = it }, label = { Text("Nom") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(
-                        kcal, { kcal = it }, label = { Text("Calories (kcal)") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    OutlinedTextField(name, { name = it }, label = { Text("Nom (ex. Banane)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            count, { count = it.take(2) }, label = { Text("Nombre") }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            kcal, { kcal = it }, label = { Text("kcal pour 1") }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(2f)
+                        )
+                    }
+                    if (total != null) Text("= $total kcal", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
         },
         confirmButton = {
             TextButton(enabled = canAdd, onClick = {
-                if (byFood && food != null && g != null) {
+                if (byFood && food != null && g != null && n != null) {
                     onAdd(
                         Meal(
-                            name = "${food.name} (${g.roundToInt()} g)".take(80),
+                            name = com.goodlife.app.ai.mealName(n, "${food.name} (${g.roundToInt()} g)").take(80),
                             kcal = computed ?: 0,
-                            proteinG = food.protein * g / 100, carbsG = food.carbs * g / 100, fatG = food.fat * g / 100,
-                            details = "${g.roundToInt()} g · table Ciqual 2025 (Anses)",
+                            proteinG = food.protein * g / 100 * n, carbsG = food.carbs * g / 100 * n, fatG = food.fat * g / 100 * n,
+                            details = "$n × ${g.roundToInt()} g · table Ciqual 2025 (Anses)",
                             source = "ciqual"
                         )
                     )
                 } else {
-                    onAdd(Meal(name = name.trim(), kcal = k ?: 0, source = "manuel"))
+                    onAdd(Meal(name = com.goodlife.app.ai.mealName(n ?: 1, name.trim()).take(80), kcal = total ?: 0, source = "manuel"))
                 }
             }) { Text("Ajouter") }
         },

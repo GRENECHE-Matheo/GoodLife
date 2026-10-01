@@ -44,7 +44,8 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies), ta photo de profil, tes repas, " +
         "ton emploi du temps de repas, ton sommeil, tes pas, tes pesées, ta progression (séries, niveaux, quiz), ton " +
         "Nutridex et ses photos, la liste de tes amis et rencontres, ton programme sportif, tes activités GPS (tracés), " +
-        "les actus déjà lues, les questions de quiz déjà posées et tes réglages. " +
+        "les actus déjà lues, les questions de quiz déjà posées, l'eau bue, ton humeur et ton énergie du jour, ta liste de " +
+        "courses, tes missions et badges, et tes réglages. " +
         "Certaines de ces informations sont des données de santé. " +
         "Elles sont chiffrées sur le téléphone (AES-256, Android Keystore), sans compte, et aucune copie n'est faite sans ton accord. " +
         "Elles ne sont envoyées nulle part tant que l'IA et la sauvegarde sont désactivées. Base légale : ton consentement " +
@@ -61,6 +62,10 @@ val PRIVACY_SECTIONS: List<Pair<String, String>> = listOf(
         "• Objectif de pas (si tu choisis « Conseil de l'IA ») : âge, sexe, activité, objectif, tes pas et objectifs des 7 " +
         "derniers jours. Envoyé une fois par jour, automatiquement (à la première ouverture de l'app ou au relevé des pas), " +
         "tant que ce mode est choisi.\n" +
+        "• Liste de courses (si tu la prépares avec l'IA) : les repas prévus (noms, descriptions, ingrédients des recettes) " +
+        "et le nombre de personnes.\n" +
+        "• « J'ai ça dans mon frigo » : la photo de ton frigo ou de tes placards (si tu en prends une) et ce que tu écris, " +
+        "avec tes allergies, habitudes, objectif et calories restantes. La photo est supprimée du téléphone juste après l'analyse.\n" +
         "• Programme sportif : âge, sexe, poids, taille, activité, but, niveau, matériel, et les envies et douleurs ou limites " +
         "que tu écris (données de santé).\n" +
         "• Questions à l'IA (sur une photo, une recette, ton programme ou une actu) : tes questions, le contexte concerné " +
@@ -206,7 +211,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader("Confidentialité", onBack)
             Text(
-                "Version 0.9.3 · mise à jour le 1er octobre 2026",
+                "Version 0.9.4 · mise à jour le 1er octobre 2026",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

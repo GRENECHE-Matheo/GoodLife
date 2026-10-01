@@ -59,6 +59,9 @@ data class Settings(
     val stepsGoalIaWhy: String = "",
     val stepsGoalIaDay: String = "",          // jour du dernier calcul par l'IA (une fois par jour)
     val newsThemes: String = "food,sport,insolite,anecdote",   // thèmes d'actus choisis (vide = pas d'actus)
+    val waterGoalMl: Int = 1500,              // repère : environ 1,5 L de boisson par jour pour un adulte
+    val notifWater: Boolean = false,          // rappel d'hydratation l'après-midi
+    val guardSnoozeUntil: Long = 0L,          // garde-fou bienveillant mis en pause jusqu'à cette date
     val lastNewsDay: String = "",
     // Amis : profil privé par défaut ; rien n'est partagé tant que « Profil public » est coupé
     val publicProfile: Boolean = false,
@@ -117,6 +120,9 @@ data class Settings(
         .put("stepsGoalIaWhy", stepsGoalIaWhy)
         .put("stepsGoalIaDay", stepsGoalIaDay)
         .put("newsThemes", newsThemes)
+        .put("waterGoalMl", waterGoalMl)
+        .put("notifWater", notifWater)
+        .put("guardSnoozeUntil", guardSnoozeUntil)
         .put("lastNewsDay", lastNewsDay)
         .put("publicProfile", publicProfile)
         .put("pseudo", pseudo)
@@ -173,6 +179,9 @@ data class Settings(
             stepsGoalIaWhy = o.optString("stepsGoalIaWhy"),
             stepsGoalIaDay = o.optString("stepsGoalIaDay"),
             newsThemes = if (o.has("newsThemes")) o.optString("newsThemes") else "food,sport,insolite,anecdote",
+            waterGoalMl = o.optInt("waterGoalMl", 1500).coerceIn(500, 5000),
+            notifWater = o.optBoolean("notifWater", false),
+            guardSnoozeUntil = o.optLong("guardSnoozeUntil", 0L),
             lastNewsDay = o.optString("lastNewsDay"),
             publicProfile = o.optBoolean("publicProfile", false),
             pseudo = o.optString("pseudo"),
@@ -234,6 +243,12 @@ object Repo {
     private val _outings = MutableStateFlow<List<Outing>>(emptyList())
     val outings: StateFlow<List<Outing>> = _outings
 
+    /** Eau bue par jour (ml) et ressenti du jour (humeur, énergie). */
+    private val _water = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val water: StateFlow<Map<String, Int>> = _water
+    private val _feelings = MutableStateFlow<Map<String, Feeling>>(emptyMap())
+    val feelings: StateFlow<Map<String, Feeling>> = _feelings
+
     /** Repas favoris (modèles à rajouter en un appui), valeurs telles qu'elles ont été enregistrées. */
     private val _favMeals = MutableStateFlow<List<Meal>>(emptyList())
     val favMeals: StateFlow<List<Meal>> = _favMeals
@@ -281,6 +296,8 @@ object Repo {
         _outings.value = store.get(K_OUTINGS)?.let { s -> runCatching { JSONArray(s).mapObjects { Outing.fromJson(it) } }.getOrNull() }
             ?: emptyList()
         _favMeals.value = store.get(K_FAVS)?.let { s -> runCatching { JSONArray(s).mapObjects { Meal.fromJson(it) } }.getOrNull() } ?: emptyList()
+        _water.value = store.get(K_WATER)?.let { waterFromJson(it) } ?: emptyMap()
+        _feelings.value = store.get(K_FEEL)?.let { feelingsFromJson(it) } ?: emptyMap()
         if (_settings.value.scoreRulesFrom.isBlank()) updateSettings { it.copy(scoreRulesFrom = localDay(0)) }
         // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
         _profile.value?.let { p ->
@@ -347,6 +364,35 @@ object Repo {
     fun mealsOfDay(all: List<Meal>, dayOffset: Int = 0): List<Meal> {
         val (from, to) = dayBounds(dayOffset)
         return all.filter { it.timestamp in from until to }
+    }
+
+    // ---------- Hydratation et ressenti ----------
+    private fun waterFromJson(s: String): Map<String, Int> = runCatching {
+        val o = JSONObject(s); o.keys().asSequence().associateWith { o.optInt(it).coerceIn(0, 10_000) }
+    }.getOrDefault(emptyMap())
+
+    private fun feelingsFromJson(s: String): Map<String, Feeling> = runCatching {
+        val o = JSONObject(s)
+        o.keys().asSequence().associateWith { k -> o.getJSONObject(k).let { Feeling(it.optInt("mood").coerceIn(1, 5), it.optInt("energy").coerceIn(1, 5)) } }
+    }.getOrDefault(emptyMap())
+
+    private fun waterJson() = JSONObject().apply { _water.value.forEach { (k, v) -> put(k, v) } }
+    private fun feelingsJson() = JSONObject().apply { _feelings.value.forEach { (k, f) -> put(k, JSONObject().put("mood", f.mood).put("energy", f.energy)) } }
+
+    /** Ajoute (ou retire, si négatif) de l'eau bue aujourd'hui. */
+    @Synchronized
+    fun addWater(ml: Int) {
+        val day = localDay(0)
+        val limit = localDay(-400)
+        _water.value = (_water.value + (day to ((_water.value[day] ?: 0) + ml).coerceIn(0, 6000))).filterKeys { it >= limit }
+        put(K_WATER, waterJson().toString())
+    }
+
+    @Synchronized
+    fun setFeeling(mood: Int, energy: Int) {
+        val limit = localDay(-400)
+        _feelings.value = (_feelings.value + (localDay(0) to Feeling(mood.coerceIn(1, 5), energy.coerceIn(1, 5)))).filterKeys { it >= limit }
+        put(K_FEEL, feelingsJson().toString())
     }
 
     /** Ajoute ou retire un repas des favoris (reconnu par son nom). */
@@ -638,6 +684,8 @@ object Repo {
             .put("sport", _sport.value.toJson())
             .put("outings", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
             .put("favMeals", JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } })
+            .put("water", waterJson())
+            .put("feelings", feelingsJson())
             .put("extras", JSONObject().apply { BACKUP_EXTRAS.forEach { k -> getExtra(k)?.let { put(k, it) } } })
             .put("tracks", JSONObject().apply { _outings.value.forEach { o -> put(o.id.toString(), Outing.encodeTrack(track(o.id))) } })
             .put("dexPhotos", JSONObject().apply {
@@ -700,6 +748,10 @@ object Repo {
         persistOutings()
         _favMeals.value = o.optJSONArray("favMeals")?.mapObjects { Meal.fromJson(it) }?.take(30) ?: emptyList()
         put(K_FAVS, JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } }.toString())
+        _water.value = o.optJSONObject("water")?.let { waterFromJson(it.toString()) } ?: emptyMap()
+        put(K_WATER, waterJson().toString())
+        _feelings.value = o.optJSONObject("feelings")?.let { feelingsFromJson(it.toString()) } ?: emptyMap()
+        put(K_FEEL, feelingsJson().toString())
         o.optJSONObject("extras")?.let { x -> BACKUP_EXTRAS.forEach { k -> x.optString(k).takeIf { it.isNotBlank() }?.let { putExtra(k, it) } } }
         val social = o.optJSONObject("social")?.let { runCatching { SocialState.fromJson(it) }.getOrNull() } ?: SocialState()
         _social.value = social
@@ -744,6 +796,8 @@ object Repo {
         _sport.value = SportState()
         _outings.value = emptyList()
         _favMeals.value = emptyList()
+        _water.value = emptyMap()
+        _feelings.value = emptyMap()
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
         appContext?.let { com.goodlife.app.coach.CoachNotifier.schedule(it) }
@@ -776,8 +830,10 @@ object Repo {
     private const val K_SPORT = "sport"
     private const val K_OUTINGS = "outings"
     private const val K_FAVS = "fav_meals"
+    private const val K_WATER = "water"
+    private const val K_FEEL = "feelings"
     /** États annexes gardés dans la sauvegarde (mémoire du quiz et des actus, pour ne jamais rien répéter). */
-    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed")
+    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed", "shopping", "badges_seen")
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -799,6 +855,8 @@ object Repo {
             .put("sport", _sport.value.toJson())
             .put("sorties", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
             .put("repasFavoris", JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } })
+            .put("eau", waterJson())
+            .put("ressenti", feelingsJson())
             .put("settings", JSONObject()
                 .put("aiEnabled", s.aiEnabled)
                 .put("aiConsentAt", s.aiConsentAt)

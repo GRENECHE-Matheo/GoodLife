@@ -227,7 +227,7 @@ object Game {
         ) history.getOrNull(history.size - 2)?.streakAfter ?: 0 else 0
 
         val totalXp = history.sumOf { it.xp } + game.quizResults.values.sumOf { quizXp(it) } +
-            game.sportXp.values.sumOf { it.coerceIn(0, SPORT_XP_PER_DAY) }
+            game.sportXp.values.sumOf { it.coerceIn(0, SPORT_XP_PER_DAY) } + game.missionXp.values.sum()
         return GameSummary(history, today, streak, best, levelFor(totalXp), recoverable, quizDone)
     }
 

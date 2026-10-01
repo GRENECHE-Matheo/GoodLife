@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9.3
+## 🆕 Nouveautés de la v0.9.4
+
+- **Liste de courses** automatique depuis le planning, et **« J'ai ça dans mon frigo »** (photo ou liste) pour des recettes anti-gaspi.
+- **Hydratation**, **humeur et énergie du jour**, **missions de départ** et **badges**.
+- Un **garde-fou bienveillant** si les repas notés restent très bas plusieurs jours.
+
+## Nouveautés de la v0.9.3
 
 - **Actus à thèmes** (ou aucune), avec le retour de l'**anecdote du jour**.
 - Le chef **cherche sur internet** pour t'expliquer une actu, sources à l'appui.

@@ -8,6 +8,23 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.9.4 — 01/10/2026
+
+**Courses, frigo et bien-être au quotidien.**
+
+- ✨ **Liste de courses automatique** à partir du planning (7 prochains jours) : l'IA additionne les ingrédients et range
+  par rayon, ou sans IA les ingrédients des recettes enregistrées. Cases à cocher, ajout à la main, partage aux colocs.
+- ✨ **« J'ai ça dans mon frigo »** : une photo de ton frigo ou une liste, et le chef propose 3 recettes anti-gaspi,
+  avec ce qui manque (à ajouter à la liste de courses en un appui) et un bouton « Planifier ».
+- ✨ **Hydratation** : « + 1 verre » sur l'accueil, objectif réglable (1,5 L, 2 L ou 2,5 L) et rappel optionnel l'après-midi.
+- ✨ **Humeur et énergie du jour** en deux appuis, et « Ce qui semble t'aider » : des comparaisons calculées sur tes
+  propres jours (pas, sommeil), affichées seulement quand il y a assez de données.
+- ✨ **Missions de départ** (14 premiers jours) et **badges** (séries, Nutridex, quiz, pas, sorties, amis, eau, gel).
+- ✨ **Repas au format « 2× Banane »** : l'IA compte les aliments sur la photo, et la saisie à la main a un champ « Nombre ».
+- 🔒 **Garde-fou bienveillant** : si les repas notés restent très en dessous des besoins trois jours de suite, le chef prend
+  gentiment des nouvelles et indique où trouver de l'aide (sans jamais de reproche).
+- 🔒 Politique de confidentialité v0.9.4 (liste de courses, frigo, eau, humeur).
+
 ## v0.9.3 — 01/10/2026
 
 **Actus à ton goût, un chef qui cherche sur internet, et des pas qui progressent avec toi.**

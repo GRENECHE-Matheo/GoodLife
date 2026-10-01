@@ -174,6 +174,19 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             NotifSettingsBlock(settings)
+            SettingSwitch(
+                "Rappel d'hydratation",
+                "Vers 15 h 30, seulement si tu as bu moins de la moitié de ton objectif d'eau.",
+                settings.notifWater
+            ) { on -> Repo.updateSettings { it.copy(notifWater = on) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
+            Text("Objectif d'eau par jour", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(1500 to "1,5 L", 2000 to "2 L", 2500 to "2,5 L").forEach { (ml, label) ->
+                    androidx.compose.material3.FilterChip(settings.waterGoalMl == ml, { Repo.updateSettings { it.copy(waterGoalMl = ml) } }, label = { Text(label) })
+                }
+            }
+            Text("Repère pour un adulte : environ 1,5 L de boissons par jour, plus s'il fait chaud ou si tu fais du sport.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         SectionCard(title = "Sécurité", icon = Icons.Filled.Fingerprint) {

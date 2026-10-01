@@ -37,7 +37,7 @@ object CoachNotifier {
     private const val CH_REMIND = "coach_rappels"
 
     enum class Kind(val hour: Int, val minute: Int, val code: Int, val weekly: Boolean = false) {
-        MORNING(8, 30, 41), NOON(11, 45, 42), EVENING(20, 0, 43), WEEKLY(19, 0, 44, weekly = true)
+        MORNING(8, 30, 41), NOON(11, 45, 42), EVENING(20, 0, 43), WEEKLY(19, 0, 44, weekly = true), WATER(15, 30, 45)
     }
 
     private fun enabled(kind: Kind): Boolean {
@@ -47,6 +47,7 @@ object CoachNotifier {
             Kind.NOON -> s.notifNoon
             Kind.EVENING -> s.notifEvening
             Kind.WEEKLY -> s.notifWeekly
+            Kind.WATER -> s.notifWater
         }
     }
 
@@ -156,6 +157,12 @@ object CoachNotifier {
                     "Ta série de ${s.streak} jour${if (s.streak > 1) "s" else ""} t'attend 🔥",
                     "Tu n'as encore rien noté aujourd'hui. Ajoute tes repas pour la garder !", ChefMood.QUESTION, remind = true
                 )
+            }
+            Kind.WATER -> {
+                val ml = Repo.water.value[localDay(0)] ?: 0
+                val goal = Repo.settings.value.waterGoalMl
+                if (ml >= goal / 2) return null
+                Note("Pense à boire 💧", "Tu en es à ${Coach.fmt(ml)} ml sur ${Coach.fmt(goal)} ml aujourd'hui. Un grand verre d'eau ?", ChefMood.CONTENT)
             }
             Kind.WEEKLY -> {
                 val w = Coach.week(s)

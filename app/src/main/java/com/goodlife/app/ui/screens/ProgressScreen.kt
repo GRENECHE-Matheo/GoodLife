@@ -153,6 +153,9 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                 Button(onClick = onQuiz) { Text(if (summary.quizDoneToday) "Rejouer (entraînement)" else "Commencer le quiz") }
             }
 
+            BadgesSection(summary)
+            FeelingInsights()
+
             // ---- Score quotidien ----
             val last14 = (summary.history.takeLast(13) + summary.today)
             SectionCard(title = "Score par jour", icon = Icons.AutoMirrored.Filled.ShowChart) {

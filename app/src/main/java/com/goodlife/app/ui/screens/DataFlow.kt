@@ -50,7 +50,7 @@ fun DataFlowSummary(showAi: Boolean = true) {
         if (showAi) {
             FlowLine(
                 Icons.Filled.AutoAwesome, "IA (si tu l'actives) → Google Gemini",
-                "Photo du repas et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, " +
+                "Photo du repas (ou du frigo) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, " +
                     "objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres " +
                     "de la semaine (scores, pas, sport, poids) et ton planning. Envoyé avec ta propre clé. " +
                     "Jamais ton prénom, ton sommeil ni tes positions."

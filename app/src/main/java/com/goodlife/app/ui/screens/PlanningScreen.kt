@@ -34,6 +34,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -106,6 +107,8 @@ fun PlanningScreen() {
     var selected by rememberSaveable { mutableStateOf(localDay(0)) }
     var addSlot by remember { mutableStateOf<MealSlot?>(null) }
     var generate by remember { mutableStateOf(false) }
+    var shopping by remember { mutableStateOf(false) }
+    var fridge by remember { mutableStateOf(false) }
 
     val days = weekDays(week)
     val target = profile?.targetKcal ?: 0
@@ -120,6 +123,11 @@ fun PlanningScreen() {
                     Text("Ma semaine")
                 }
             }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { shopping = true }) { Text("🛒 Liste de courses") }
+            if (settings.aiEnabled) OutlinedButton(onClick = { fridge = true }) { Text("🧊 Mon frigo") }
         }
 
         // Semaine : « 29 sept. – 5 oct. » avec flèches
@@ -221,6 +229,9 @@ fun PlanningScreen() {
         AddToPlanDialog(initialSlot = s, initialDate = selected, onDismiss = { addSlot = null })
     }
     if (generate) WeekPlanDialog(startDate = days.first(), onDismiss = { generate = false }, onDone = { selected = it })
+    if (shopping) androidx.compose.ui.window.Dialog(onDismissRequest = { shopping = false },
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) { ShoppingScreen(onBack = { shopping = false }) }
+    if (fridge) FridgeDialog(onDismiss = { fridge = false })
 }
 
 @Composable

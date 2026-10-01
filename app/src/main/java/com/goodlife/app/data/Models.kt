@@ -234,7 +234,8 @@ data class GameState(
     val sportXp: Map<String, Int> = emptyMap(),       // jour → XP gagnée en faisant du sport (plafonnée)
     val freezes: Int = 0,                             // gels de série disponibles
     val freezeMark: Int = -1,                         // palier de série déjà récompensé (-1 = pas encore calculé)
-    val freezeUsed: Set<String> = emptySet()          // jours sauvés avec un gel
+    val freezeUsed: Set<String> = emptySet(),         // jours sauvés avec un gel
+    val missionXp: Map<String, Int> = emptyMap()      // missions de la première semaine déjà récompensées
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("recoveredDays", JSONArray(recoveredDays.toList()))
@@ -242,6 +243,7 @@ data class GameState(
         .put("weights", JSONArray().apply { weights.forEach { (d, w) -> put(JSONObject().put("date", d).put("kg", w)) } })
         .put("sportXp", JSONObject().apply { sportXp.forEach { (k, v) -> put(k, v) } })
         .put("freezes", freezes).put("freezeMark", freezeMark).put("freezeUsed", JSONArray(freezeUsed.toList()))
+        .put("missionXp", JSONObject().apply { missionXp.forEach { (k, v) -> put(k, v) } })
 
     companion object {
         fun fromJson(o: JSONObject): GameState {
@@ -253,11 +255,15 @@ data class GameState(
                 sportXp = o.optJSONObject("sportXp")?.let { x -> x.keys().asSequence().associateWith { x.optInt(it).coerceIn(0, Game.SPORT_XP_PER_DAY) } } ?: emptyMap(),
                 freezes = o.optInt("freezes", 0).coerceIn(0, Game.MAX_FREEZES),
                 freezeMark = o.optInt("freezeMark", -1),
-                freezeUsed = o.optJSONArray("freezeUsed")?.strings()?.toSet() ?: emptySet()
+                freezeUsed = o.optJSONArray("freezeUsed")?.strings()?.toSet() ?: emptySet(),
+                missionXp = o.optJSONObject("missionXp")?.let { x -> x.keys().asSequence().associateWith { x.optInt(it).coerceIn(0, 100) } } ?: emptyMap()
             )
         }
     }
 }
+
+/** Humeur et énergie du jour, de 1 (au plus bas) à 5 (au top). */
+data class Feeling(val mood: Int, val energy: Int)
 
 /** Pas d'une journée et objectif valable ce jour-là (pour que changer d'objectif ne réécrive pas le passé). */
 data class StepDay(val steps: Int, val goal: Int)

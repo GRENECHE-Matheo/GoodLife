@@ -119,6 +119,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Photo du frigo prise avec l'appareil photo (fichier temporaire, supprimé après l'analyse) -->
+        <provider
+            android:name=".ui.screens.CameraFiles"
+            android:authorities="${applicationId}.camera"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/camera_paths" />
+        </provider>
+
         <!-- Widgets du chef sur l'écran d'accueil -->
         <receiver android:name=".widget.ChefWidgetSmall" android:exported="false" android:label="@string/widget_small">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
