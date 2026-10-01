@@ -532,7 +532,15 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                         },
                         onClose = { selected = null }
                     )
-                    mode == "parcours" && planned == null -> LoopsPanel(
+                    mode == "parcours" && planned == null -> {
+                    // Pendant qu'on règle la distance, les rues autour sont déjà préparées (tuiles de la carte)
+                    LaunchedEffect(loopKm, type, loops.isEmpty()) {
+                        if (loops.isNotEmpty()) return@LaunchedEffect
+                        kotlinx.coroutines.delay(700)
+                        val from = myPosition() ?: handle.map?.cameraPosition?.target ?: return@LaunchedEffect
+                        Routing.warmUp(from.latitude, from.longitude, loopKm * 1000.0, type)
+                    }
+                    LoopsPanel(
                         type, ::setType, loopKm, { loopKm = it }, loops, loopIndex, { loopIndex = it },
                         loading = busy != null,
                         onPropose = {
@@ -548,6 +556,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                         onChoose = { Tracker.setPlanned(loops.getOrNull(loopIndex)) },
                         onReset = { loops = emptyList() }
                     )
+                    }
                     else -> StartPanel(
                         type = type, onType = { t ->
                             setType(t)

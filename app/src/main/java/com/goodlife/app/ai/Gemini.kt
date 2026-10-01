@@ -1,5 +1,6 @@
 package com.goodlife.app.ai
 
+import com.goodlife.app.net.readCapped
 import com.goodlife.app.i18n.t
 
 import android.util.Base64
@@ -300,7 +301,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             conn.outputStream.use { it.write(withGuards(body).toString().toByteArray(Charsets.UTF_8)) }
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            code to (stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "")
+            code to (stream?.use { String(it.readCapped(8 * 1024 * 1024), Charsets.UTF_8) } ?: "")
         } catch (e: java.io.IOException) {
             throw AiException(com.goodlife.app.net.networkError("Google Gemini", e).message ?: t("Problème réseau."))
         } finally {

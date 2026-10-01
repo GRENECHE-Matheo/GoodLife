@@ -1,5 +1,6 @@
 package com.goodlife.app.track
 
+import com.goodlife.app.net.readCapped
 import com.goodlife.app.i18n.t
 
 import com.goodlife.app.net.USER_AGENT
@@ -97,7 +98,7 @@ object Places {
                     continue
                 }
                 if (code !in 200..299) throw IOException(t("Service OpenStreetMap indisponible (%1\$s).", code))
-                body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                body = conn.inputStream.use { String(it.readCapped(16 * 1024 * 1024), Charsets.UTF_8) }
                 break
             } catch (e: IOException) {
                 lastError = if (e.message?.contains("OpenStreetMap") == true) e else networkError("OpenStreetMap", e)

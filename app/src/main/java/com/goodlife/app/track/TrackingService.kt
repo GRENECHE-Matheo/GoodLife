@@ -143,7 +143,7 @@ class TrackingService : Service() {
     }
 
     private fun notification(title: String, text: String) = NotificationCompat.Builder(this, CHANNEL)
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setSmallIcon(R.drawable.ic_notif_leaf)
         .setContentTitle(title)
         .setContentText(text)
         .setOngoing(true)

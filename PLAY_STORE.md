@@ -1,6 +1,6 @@
 # Publier GoodLife sur Google Play — aide-mémoire
 
-> Préparé avec l'assistance d'une IA, à partir des règles publiées par Google au 30 septembre 2026.
+> Préparé avec l'assistance d'une IA, à partir des règles publiées par Google au 1er octobre 2026.
 > Ce n'est pas un avis juridique : relis chaque réponse dans la Play Console, les formulaires évoluent.
 
 ## 1. Le fichier à envoyer
@@ -9,6 +9,9 @@
   (`gradle bundlePlayRelease`). C'est la version **play** : sans mise à jour intégrée ni permission
   `REQUEST_INSTALL_PACKAGES` (interdites sur Play pour se mettre à jour soi-même).
 - Cible **Android 16 (API 36)** : exigé pour toute nouvelle app depuis le 31/08/2026.
+- **Pages mémoire de 16 Ko** (exigé pour les apps ciblant Android 15+) : vérifié en v0.11.0, toutes les bibliothèques
+  natives (carte, caméra, codes-barres) sont alignées sur 16 Ko. À revérifier après chaque mise à jour de bibliothèque :
+  Play Console › App bundle explorer, ou `zipalign -c -P 16 -v 4 app.apk`.
 - **Signature (Play App Signing)** : à la création de l'app, choisir d'utiliser **ta propre clé**
   (celle de `GOODLIFE_KEYSTORE`) si tu veux que les utilisateurs de l'APK GitHub puissent passer à la
   version Play sans désinstaller. Sinon, Google crée sa propre clé et les deux versions ne pourront pas
@@ -49,7 +52,7 @@
 | Accès à l'appli | Tout est accessible sans compte ni identifiant |
 | Public cible | 13–15 ans (15 ans seulement), 16–17 ans, 18 ans et plus. **Pas** de moins de 13 ans → pas concerné par le programme Familles |
 | Classification du contenu | Questionnaire IARC : pas de violence, pas de contenu sexuel, pas de jeux d'argent ; mentionner les conseils nutritionnels |
-| Applications de santé | Remplir la **déclaration** : suivi nutritionnel, suivi du sommeil, bien-être ; **pas** un dispositif médical ; pas d'accès à Health Connect |
+| Applications de santé | Remplir la **déclaration** : suivi nutritionnel, suivi du sommeil, bien-être ; **pas** un dispositif médical ; Health Connect en **lecture seule des pas** (voir § 6) |
 | Contenu généré par IA | L'app utilise l'IA (Gemini) pour analyser des photos de repas, proposer des idées/recettes et discuter avec le coach. Chaque réponse est marquée « Généré par l'IA » avec un bouton « Signaler » dans l'app |
 | Applis gouvernementales / financières / VPN | Non |
 
@@ -81,9 +84,9 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
   liste du Nutridex) partent **directement vers le téléphone d'un autre utilisateur**, sans serveur. Par prudence, déclarer
   comme données **partagées, facultatives, à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) »
   et « Activité dans l'appli › Autres actions (niveau, série, aliments découverts) ».
-- **Localisation / tracés GPS** : restent sur le téléphone → pas « collectés ». La carte (OpenFreeMap) et la recherche de
-  clubs (Overpass) reçoivent la **zone affichée** : déclarer « Localisation approximative », facultative, fonctionnalité
-  de l'appli, non partagée à des fins publicitaires.
+- **Localisation / tracés GPS** : restent sur le téléphone → pas « collectés ». La carte et les itinéraires (tuiles
+  OpenFreeMap) et la recherche de clubs (Overpass, aussi en secours pour les itinéraires) reçoivent la **zone concernée** :
+  déclarer « Localisation approximative », facultative, fonctionnalité de l'appli, non partagée à des fins publicitaires.
 - **Pas** : lus sur le téléphone (capteur ou Health Connect), jamais transmis → pas « collectés » ; seule la moyenne peut partir
   vers Gemini si l'utilisateur demande un objectif à l'IA (déjà couvert par « Santé et remise en forme »).
 - Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.
@@ -121,7 +124,20 @@ Pas de localisation en arrière-plan (`ACCESS_BACKGROUND_LOCATION`), ni de conta
 - **Service de premier plan** (`connectedDevice`) : croisements, échange Bluetooth entre appareils GoodLife proches, démarré
   par l'utilisateur, notification permanente discrète (canal de faible importance). Google demande une courte **vidéo** montrant l'activation.
 
-## 7. Déjà en place dans l'app
+## 7. Avant de publier : vérifier les noms (marques)
+
+Contrôle fait en ligne le 01/10/2026, **sans valeur juridique** : à confirmer sur [TMview](https://www.tmdn.org/tmview/)
+(marques de l'UE, de la France et du monde) avant la mise en ligne.
+
+| Nom | Ce qui existe | Risque |
+|---|---|---|
+| **GoodLife** | « GoodLife Fitness », chaîne de salles canadienne, a une marque déposée et une appli Android dans la même catégorie (Santé et remise en forme). | **À surveiller** : risque de confusion, surtout si l'app est publiée au Canada. Un nom plus distinctif (ou exclure le Canada de la diffusion) réduit le risque. |
+| **Nutridex** | Une marque « NUTRIDEX » existe pour des produits alimentaires (classe 30), pas pour des logiciels. Le suffixe « -dex » rappelle le Pokédex (marque de Nintendo/The Pokémon Company), mais il est très courant dans les applis. | Faible |
+| **Croisements** | Ancien nom « StreetPass » retiré (marque de Nintendo). | Aucun |
+| **Tap to Sync** | Aucune marque trouvée sous ce nom ; expression descriptive. | Faible |
+| **Gemini, OpenStreetMap, OpenFreeMap, Open Food Facts** | Cités seulement pour dire d'où viennent les données ou l'IA, avec leurs mentions d'attribution : usage autorisé. | Aucun |
+
+## 8. Déjà en place dans l'app
 
 - Consentement explicite aux données de santé (case à cocher) au premier lancement.
 - Âge minimum 15 ans ; IA réservée aux 18 ans et plus ; pas de perte de poids avant 18 ans ou si IMC < 18,5.

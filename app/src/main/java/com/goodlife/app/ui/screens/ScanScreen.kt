@@ -29,6 +29,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -108,6 +110,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ScanScreen(onDone: () -> Unit) {
     val context = LocalContext.current
@@ -182,7 +185,11 @@ fun ScanScreen(onDone: () -> Unit) {
 
     val header: @Composable () -> Unit = {
         ScreenTitle(t("Scanner"), if (mode == "photo") t("Photo du repas : l'IA estime les calories") else t("Code-barres d'un produit emballé"))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Les deux modes passent à la ligne si la place manque (paysage, grande police) au lieu de couper les mots
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             FilterChip(
                 selected = mode == "photo", onClick = { mode = "photo"; reset() },
                 label = { Text(t("Photo (IA)")) },
@@ -209,49 +216,89 @@ fun ScanScreen(onDone: () -> Unit) {
         // Écran caméra sans défilement : l'aperçu prend la place restante, le déclencheur reste
         // toujours visible au-dessus de la barre de navigation, quelle que soit la taille du téléphone.
         var capture by remember { mutableStateOf<ImageCapture?>(null) }
-        Column(
-            Modifier.fillMaxSize().widthIn(max = 640.dp).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            header()
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+        // Aperçu : 3:4 en portrait, 4:3 en paysage, toujours le plus grand possible
+        val viewfinder: @Composable (Modifier, Float) -> Unit = { modifier, ratio ->
+            Box(modifier, contentAlignment = Alignment.Center) {
                 Box(
-                    Modifier.aspectRatio(3f / 4f, matchHeightConstraintsFirst = true)
+                    Modifier.aspectRatio(ratio, matchHeightConstraintsFirst = ratio < 1f)
                         .clip(RoundedCornerShape(28.dp))
                         .background(Color.Black)
                 ) {
                     InAppCamera(onReady = { capture = it })
                     Box(
                         Modifier.align(Alignment.Center)
-                            .fillMaxWidth(if (mode == "barcode") 0.85f else 0.75f)
+                            .then(if (ratio < 1f) Modifier.fillMaxWidth(if (mode == "barcode") 0.85f else 0.75f)
+                                  else Modifier.fillMaxHeight(if (mode == "barcode") 0.6f else 0.75f))
                             .aspectRatio(if (mode == "barcode") 2f else 1f)
                             .border(BorderStroke(2.dp, Color.White.copy(alpha = 0.7f)), RoundedCornerShape(24.dp))
                     )
                 }
             }
-            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilledTonalIconButton(
-                    onClick = {
-                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
-                    modifier = Modifier.size(56.dp)
-                ) { Icon(Icons.Filled.PhotoLibrary, t("Galerie")) }
-                FilledIconButton(
-                    onClick = {
-                        capture?.let { ic ->
-                            takePhoto(context, ic, onPhoto = { analyze(it) }, onFail = { error = it })
-                        }
-                    },
-                    modifier = Modifier.size(76.dp),
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors()
-                ) { Icon(Icons.Filled.PhotoCamera, t("Prendre la photo"), Modifier.size(34.dp)) }
-                Spacer(Modifier.size(56.dp))
+        }
+        val galleryButton: @Composable () -> Unit = {
+            FilledTonalIconButton(
+                onClick = {
+                    pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                modifier = Modifier.size(56.dp)
+            ) { Icon(Icons.Filled.PhotoLibrary, t("Galerie")) }
+        }
+        val shutterButton: @Composable () -> Unit = {
+            FilledIconButton(
+                onClick = {
+                    capture?.let { ic ->
+                        takePhoto(context, ic, onPhoto = { analyze(it) }, onFail = { error = it })
+                    }
+                },
+                modifier = Modifier.size(76.dp),
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors()
+            ) { Icon(Icons.Filled.PhotoCamera, t("Prendre la photo"), Modifier.size(34.dp)) }
+        }
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            if (maxWidth > maxHeight) {
+                // Paysage : textes et modes à gauche, aperçu au centre sur toute la hauteur, déclencheur à droite
+                Row(
+                    Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        Modifier.widthIn(max = 260.dp).weight(0.8f, fill = false).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        header()
+                        if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                    viewfinder(Modifier.weight(2f).fillMaxHeight(), 4f / 3f)
+                    Column(
+                        Modifier.fillMaxHeight(),
+                        verticalArrangement = Arrangement.SpaceEvenly,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Spacer(Modifier.size(56.dp))
+                        shutterButton()
+                        galleryButton()
+                    }
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize().widthIn(max = 640.dp).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    header()
+                    viewfinder(Modifier.weight(1f).fillMaxWidth(), 3f / 4f)
+                    if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        galleryButton()
+                        shutterButton()
+                        Spacer(Modifier.size(56.dp))
+                    }
+                }
             }
         }
         if (askConsent) AiConsentDialog(onDismiss = { askConsent = false })

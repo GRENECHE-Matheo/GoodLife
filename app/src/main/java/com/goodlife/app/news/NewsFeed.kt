@@ -1,5 +1,6 @@
 package com.goodlife.app.news
 
+import com.goodlife.app.net.readCapped
 import com.goodlife.app.i18n.t
 
 import android.util.Xml
@@ -199,7 +200,7 @@ object NewsFeed {
         }
         val page = try {
             if (conn.responseCode !in 200..299) throw IOException(t("Article indisponible (%1\$s).", conn.responseCode))
-            conn.inputStream.use { it.readBytes().take(2_000_000).toByteArray() }.toString(Charsets.UTF_8)
+            conn.inputStream.use { it.readCapped(4_000_000) }.toString(Charsets.UTF_8)
         } catch (e: NotReusable) {
             throw e
         } catch (e: IOException) {

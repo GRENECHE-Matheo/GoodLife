@@ -22,7 +22,12 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.10.0
+## 🆕 Nouveautés de la v0.11.0
+
+- **Boucles et itinéraires bien plus rapides** (rues lues dans les tuiles de la carte, préparées à l'avance).
+- **Nouvelle icône verte**, **caméra et accueil adaptés au paysage**, invitations par lien **confirmées avant ajout**.
+
+## Nouveautés de la v0.10.0
 
 - **App plus légère** (68 Mo → 55 Mo) grâce à l'optimisation du code, sans aucun changement visible.
 - **Historique des conversations** avec le coach (chiffré sur le téléphone) et **règles de sécurité** de l'IA renforcées.
@@ -180,7 +185,7 @@ minSdk 26 · targetSdk 36.
 
 - Table de composition nutritionnelle **Ciqual 2025**, Anses — Licence Ouverte Etalab 2.0 (doi:10.57745/RDMHWY).
 - **Open Food Facts** (code-barres) — ODbL.
-- Cartes **OpenFreeMap** / **OpenMapTiles**, données © contributeurs **OpenStreetMap** (ODbL) ; clubs et chemins via l'API Overpass.
+- Cartes **OpenFreeMap** / **OpenMapTiles**, données © contributeurs **OpenStreetMap** (ODbL) ; chemins lus dans les tuiles OpenFreeMap (Overpass en secours), clubs via l'API Overpass.
 - Actus : flux RSS publics de **franceinfo**, **Sciences et Avenir**, **Futura**, de l'**Anses** et de **Santé publique France**
   (titre et lien vers l'article chez la source ; court extrait et résumé IA seulement pour les organismes publics,
   au titre de la réutilisation des informations publiques).

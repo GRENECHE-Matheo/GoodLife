@@ -117,7 +117,7 @@ class StreetPassService : Service() {
     private fun startAsForeground() {
         SocialNotifier.channels(this)
         val n: Notification = NotificationCompat.Builder(this, SocialNotifier.CH_ACTIVE)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notif_leaf)
             .setContentTitle(t("Croisements actifs"))
             .setContentText(t("Touche pour gérer tes amis et tes rencontres."))
             .setContentIntent(SocialNotifier.openFriends(this, 3000))
@@ -225,11 +225,18 @@ class StreetPassService : Service() {
         finish(g)
     }
 
+    private val recentNotifs = ArrayList<Long>()
+
     /** Une notification par personne au plus toutes les 6 h : nouvelle rencontre, ou recroisée (carte à jour). */
     private fun notifyCrossing(e: SyncEvent) {
         val now = System.currentTimeMillis()
         val first = e.result == Repo.Received.NEW_ENCOUNTER
         if (!first && now - (lastNotified[e.id] ?: 0L) < 6 * 3_600_000L) return
+        // Garde-fou : 4 notifications de rencontre par heure au plus, même si quelqu'un fabrique plein d'identités
+        // à côté de toi (les rencontres restent enregistrées, sans bruit)
+        recentNotifs.removeAll { now - it > 3_600_000L }
+        if (recentNotifs.size >= 4) return
+        recentNotifs.add(now)
         lastNotified[e.id] = now
         val friend = Repo.social.value.people.firstOrNull { it.id == e.id }?.friend == true
         SocialNotifier.encounter(this, e.id, e.pseudo, first, friend)

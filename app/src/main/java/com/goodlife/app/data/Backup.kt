@@ -1,5 +1,6 @@
 package com.goodlife.app.data
 
+import com.goodlife.app.net.readCapped
 import com.goodlife.app.i18n.t
 
 import android.content.Context
@@ -94,9 +95,12 @@ object Backup {
         return String(plain, Charsets.UTF_8) to k
     }
 
+    /** Une sauvegarde fait quelques Mo au plus : au-delà de 64 Mo, ce n'est pas un fichier GoodLife. */
     fun read(context: Context, uri: Uri): ByteArray =
-        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw IllegalStateException(t("Fichier illisible."))
+        context.contentResolver.openInputStream(uri)?.use {
+            runCatching { it.readCapped(64 * 1024 * 1024) }
+                .getOrElse { throw IllegalStateException(t("Fichier trop volumineux pour être une sauvegarde GoodLife.")) }
+        } ?: throw IllegalStateException(t("Fichier illisible."))
 
     fun write(context: Context, uri: Uri, bytes: ByteArray) {
         // « wt » vide le fichier avant d'écrire ; certains services (ex. Drive) ne connaissent que « w ».

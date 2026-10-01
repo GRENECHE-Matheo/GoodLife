@@ -1,13 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Feuille blanche, centrée sur son centre visuel (dans la zone sûre de 66 dp des icônes adaptatives) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M74,34C52,34 36,46 36,64c0,4 1,7 2,10l-4,4 3,3 4,-4c3,1 6,2 10,2 18,0 23,-18 23,-45z" />
-    <path
-        android:fillColor="#1A73E8"
-        android:pathData="M44,72L64,48l2,2L46,74z" />
+    <group
+        android:pivotX="55.5"
+        android:pivotY="57.5"
+        android:scaleX="1.08"
+        android:scaleY="1.08"
+        android:translateX="-1.5"
+        android:translateY="-3.5">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M74,34C52,34 36,46 36,64c0,4 1,7 2,10l-4,4 3,3 4,-4c3,1 6,2 10,2 18,0 23,-18 23,-45z" />
+        <!-- Nervure : même dégradé que le fond, recalé dans le repère de la feuille -->
+        <path android:pathData="M44,72L64,48l2,2L46,74z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="5.5" android:startY="7.5"
+                    android:endX="105.5" android:endY="107.5"
+                    android:startColor="#34A853"
+                    android:endColor="#1E7D3A" />
+            </aapt:attr>
+        </path>
+    </group>
 </vector>

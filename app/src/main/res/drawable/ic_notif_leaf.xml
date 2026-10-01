@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feuille de GoodLife, icône monochrome des notifications (cadrée sur 24 dp) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <group
+        android:translateX="-26"
+        android:translateY="-29.25">
+        <path
+            android:fillColor="#FFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M74,34C52,34 36,46 36,64c0,4 1,7 2,10l-4,4 3,3 4,-4c3,1 6,2 10,2 18,0 23,-18 23,-45z M44,72L64,48l2,2L46,74z" />
+    </group>
+</vector>

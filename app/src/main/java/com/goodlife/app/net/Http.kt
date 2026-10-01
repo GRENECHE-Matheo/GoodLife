@@ -52,6 +52,24 @@ internal fun networkError(host: String, e: IOException): IOException {
     return IOException("$msg (${e.javaClass.simpleName})", e)
 }
 
+/**
+ * Lecture plafonnée : une réponse (ou un fichier) plus grosse que [max] octets est refusée au lieu de remplir la
+ * mémoire du téléphone (serveur défaillant, fichier choisi par erreur…).
+ */
+internal fun java.io.InputStream.readCapped(max: Int): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    val buf = ByteArray(16 * 1024)
+    var total = 0
+    while (true) {
+        val n = read(buf)
+        if (n < 0) break
+        total += n
+        if (total > max) throw IOException(t("Réponse trop volumineuse."))
+        out.write(buf, 0, n)
+    }
+    return out.toByteArray()
+}
+
 /** GET simple en HTTPS. Renvoie (code, corps). */
 internal fun httpGet(url: String, accept: String = "application/json"): Pair<Int, String> {
     require(url.startsWith("https://")) { t("HTTPS obligatoire") }
@@ -65,7 +83,7 @@ internal fun httpGet(url: String, accept: String = "application/json"): Pair<Int
     return try {
         val code = conn.responseCode
         val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-        code to (stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "")
+        code to (stream?.use { String(it.readCapped(8 * 1024 * 1024), Charsets.UTF_8) } ?: "")
     } catch (e: IOException) {
         throw networkError(u.host, e)
     } finally {

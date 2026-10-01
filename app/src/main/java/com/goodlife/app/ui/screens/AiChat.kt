@@ -96,10 +96,16 @@ private fun SearchSuggestions(html: String) {
         factory = { ctx ->
             android.webkit.WebView(ctx).apply {
                 settings.javaScriptEnabled = false
+                // Aucun accès aux fichiers du téléphone ni aux contenus des autres apps (anciennes versions d'Android : activé par défaut)
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 webViewClient = object : android.webkit.WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
-                        request?.url?.let { u -> runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, u).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } }
+                        // Seuls les liens web s'ouvrent, dans le navigateur (jamais intent:, file:, content:…)
+                        request?.url?.takeIf { it.scheme == "https" || it.scheme == "http" }?.let { u ->
+                            runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, u).addCategory(android.content.Intent.CATEGORY_BROWSABLE).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        }
                         return true
                     }
                 }

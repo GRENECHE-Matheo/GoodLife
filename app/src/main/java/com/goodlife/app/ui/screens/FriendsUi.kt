@@ -750,16 +750,19 @@ private fun QrScreen(onBack: () -> Unit) {
             }
             Button(
                 onClick = {
-                    GmsBarcodeScanning.getClient(
-                        context,
-                        GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
-                    ).startScan()
-                        .addOnSuccessListener { b ->
-                            val e = b.rawValue?.let { Social.receiveText(it, "qr") }
-                            result = e?.let(::resultText) ?: t("Ce QR code n'est pas une carte GoodLife valide.")
-                            if (e != null) Sounds.play(Sfx.LEVEL_UP)
-                        }
-                        .addOnFailureListener { result = t("Scanner indisponible : %1\$s", it.message ?: t("réessaie")) }
+                    // Téléphones sans services Google (Huawei…) : pas de plantage, on propose le lien d'invitation à la place
+                    runCatching {
+                        GmsBarcodeScanning.getClient(
+                            context,
+                            GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+                        ).startScan()
+                            .addOnSuccessListener { b ->
+                                val e = b.rawValue?.let { Social.receiveText(it, "qr") }
+                                result = e?.let(::resultText) ?: t("Ce QR code n'est pas une carte GoodLife valide.")
+                                if (e != null) Sounds.play(Sfx.LEVEL_UP)
+                            }
+                            .addOnFailureListener { result = t("Scanner indisponible : %1\$s", it.message ?: t("réessaie")) }
+                    }.onFailure { result = t("Le scanner de QR code a besoin des services Google. Demande plutôt à ton ami de t'envoyer son lien d'invitation.") }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {

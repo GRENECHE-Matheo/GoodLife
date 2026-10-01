@@ -8,6 +8,30 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.11.0 — 01/10/2026
+
+**Itinéraires bien plus rapides, nouvelle icône, et un grand contrôle avant Google Play.**
+
+- 🛠️ **Boucles et itinéraires bien plus rapides et plus fiables.** Les rues sont lues dans les tuiles de la carte
+  (OpenFreeMap, servies par un réseau de cache rapide) au lieu du serveur public Overpass, souvent saturé (10 à 20 s
+  d'attente, ou une erreur). Elles sont préparées dès l'ouverture du panneau des boucles et gardées en cache :
+  sur l'émulateur, la réponse arrive en moins d'une seconde après l'appui. Overpass reste en secours.
+- 🛠️ Calcul plus rapide : même algorithme (A*, qui donne le même chemin que Dijkstra en explorant moins de rues),
+  avec des données compactes et les directions des boucles cherchées en parallèle.
+- ✨ **Nouvelle icône** : fond vert aux couleurs de GoodLife, feuille bien centrée, et version « à thème »
+  pour Android 13 et plus. Les notifications utilisent la même feuille.
+- 🛠️ **Caméra en paysage** : l'aperçu prend toute la hauteur et le déclencheur passe sur le côté (avant, l'aperçu
+  était minuscule). Les boutons des modes passent à la ligne au lieu de couper les mots.
+- 🛠️ **Accueil en paysage** : l'anneau des calories à gauche, le détail à droite, le bouton Scanner reste visible.
+- 🔒 **Invitation par lien : l'app demande avant d'ajouter la personne.** Avant, un lien ouvert depuis n'importe
+  quelle page web ajoutait l'ami tout seul.
+- 🔒 Croisements : au plus 4 notifications de rencontre par heure, même si quelqu'un fabrique plein d'identités.
+- 🔒 Lectures plafonnées (réponses des serveurs, fichier de sauvegarde) pour éviter un plantage par manque de mémoire ;
+  la petite vue web des suggestions Google n'a plus accès aux fichiers et n'ouvre que des liens web.
+- 🛠️ **Compatible avec les téléphones à pages mémoire de 16 Ko** (exigé par Google Play) : la bibliothèque caméra
+  (CameraX 1.4) est mise à jour ; toutes les bibliothèques natives sont maintenant alignées.
+- 🐛 Téléphones sans services Google : le scanner de QR d'ami ne plante plus, il propose le lien d'invitation.
+
 ## v0.10.1 — 01/10/2026
 
 - 🐛 **La toque du chef est bien posée sur sa tête** (elle passait derrière) : dans l'app, les notifications, les widgets

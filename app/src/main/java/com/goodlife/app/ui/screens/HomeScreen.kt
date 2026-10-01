@@ -247,23 +247,39 @@ private fun HomeContent(
             val stepsProgress = if (settings.stepsEnabled) {
                 (stepsData.days[com.goodlife.app.data.localDay(0)]?.steps ?: 0).toFloat() / com.goodlife.app.steps.Steps.goal()
             } else null
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CalorieRing(
-                    consumed = eaten, target = p.targetKcal,
-                    size = if (stepsProgress != null) 200.dp else 180.dp,
-                    stepsProgress = stepsProgress
-                )
+            val details: @Composable () -> Unit = {
+                StepsLine()
+                MacroBar(t("Protéines"), today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
+                MacroBar(t("Glucides"), today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
+                MacroBar(t("Lipides"), today.sumOf { it.fatG }, p.fatG, GoogleGreen)
             }
-            Text(
-                if (remaining >= 0) t("Il te reste %1\$s kcal aujourd'hui", remaining)
-                else t("Objectif dépassé de %1\$s kcal", -remaining),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            StepsLine()
-            MacroBar(t("Protéines"), today.sumOf { it.proteinG }, p.proteinG, GoogleRed)
-            MacroBar(t("Glucides"), today.sumOf { it.carbsG }, p.carbsG, GoogleYellow)
-            MacroBar(t("Lipides"), today.sumOf { it.fatG }, p.fatG, GoogleGreen)
+            val remainingText = if (remaining >= 0) t("Il te reste %1\$s kcal aujourd'hui", remaining)
+                                else t("Objectif dépassé de %1\$s kcal", -remaining)
+            // Téléphone en paysage : l'anneau à gauche, le détail à droite (sinon l'anneau prend tout l'écran)
+            val conf = androidx.compose.ui.platform.LocalConfiguration.current
+            if (conf.screenWidthDp > conf.screenHeightDp && conf.screenHeightDp < 600) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    CalorieRing(consumed = eaten, target = p.targetKcal, size = 160.dp, stepsProgress = stepsProgress)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(remainingText, style = MaterialTheme.typography.titleMedium)
+                        details()
+                    }
+                }
+            } else {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CalorieRing(
+                        consumed = eaten, target = p.targetKcal,
+                        size = if (stepsProgress != null) 200.dp else 180.dp,
+                        stepsProgress = stepsProgress
+                    )
+                }
+                Text(
+                    remainingText,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                details()
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -156,16 +156,18 @@ class MainActivity : FragmentActivity() {
         } ?: return
         if (!text.contains("GL1:")) return
         if (Repo.profile.value == null) return
-        val e = com.goodlife.app.social.Social.receiveFromMessage(text)
-        android.widget.Toast.makeText(
-            this,
-            when {
-                e == null -> t("Ce message ne contient pas de carte GoodLife valide.")
-                e.result == Repo.Received.IGNORED -> t("Carte ignorée.")
-                else -> t("%1\$s est dans tes amis !", e.pseudo)
-            },
-            android.widget.Toast.LENGTH_LONG
-        ).show()
+        val social = com.goodlife.app.social.Social
+        val card = social.cardInMessage(text)
+        when {
+            card == null -> android.widget.Toast.makeText(this, t("Ce message ne contient pas de carte GoodLife valide."), android.widget.Toast.LENGTH_LONG).show()
+            // Ami déjà connu : simple mise à jour de sa carte
+            social.isFriend(card) -> {
+                social.accept(card)
+                android.widget.Toast.makeText(this, t("Carte de %1\$s mise à jour.", card.pseudo), android.widget.Toast.LENGTH_LONG).show()
+            }
+            // Nouvelle personne : on demande d'abord (fenêtre dans l'app, après le déverrouillage)
+            else -> social.pendingInvite.value = card
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -251,6 +253,7 @@ private fun MainTabs() {
     // Retour du téléphone : depuis Scanner, Planning, Forme ou Profil, on revient à l'accueil (seul l'accueil ferme l'app).
     // Les écrans ouverts par-dessus (paramètres, amis, quiz…) gèrent leur propre retour en premier.
     androidx.activity.compose.BackHandler(enabled = tab != 0) { tab = 0 }
+    InviteDialog()
     val wide = LocalConfiguration.current.screenWidthDp >= 600
     val keyboardOpen = WindowInsets.isImeVisible
 
@@ -314,4 +317,28 @@ private fun MainTabs() {
             content(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding))
         }
     }
+}
+
+/** Invitation reçue par lien ou message : on demande avant d'ajouter la personne. */
+@Composable
+private fun InviteDialog() {
+    val social = com.goodlife.app.social.Social
+    val card by social.pendingInvite.collectAsState()
+    val c = card ?: return
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { social.pendingInvite.value = null },
+        title = { Text(t("Ajouter %1\$s en ami ?", c.pseudo)) },
+        text = { Text(t("Cette invitation vient d'un lien ou d'un message. Accepte seulement si tu connais cette personne.")) },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                social.pendingInvite.value = null
+                val e = social.accept(c)
+                android.widget.Toast.makeText(context, t("%1\$s est dans tes amis !", e.pseudo), android.widget.Toast.LENGTH_LONG).show()
+            }) { Text(t("Ajouter")) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = { social.pendingInvite.value = null }) { Text(t("Ignorer")) }
+        }
+    )
 }

@@ -1,6 +1,6 @@
 # Politique de confidentialité — GoodLife
 
-Version 0.10.0 · mise à jour le 1er octobre 2026
+Version 0.11.0 · mise à jour le 1er octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
@@ -56,7 +56,7 @@ Ta position n'est utilisée que pendant une activité que tu lances toi-même (a
 
 ## Carte et clubs
 
-Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, © OpenMapTiles) : comme pour toute appli de carte, le serveur voit ton adresse IP et la zone affichée. Quand tu cherches des clubs, des boucles ou un itinéraire vers une destination, les coordonnées de la zone concernée sont envoyées à l'API Overpass d'OpenStreetMap (serveur public géré par une association allemande) pour récupérer les chemins ou les clubs ; le calcul de l'itinéraire se fait ensuite sur ton téléphone. Les cartes hors ligne sont téléchargées depuis OpenFreeMap pour la seule zone que tu choisis, et tu peux les supprimer à tout moment. Les informations des clubs (tarifs, horaires, site) viennent d'OpenStreetMap et peuvent être incomplètes : vérifie-les auprès du club.
+Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, © OpenMapTiles) : comme pour toute appli de carte, le serveur voit ton adresse IP et la zone affichée. Pour proposer des boucles ou un itinéraire vers une destination, l'app télécharge chez OpenFreeMap les tuiles de carte de la zone concernée (les mêmes que celles de la carte, dès que tu ouvres le panneau des boucles) et calcule le chemin sur ton téléphone ; ces tuiles restent au plus 30 jours dans le cache de l'app. Si elles ne sont pas disponibles, et quand tu cherches des clubs, les coordonnées de la zone sont envoyées à l'API Overpass d'OpenStreetMap (serveur public géré par une association allemande). Les cartes hors ligne sont téléchargées depuis OpenFreeMap pour la seule zone que tu choisis, et tu peux les supprimer à tout moment. Les informations des clubs (tarifs, horaires, site) viennent d'OpenStreetMap et peuvent être incomplètes : vérifie-les auprès du club.
 
 ## Notifications du coach
 

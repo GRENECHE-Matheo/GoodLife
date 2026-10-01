@@ -62,6 +62,25 @@ object Social {
     }
 
     /**
+     * Invitation arrivée d'une AUTRE app (lien ouvert dans le navigateur, message partagé) : elle attend l'accord de
+     * l'utilisateur dans l'app. Sans ça, n'importe quelle page web pourrait ajouter des « amis » en ouvrant un lien.
+     */
+    val pendingInvite = kotlinx.coroutines.flow.MutableStateFlow<PlayerCard?>(null)
+
+    /** Carte valide (signature vérifiée) trouvée dans un message, sauf la mienne et celles des personnes bloquées. */
+    fun cardInMessage(message: String): PlayerCard? {
+        val code = Regex("""GL1:[A-Za-z0-9_-]{40,1900}""").find(message)?.value ?: return null
+        val card = Identity.fromText(code) ?: return null
+        if (card.id == Identity.myId() || card.id in Repo.social.value.blocked) return null
+        return card
+    }
+
+    /** Déjà dans mes amis : la carte est signée par sa clé, on peut juste la mettre à jour. */
+    fun isFriend(card: PlayerCard): Boolean = Repo.social.value.people.any { it.id == card.id && it.friend }
+
+    fun accept(card: PlayerCard): SyncEvent = record(card, "code")
+
+    /**
      * Lien d'invitation cliquable : une page statique (GitHub Pages) qui ouvre GoodLife. La carte est après le « # » :
      * le navigateur ne l'envoie jamais au serveur, et l'app vérifie sa signature.
      */
