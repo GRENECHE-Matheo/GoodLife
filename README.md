@@ -25,6 +25,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 ## 🆕 Nouveautés de la v0.10.0
 
 - **App plus légère** (68 Mo → 55 Mo) grâce à l'optimisation du code, sans aucun changement visible.
+- **Historique des conversations** avec le coach (chiffré sur le téléphone) et **règles de sécurité** de l'IA renforcées.
 
 ## Nouveautés de la v0.9.9
 

@@ -1,6 +1,7 @@
 package com.goodlife.app.ui.screens
 
 import com.goodlife.app.i18n.t
+import com.goodlife.app.i18n.tp
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.AssistChip
@@ -81,7 +84,22 @@ private class CoachEntry(val message: ChatMessage, val meals: List<CoachMeal> = 
 private object CoachSession {
     val entries = mutableStateListOf<CoachEntry>()
     val added = mutableStateMapOf<String, Boolean>()   // "message#repas" → ajouté au planning ; "message#courses" → liste
-    fun clear() { entries.clear(); added.clear() }
+    var id: Long = 0L                                   // conversation en cours dans l'historique (0 = nouvelle)
+    fun clear() { entries.clear(); added.clear(); id = 0L }
+
+    /** Enregistre la conversation dans l'historique (chiffré, sur le téléphone), si l'historique est activé. */
+    fun persist() {
+        if (entries.isEmpty() || !Repo.settings.value.coachHistory) return
+        if (id == 0L) id = System.currentTimeMillis()
+        CoachHistory.save(id, entries.toList(), added.toMap())
+    }
+
+    fun open(c: CoachHistory.Conv) {
+        val (list, done) = CoachHistory.entriesOf(c)
+        entries.clear(); entries.addAll(list)
+        added.clear(); added.putAll(done)
+        id = c.id
+    }
 }
 
 private const val MAX_TURNS = 30
@@ -123,6 +141,11 @@ fun CoachScreen(onBack: () -> Unit) {
     }
 
     var askConsent by remember { mutableStateOf<String?>(null) }
+    var showHistory by remember { mutableStateOf(false) }
+    if (showHistory) {
+        CoachHistoryScreen(onClose = { showHistory = false }, onOpen = { c -> CoachSession.open(c); error = null; showHistory = false })
+        return
+    }
     // Photo jointe au prochain message (aliment, plat, étiquette…) : envoyée à Gemini, jamais enregistrée
     var pendingPhoto by remember { mutableStateOf<ByteArray?>(null) }
     var photoMenu by remember { mutableStateOf(false) }
@@ -159,6 +182,7 @@ fun CoachScreen(onBack: () -> Unit) {
                 val system = CHAT_RULES + "\n" + COACH_RULES + t("\nChiffres et contexte de la personne :\n") + Coach.aiContext()
                 val r = Gemini(settings.apiKey, settings.model).coach(system, entries.map { it.message })
                 entries.add(CoachEntry(ChatMessage(false, r.text), r.meals, r.shopping))
+                CoachSession.persist()
             } catch (e: Exception) {
                 entries.removeAt(entries.lastIndex)
                 input = q; pendingPhoto = photo
@@ -186,6 +210,7 @@ fun CoachScreen(onBack: () -> Unit) {
                         Text(t("Alimentation, sport et motivation"), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    IconButton(onClick = { showHistory = true }) { Icon(Icons.Filled.History, t("Historique des conversations")) }
                     if (entries.isNotEmpty()) IconButton(onClick = { CoachSession.clear(); error = null }) {
                         Icon(Icons.Filled.RestartAlt, t("Nouvelle conversation"))
                     }
@@ -286,7 +311,7 @@ fun CoachScreen(onBack: () -> Unit) {
                         )
                     }
                     Text(
-                        t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. Rien n'est gardé après la fermeture de l'app."),
+                        t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. L'historique reste chiffré sur ton téléphone, sans les photos."),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                     )
@@ -323,6 +348,7 @@ private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
             id = System.currentTimeMillis() + i, date = m.date, slot = m.slot, name = m.name, kcal = m.kcal, description = m.description
         ))
         added[key] = true
+        CoachSession.persist()
     }
     Column(Modifier.widthIn(max = 360.dp).padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         meals.forEachIndexed { i, m ->
@@ -384,7 +410,123 @@ private fun ShoppingProposal(entry: Int, items: List<com.goodlife.app.ai.ShopIte
             Text(items.take(6).joinToString(", ") { it.name } + if (items.size > 6) "…" else "",
                 style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
             if (added[key] == true) Text(t("Ajoutée à ta liste de courses ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            else FilledTonalButton(onClick = { Shopping.add(items); added[key] = true }) { Text(t("Ajouter à ma liste de courses")) }
+            else FilledTonalButton(onClick = { Shopping.add(items); added[key] = true; CoachSession.persist() }) { Text(t("Ajouter à ma liste de courses")) }
         }
     }
+}
+
+/**
+ * Historique des conversations avec le coach : chiffré sur le téléphone (SecureStore), jamais envoyé ni sauvegardé
+ * ailleurs. Les photos ne sont pas gardées (seulement une mention). Reprendre une conversation la renvoie à Gemini
+ * avec la question suivante, pour garder le contexte. 30 conversations au plus, 60 messages chacune.
+ */
+private object CoachHistory {
+    private const val KEY = "coach_history"
+    private const val MAX_CONVS = 30
+    private const val MAX_MESSAGES = 60
+
+    data class Conv(val id: Long, val title: String, val updatedAt: Long, val json: org.json.JSONObject)
+
+    @Synchronized
+    fun list(): List<Conv> = runCatching {
+        val a = org.json.JSONObject(Repo.getExtra(KEY) ?: "{}").optJSONArray("convs") ?: org.json.JSONArray()
+        (0 until a.length()).map { i -> a.getJSONObject(i).let { Conv(it.optLong("id"), it.optString("title"), it.optLong("at"), it) } }
+    }.getOrDefault(emptyList()).sortedByDescending { it.updatedAt }
+
+    private fun write(convs: List<Conv>) {
+        if (convs.isEmpty()) { Repo.putExtra(KEY, null); return }
+        Repo.putExtra(KEY, org.json.JSONObject().put("convs", org.json.JSONArray().apply { convs.take(MAX_CONVS).forEach { put(it.json) } }).toString())
+    }
+
+    @Synchronized
+    fun save(id: Long, entries: List<CoachEntry>, added: Map<String, Boolean>) {
+        val msgs = org.json.JSONArray()
+        entries.takeLast(MAX_MESSAGES).forEach { e ->
+            msgs.put(org.json.JSONObject()
+                .put("u", e.message.fromUser).put("t", e.message.text).put("p", e.message.image != null)
+                .put("meals", org.json.JSONArray().apply { e.meals.forEach { m ->
+                    put(org.json.JSONObject().put("d", m.date).put("s", m.slot.name).put("n", m.name).put("k", m.kcal).put("x", m.description)) } })
+                .put("shop", org.json.JSONArray().apply { e.shopping.forEach { s ->
+                    put(org.json.JSONObject().put("n", s.name).put("q", s.qty).put("r", s.aisle)) } }))
+        }
+        val title = entries.firstOrNull { it.message.fromUser }?.message?.text?.take(60) ?: t("Conversation")
+        val json = org.json.JSONObject().put("id", id).put("title", title).put("at", System.currentTimeMillis())
+            .put("msgs", msgs).put("added", org.json.JSONObject().apply { added.forEach { (k, v) -> if (v) put(k, true) } })
+        write(listOf(Conv(id, title, System.currentTimeMillis(), json)) + list().filter { it.id != id })
+    }
+
+    fun entriesOf(c: Conv): Pair<List<CoachEntry>, Map<String, Boolean>> {
+        val a = c.json.optJSONArray("msgs") ?: org.json.JSONArray()
+        val list = (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i)
+            val text = o.optString("t") + if (o.optBoolean("p")) "\n" + t("📷 (photo non conservée)") else ""
+            val meals = o.optJSONArray("meals")?.let { m -> (0 until m.length()).map { j -> m.getJSONObject(j).let {
+                CoachMeal(it.optString("d"), com.goodlife.app.data.MealSlot.entries.firstOrNull { s -> s.name == it.optString("s") } ?: com.goodlife.app.data.MealSlot.DEJEUNER,
+                    it.optString("n"), it.optInt("k"), it.optString("x")) } } } ?: emptyList()
+            val shop = o.optJSONArray("shop")?.let { m -> (0 until m.length()).map { j -> m.getJSONObject(j).let {
+                com.goodlife.app.ai.ShopItem(it.optString("n"), it.optString("q"), it.optString("r")) } } } ?: emptyList()
+            CoachEntry(ChatMessage(o.optBoolean("u"), text), meals, shop)
+        }
+        val added = c.json.optJSONObject("added")?.let { o -> o.keys().asSequence().associateWith { true } } ?: emptyMap()
+        return list to added
+    }
+
+    @Synchronized fun delete(id: Long) = write(list().filter { it.id != id })
+    @Synchronized fun clear() = Repo.putExtra(KEY, null)
+}
+
+/** Liste des conversations passées : toucher pour reprendre, poubelle pour supprimer. */
+@Composable
+private fun CoachHistoryScreen(onClose: () -> Unit, onOpen: (CoachHistory.Conv) -> Unit) {
+    BackHandler(onBack = onClose)
+    val settings by Repo.settings.collectAsState()
+    var convs by remember { mutableStateOf(CoachHistory.list()) }
+    var confirmClear by remember { mutableStateOf(false) }
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, t("Retour")) }
+                    Text(t("Mes conversations"), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(t("Garder l'historique"), style = MaterialTheme.typography.bodyLarge)
+                        Text(t("Chiffré sur ton téléphone, jamais envoyé ailleurs, sans les photos. En reprenant une conversation, elle est renvoyée à Gemini pour que le chef se souvienne du contexte."),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    androidx.compose.material3.Switch(settings.coachHistory, { on -> Repo.updateSettings { it.copy(coachHistory = on) } })
+                }
+            }
+            if (convs.isEmpty()) item {
+                Text(t("Aucune conversation enregistrée pour l'instant."), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            items(convs.size) { i ->
+                val c = convs[i]
+                Surface(onClick = { onOpen(c) }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                    Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, bottom = 10.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(c.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(com.goodlife.app.ui.formatDay(c.updatedAt) + " · " + com.goodlife.app.ui.formatTime(c.updatedAt) + " · " +
+                                tp(c.json.optJSONArray("msgs")?.length() ?: 0, "%1\$s message", "%1\$s messages"),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { CoachHistory.delete(c.id); if (CoachSession.id == c.id) CoachSession.id = 0L; convs = CoachHistory.list() }) {
+                            Icon(Icons.Filled.Delete, t("Supprimer"))
+                        }
+                    }
+                }
+            }
+            if (convs.isNotEmpty()) item {
+                TextButton(onClick = { confirmClear = true }) { Text(t("Tout effacer"), color = MaterialTheme.colorScheme.error) }
+            }
+        }
+    }
+    if (confirmClear) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirmClear = false },
+        title = { Text(t("Effacer tout l'historique ?")) },
+        text = { Text(t("Toutes les conversations enregistrées seront supprimées de ce téléphone.")) },
+        confirmButton = { TextButton(onClick = { CoachHistory.clear(); CoachSession.id = 0L; convs = emptyList(); confirmClear = false }) { Text(t("Effacer")) } },
+        dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(t("Annuler")) } }
+    )
 }

@@ -62,6 +62,7 @@ data class Settings(
     val stepsGoalIaDay: String = "",          // jour du dernier calcul par l'IA (une fois par jour)
     val newsThemes: String = "food,sport,insolite,anecdote",   // thèmes d'actus choisis (vide = pas d'actus)
     val waterGoalMl: Int = 1500,              // repère : environ 1,5 L de boisson par jour pour un adulte
+    val coachHistory: Boolean = true,         // garder l'historique des conversations du coach (chiffré, sur le téléphone)
     val planNotes: String = "",               // précisions pour le planning de la semaine (goûts du foyer…)
     val planShopping: Boolean = true,         // préparer la liste de courses avec le planning de la semaine
     val waterGoalMode: String = "ia",         // « ia » : calculé chaque jour par l'IA (si activée), sinon objectif fixe
@@ -133,6 +134,7 @@ data class Settings(
         .put("stepsGoalIaDay", stepsGoalIaDay)
         .put("newsThemes", newsThemes)
         .put("waterGoalMl", waterGoalMl)
+        .put("coachHistory", coachHistory)
         .put("planNotes", planNotes)
         .put("planShopping", planShopping)
         .put("waterGoalMode", waterGoalMode)
@@ -200,6 +202,7 @@ data class Settings(
             stepsGoalIaDay = o.optString("stepsGoalIaDay"),
             newsThemes = if (o.has("newsThemes")) o.optString("newsThemes") else "food,sport,insolite,anecdote",
             waterGoalMl = o.optInt("waterGoalMl", 1500).coerceIn(500, 5000),
+            coachHistory = o.optBoolean("coachHistory", true),
             planNotes = o.optString("planNotes").take(400),
             planShopping = o.optBoolean("planShopping", true),
             waterGoalMode = o.optString("waterGoalMode", "ia").takeIf { it == "ia" || it == "fixed" } ?: "ia",
@@ -942,6 +945,7 @@ object Repo {
             .put("sorties", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
             .put("repasFavoris", JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } })
             .put("eau", waterJson())
+            .put("conversationsCoach", getExtra("coach_history")?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject.NULL)
             .put("ressenti", feelingsJson())
             .put("settings", JSONObject()
                 .put("aiEnabled", s.aiEnabled)
