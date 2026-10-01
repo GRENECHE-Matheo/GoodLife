@@ -17,6 +17,10 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 - 🛠️ Les ressources inutilisées et les traductions des bibliothèques dans des langues que l'app ne parle pas sont
   retirées (l'app reste en français et en anglais).
 - Aucun changement visible : mêmes écrans, mêmes fonctions, mêmes données (vérifié écran par écran).
+- 🔒 **Règles de sécurité de l'IA**, envoyées avec chaque demande et prioritaires : jamais de conseil médical ou
+  dangereux (régime sous 1 200 kcal, jeûne prolongé, coupe-faim…), allergies toujours respectées, et les consignes
+  cachées dans une photo, un article, une recherche ou un texte écrit dans l'app sont ignorées.
+- 🐛 Le chat de l'IA répond bien en anglais quand l'app est en anglais.
 
 ## v0.9.9 — 01/10/2026
 
