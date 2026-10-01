@@ -22,7 +22,11 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.9.9
+## 🆕 Nouveautés de la v0.10.0
+
+- **App plus légère** (68 Mo → 55 Mo) grâce à l'optimisation du code, sans aucun changement visible.
+
+## Nouveautés de la v0.9.9
 
 - **Photos dans la conversation avec le coach**, et des **listes de courses** qu'il prépare pour toi.
 - **Objectif d'eau calculé chaque jour par l'IA**, planning avec **précisions** et liste de courses automatique.

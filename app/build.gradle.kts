@@ -14,13 +14,19 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 22
-        versionName = "0.9.9"
+        versionCode = 23
+        versionName = "0.10.0"
 
         // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
         buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")
         // Contact public (RGPD art. 13, fiche Play Store, signalement des contenus IA)
         buildConfigField("String", "CONTACT_EMAIL", "\"matheo.greneche0@gmail.com\"")
+    }
+
+    // L'app parle français et anglais : on ne garde que ces langues dans les textes des bibliothèques
+    // (elles en contiennent des dizaines d'autres, jamais affichées par GoodLife).
+    androidResources {
+        localeFilters += setOf("fr", "en")
     }
 
     // Deux distributions du même code :
@@ -58,7 +64,9 @@ android {
         release {
             // Carte (code natif) : téléphones ARM 64/32 bits et Chromebooks x86_64 ; le x86 32 bits n'existe plus
             ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a", "x86_64") }
-            isMinifyEnabled = false
+            // R8 : retire le code et les ressources jamais utilisés (rien ne change pour l'utilisateur)
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = if (keystorePath != null) signingConfigs.getByName("release")
                             else signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

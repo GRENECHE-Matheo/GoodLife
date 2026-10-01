@@ -8,6 +8,16 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.10.0 — 01/10/2026
+
+**Une app plus légère, sans rien changer à l'écran.**
+
+- 🛠️ **APK plus léger : 68 Mo → 55 Mo.** Le code de l'app est optimisé par R8, l'outil officiel d'Android : le code
+  jamais utilisé est retiré (16 Mo → 3 Mo ; une fois installé, 55 Mo → 7 Mo de code).
+- 🛠️ Les ressources inutilisées et les traductions des bibliothèques dans des langues que l'app ne parle pas sont
+  retirées (l'app reste en français et en anglais).
+- Aucun changement visible : mêmes écrans, mêmes fonctions, mêmes données (vérifié écran par écran).
+
 ## v0.9.9 — 01/10/2026
 
 **Un coach qui voit tes photos, l'eau à ta mesure et des courses qui se font toutes seules.**
