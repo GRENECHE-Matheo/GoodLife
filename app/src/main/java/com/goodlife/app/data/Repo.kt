@@ -83,6 +83,8 @@ data class Settings(
     val streetPass: Boolean = false,
     // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
     val scoreRulesFrom: String = "",
+    val fridgeAutoRemove: Boolean = false,    // repas photographié : proposer de retirer ses aliments de « Mon frigo »
+    val richScoreFrom: String = "",           // à partir de ce jour, score enrichi : calories, protéines, repas (v0.12)
     val foodOnlyFrom: String = "",            // à partir de ce jour, le score du jour ne compte que l'alimentation (v0.9.6)
     val preferredOuting: String = "RUN",    // activité préférée (course / marche / vélo), pré-choisie sur la carte
     // Notifications du coach : toutes coupées tant que la personne ne les a pas acceptées
@@ -154,6 +156,8 @@ data class Settings(
         .put("streetPass", streetPass)
         .put("scoreRulesFrom", scoreRulesFrom)
         .put("foodOnlyFrom", foodOnlyFrom)
+        .put("richScoreFrom", richScoreFrom)
+        .put("fridgeAutoRemove", fridgeAutoRemove)
         .put("preferredOuting", preferredOuting)
         .put("notifMorning", notifMorning)
         .put("notifNoon", notifNoon)
@@ -222,6 +226,8 @@ data class Settings(
             streetPass = o.optBoolean("streetPass", false),
             scoreRulesFrom = o.optString("scoreRulesFrom"),
             foodOnlyFrom = o.optString("foodOnlyFrom"),
+            richScoreFrom = o.optString("richScoreFrom"),
+            fridgeAutoRemove = o.optBoolean("fridgeAutoRemove", false),
             preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" },
             notifMorning = o.optBoolean("notifMorning", false),
             notifNoon = o.optBoolean("notifNoon", false),
@@ -338,6 +344,12 @@ object Repo {
         _feelings.value = store.get(K_FEEL)?.let { feelingsFromJson(it) } ?: emptyMap()
         if (_settings.value.scoreRulesFrom.isBlank()) updateSettings { it.copy(scoreRulesFrom = localDay(0)) }
         if (_settings.value.foodOnlyFrom.isBlank()) updateSettings { it.copy(foodOnlyFrom = localDay(0)) }
+        if (_settings.value.richScoreFrom.isBlank()) updateSettings { it.copy(richScoreFrom = localDay(0)) }
+        // Repas prévus les jours passés et jamais validés (✓) : le chef les retire du planning
+        if (_plan.value.any { it.date < localDay(0) && !it.done }) {
+            _plan.value = _plan.value.filterNot { it.date < localDay(0) && !it.done }
+            persistPlan()
+        }
         // Profil créé avant les garde-fous santé : l'objectif « Perdre du poids » non autorisé repasse en « Maintenir »
         _profile.value?.let { p ->
             if (p.goal == Goal.PERTE && !com.goodlife.app.ai.Nutrition.weightLossAllowed(p)) {
@@ -499,6 +511,13 @@ object Repo {
         persistPlan()
     }
 
+    /** Retire les repas prévus et pas encore mangés de ces jours (« Vider la semaine »). */
+    @Synchronized
+    fun clearPlanned(dates: Set<String>) {
+        _plan.value = _plan.value.filterNot { it.date in dates && !it.done }
+        persistPlan()
+    }
+
     @Synchronized
     fun deletePlanned(id: Long) {
         _plan.value = _plan.value.filterNot { it.id == id }
@@ -623,7 +642,30 @@ object Repo {
         put(K_SPORT, s.toJson().toString())
     }
 
-    fun setProgram(p: SportProgram?) = saveSport(SportState(program = p, done = if (p == null) emptySet() else _sport.value.done))
+    /** Nouveau programme (ou null = supprimé). Les séances déjà faites et l'XP gagnée restent. */
+    fun setProgram(p: SportProgram?) = saveSport(SportState(program = p, done = _sport.value.done))
+
+    /** Lance le chrono d'une séance du programme (une seule à la fois). */
+    fun startSession(index: Int) = saveSport(_sport.value.copy(running = index, runningSince = System.currentTimeMillis()))
+
+    fun cancelSession() = saveSport(_sport.value.copy(running = -1, runningSince = 0L))
+
+    /**
+     * Changements proposés par le chef et validés : chaque séance remplace celle du même jour (ou s'ajoute), et les
+     * jours listés sont retirés. Sans programme, un programme « du chef » est créé avec ces séances.
+     */
+    @Synchronized
+    fun applySessions(sessions: List<SportSession>, removeDays: List<Int>) {
+        val st = _sport.value
+        val old = st.program
+        val kept = (old?.sessions ?: emptyList()).filter { s -> s.day !in removeDays && sessions.none { it.day == s.day } }
+        val all = (kept + sessions).sortedBy { it.day }
+        if (all.isEmpty()) { saveSport(st.copy(program = null, running = -1, runningSince = 0L)); return }
+        val program = (old ?: SportProgram(System.currentTimeMillis(), t("Programme du chef"), t("Débutant"), emptyList(), all.size,
+            all.map { it.minutes }.average().toInt(), "", "", all, "")).copy(sessions = all, daysPerWeek = all.size)
+        // Les index de séances changent : on arrête un éventuel chrono en cours
+        saveSport(st.copy(program = program, running = -1, runningSince = 0L))
+    }
 
     /** Ajoute de l'XP sport au jour donné, sans dépasser le plafond quotidien. Renvoie l'XP réellement gagnée. */
     @Synchronized
@@ -634,14 +676,23 @@ object Repo {
         return gained
     }
 
-    /** Séance du programme faite aujourd'hui (une seule fois par séance et par jour). Renvoie l'XP gagnée, ou null si déjà faite. */
+    /**
+     * Fin de la séance lancée : l'XP dépend du temps réellement passé (voir Game.sessionXp). Une séance compte une
+     * fois par jour. Renvoie (XP gagnée, minutes), ou null si aucune séance n'était lancée ou si elle est déjà faite.
+     */
     @Synchronized
-    fun markSessionDone(index: Int): Int? {
-        val key = "${localDay(0)}#$index"
-        if (key in _sport.value.done) return null
+    fun finishSession(plannedMinutes: Int): Pair<Int, Int>? {
+        val st = _sport.value
+        if (st.running < 0 || st.runningSince <= 0L) return null
+        val key = "${localDay(0)}#${st.running}"
+        val minutes = ((System.currentTimeMillis() - st.runningSince) / 60_000L).toInt().coerceAtLeast(0)
+        if (key in st.done) { cancelSession(); return null }
+        val xpEarned = com.goodlife.app.game.Game.sessionXp(minutes, plannedMinutes)
         val limit = localDay(-120)
-        saveSport(_sport.value.copy(done = _sport.value.done.filter { it.substringBefore('#') >= limit }.toSet() + key))
-        return addSportXp(com.goodlife.app.game.Game.SESSION_XP)
+        // Moins de 5 minutes : la séance n'est pas comptée (on peut la refaire plus tard)
+        val done = if (xpEarned > 0) st.done.filter { it.substringBefore('#') >= limit }.toSet() + key else st.done
+        saveSport(st.copy(done = done, running = -1, runningSince = 0L))
+        return (if (xpEarned > 0) addSportXp(xpEarned) else 0) to minutes
     }
 
     // ---------- Sorties GPS ----------
@@ -831,6 +882,7 @@ object Repo {
         _feelings.value = o.optJSONObject("feelings")?.let { feelingsFromJson(it.toString()) } ?: emptyMap()
         put(K_FEEL, feelingsJson().toString())
         o.optJSONObject("extras")?.let { x -> BACKUP_EXTRAS.forEach { k -> x.optString(k).takeIf { it.isNotBlank() }?.let { putExtra(k, it) } } }
+        Fridge.reload()
         val social = o.optJSONObject("social")?.let { runCatching { SocialState.fromJson(it) }.getOrNull() } ?: SocialState()
         _social.value = social
         put(K_SOCIAL, social.toJson().toString())
@@ -878,6 +930,9 @@ object Repo {
         _feelings.value = emptyMap()
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
+        Fridge.reload()
+        // Cache des tuiles d'itinéraires : rien de personnel, mais on repart de zéro
+        appContext?.let { runCatching { java.io.File(it.cacheDir, "route_tiles").deleteRecursively() } }
         appContext?.let { com.goodlife.app.coach.CoachNotifier.schedule(it) }
     }
 
@@ -913,7 +968,7 @@ object Repo {
     private const val K_WATER = "water"
     private const val K_FEEL = "feelings"
     /** États annexes gardés dans la sauvegarde (mémoire du quiz et des actus, pour ne jamais rien répéter). */
-    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed", "shopping", "badges_seen")
+    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed", "shopping", "badges_seen", "fridge")
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -945,6 +1000,7 @@ object Repo {
             .put("sorties", JSONArray().apply { _outings.value.forEach { put(it.toJson()) } })
             .put("repasFavoris", JSONArray().apply { _favMeals.value.forEach { put(it.toJson()) } })
             .put("eau", waterJson())
+            .put("frigo", getExtra("fridge")?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject.NULL)
             .put("conversationsCoach", getExtra("coach_history")?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject.NULL)
             .put("ressenti", feelingsJson())
             .put("settings", JSONObject()

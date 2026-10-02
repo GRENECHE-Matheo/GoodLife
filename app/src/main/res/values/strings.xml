@@ -5,6 +5,34 @@
     <string name="widget_small">The chef</string>
     <string name="widget_medium">My day</string>
     <string name="widget_small_desc">The chef, your streak, your calories and your steps</string>
-    <string name="widget_medium_desc">The chef, your streak, your calories, your steps and a short note</string>
+    <string name="widget_medium_desc">The chef, your streak, calories, steps, water, protein, your next meal and shortcuts</string>
     <string name="widget_chef_desc">The GoodLife chef</string>
+
+    <!-- Contenu des widgets -->
+    <string name="widget_lbl_kcal">Calories</string>
+    <string name="widget_lbl_steps">Steps</string>
+    <string name="widget_lbl_water">Water</string>
+    <string name="widget_lbl_protein">Protein</string>
+    <string name="widget_kcal_value">%1$s kcal</string>
+    <string name="widget_kcal_left">%1$s left</string>
+    <string name="widget_kcal_over">%1$s over</string>
+    <string name="widget_of">of %1$s</string>
+    <string name="widget_goal_reached">Goal reached</string>
+    <string name="widget_steps_unit">steps</string>
+    <string name="widget_ml">%1$s ml</string>
+    <string name="widget_grams">%1$s g</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_locked">🔒 Locked</string>
+    <string name="widget_start">Tap to start</string>
+    <string name="widget_btn_photo">Photo</string>
+    <string name="widget_btn_photo_desc">Photograph a meal</string>
+    <string name="widget_btn_water">+ Water</string>
+    <string name="widget_btn_water_desc">Add a glass of water (250 ml)</string>
+    <string name="widget_open">Open GoodLife</string>
+
+    <!-- Exemples affichés dans l'aperçu (liste des widgets du téléphone) -->
+    <string name="widget_preview_streak">🔥 12 days</string>
+    <string name="widget_preview_message">Lovely day so far, keep it up!</string>
+    <string name="widget_preview_meal">Dinner · Chicken curry · 650 kcal</string>
+    <string name="widget_preview_kcal_left">860 left</string>
 </resources>

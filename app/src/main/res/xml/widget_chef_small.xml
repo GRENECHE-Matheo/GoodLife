@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Petit widget (2×2), redimensionnable : la mise en page s'adapte à la taille (voir ChefWidgets) -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_small_desc"
-    android:initialLayout="@layout/widget_chef_small"
+    android:initialLayout="@layout/widget_chef_loading"
     android:previewLayout="@layout/widget_chef_small"
     android:minWidth="110dp"
     android:minHeight="110dp"
+    android:minResizeWidth="96dp"
+    android:minResizeHeight="96dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"

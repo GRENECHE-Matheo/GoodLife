@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Affiché le temps de la première mise à jour du widget : le chef seul, sans aucun chiffre -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg">
+
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:background="@drawable/widget_chef_circle"
+        android:contentDescription="@string/widget_chef_desc"
+        android:scaleType="fitCenter"
+        android:src="@drawable/widget_chef_preview" />
+</FrameLayout>

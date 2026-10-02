@@ -173,12 +173,15 @@ fun RecipeDialog(
                 when {
                     r != null -> {
                         Text(
-                            t("%1\$s portion(s) · %2\$s min · ~%3\$s kcal/portion", r.servings, r.minutes, r.kcalPerServing),
+                            t("%1\$s portion(s) · %2\$s min · ~%3\$s kcal/portion", r.servings, r.minutes, r.kcalPerServing) +
+                                (if (r.costEur > 0) " · " + t("≈ %1\$s en tout", euros(r.costEur)) else ""),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(t("Ingrédients"), fontWeight = FontWeight.Medium)
                         r.ingredients.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+                        if (r.costEur > 0) Text(t("Prix : estimations avec les prix moyens actuels en supermarché en France."),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(t("Préparation"), fontWeight = FontWeight.Medium)
                         r.steps.forEachIndexed { i, step ->
                             Text("${i + 1}. $step", style = MaterialTheme.typography.bodyMedium)

@@ -288,6 +288,12 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 checked = settings.aiEnabled,
                 onChange = { on -> if (on) askAiConsent = true else disableAi() }
             )
+            if (settings.aiEnabled) SettingSwitch(
+                title = t("Retirer du frigo après une photo de repas"),
+                subtitle = t("Après la photo d'un repas, le chef propose de retirer de « Mon frigo » ce qui a été utilisé. Tu valides, ou tu choisis « Pas mangé chez moi ». Le contenu du frigo est alors envoyé à Gemini avec la photo."),
+                checked = settings.fridgeAutoRemove,
+                onChange = { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
+            )
             if (settings.aiEnabled) {
                 Text(
                     t("Chaque utilisateur utilise sa propre clé Gemini, créée chez Google (tu acceptes alors ses conditions ; l'éventuelle facturation se fait entre toi et Google). Elle est chiffrée sur ce téléphone, conservée lors des mises à jour de l'app, et n'est envoyée qu'à Google avec tes demandes."),

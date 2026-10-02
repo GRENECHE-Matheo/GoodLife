@@ -159,11 +159,12 @@ data class Recipe(
     val kcalPerServing: Int,
     val ingredients: List<String>,
     val steps: List<String>,
-    val tip: String
+    val tip: String,
+    val costEur: Double = 0.0     // coût estimé de la recette entière (0 = inconnu)
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("servings", servings).put("minutes", minutes).put("kcalPerServing", kcalPerServing)
-        .put("ingredients", JSONArray(ingredients)).put("steps", JSONArray(steps)).put("tip", tip)
+        .put("ingredients", JSONArray(ingredients)).put("steps", JSONArray(steps)).put("tip", tip).put("costEur", costEur)
 
     companion object {
         fun fromJson(o: JSONObject) = Recipe(
@@ -172,7 +173,8 @@ data class Recipe(
             kcalPerServing = o.optInt("kcalPerServing", 0),
             ingredients = o.optJSONArray("ingredients")?.strings() ?: emptyList(),
             steps = o.optJSONArray("steps")?.strings() ?: emptyList(),
-            tip = o.optString("tip")
+            tip = o.optString("tip"),
+            costEur = o.optDouble("costEur", 0.0).takeUnless { it.isNaN() } ?: 0.0
         )
     }
 }
@@ -208,6 +210,9 @@ data class PlannedMeal(
     }
 }
 
+/** Un aliment reconnu sur la photo : poids estimé (g) et calories pour ce poids. */
+data class FoodPart(val name: String, val grams: Int, val kcal: Int)
+
 data class FoodAnalysis(
     val dish: String,
     val kcal: Int,
@@ -218,7 +223,11 @@ data class FoodAnalysis(
     val allergens: List<String>,
     val confidence: Double,
     val advice: String,
-    val dexIds: List<String> = emptyList()   // entrées du Nutridex reconnues sur la photo
+    val dexIds: List<String> = emptyList(),  // entrées du Nutridex reconnues sur la photo
+    val waterMl: Int = 0,                    // eau (ou thé, café, infusion sans sucre) bue : compte dans l'eau du jour
+    val drinkOnly: Boolean = false,          // la photo ne montre qu'une boisson
+    val fridgeUsed: List<Pair<String, Double>> = emptyList(),  // aliments de « Mon frigo » utilisés (nom, quantité)
+    val foods: List<FoodPart> = emptyList()  // détail modifiable : on corrige le poids, les calories suivent
 )
 
 internal fun <T> JSONArray.mapObjects(block: (JSONObject) -> T): List<T> =
@@ -443,15 +452,28 @@ data class SportProgram(
 }
 
 /** Programme en cours et séances faites (« AAAA-MM-JJ#indice »). */
-data class SportState(val program: SportProgram? = null, val done: Set<String> = emptySet()) {
+/**
+ * Programme sportif, séances faites (« jour#index ») et séance en cours : [running] = index de la séance lancée
+ * (-1 = aucune), [runningSince] = heure de départ du chrono (gardée même si l'app est fermée).
+ */
+data class SportState(
+    val program: SportProgram? = null,
+    val done: Set<String> = emptySet(),
+    val running: Int = -1,
+    val runningSince: Long = 0L
+) {
     fun toJson(): JSONObject = JSONObject()
         .put("program", program?.toJson() ?: JSONObject.NULL)
         .put("done", JSONArray(done.toList()))
+        .put("running", running)
+        .put("runningSince", runningSince)
 
     companion object {
         fun fromJson(o: JSONObject) = SportState(
             o.optJSONObject("program")?.let { SportProgram.fromJson(it) },
-            o.optJSONArray("done")?.strings()?.toSet() ?: emptySet()
+            o.optJSONArray("done")?.strings()?.toSet() ?: emptySet(),
+            o.optInt("running", -1),
+            o.optLong("runningSince", 0L)
         )
     }
 }

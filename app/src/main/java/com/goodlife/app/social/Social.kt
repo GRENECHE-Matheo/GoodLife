@@ -25,7 +25,7 @@ object Social {
         if (!canShare()) return null
         val s = Repo.settings.value
         val p = Repo.profile.value ?: return null
-        val summary = Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = s.scoreRulesFrom, foodOnlyFrom = s.foodOnlyFrom)
+        val summary = Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = s.scoreRulesFrom, foodOnlyFrom = s.foodOnlyFrom, richFrom = s.richScoreFrom)
         val today = (System.currentTimeMillis() / 86_400_000L).toInt()
         val cheers = Repo.social.value.cheersOut.filter { today - it.day <= 7 }
             .sortedByDescending { it.at }.take(5).map { Cheer(it.to, it.message, it.day) }

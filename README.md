@@ -22,7 +22,14 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.11.0
+## 🆕 Nouveautés de la v0.12.0
+
+- **Mon frigo** (à la main, par ticket de caisse ou en le disant au chef) et un **chef qui propose de modifier** ton
+  frigo, ton planning et ton programme, avec ta validation.
+- **Photo : on corrige le poids**, les calories suivent ; **boissons** comptées (l'eau va dans l'eau).
+- **Score plus juste** (calories, protéines, repas), **sport au chrono**, **widgets refaits**, graphiques à toucher.
+
+## Nouveautés de la v0.11.0
 
 - **Boucles et itinéraires bien plus rapides** (rues lues dans les tuiles de la carte, préparées à l'avance).
 - **Nouvelle icône verte**, **caméra et accueil adaptés au paysage**, invitations par lien **confirmées avant ajout**.

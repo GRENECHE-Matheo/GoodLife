@@ -1,9 +1,19 @@
 <resources>
-    <!-- Widgets du chef (thème clair) -->
-    <color name="widget_bg">#F2FFFFFF</color>
+    <!-- Widgets du chef (thème clair, Material 3) -->
+    <color name="widget_bg">#FFFBFDF9</color>
     <color name="widget_text">#1C1B1F</color>
     <color name="widget_sub">#5F6368</color>
     <color name="widget_accent">#34A853</color>
+    <color name="widget_accent_strong">#1E8E3E</color>
     <color name="widget_track">#E3E7EE</color>
     <color name="widget_steps">#4285F4</color>
+    <color name="widget_water">#12A4C8</color>
+    <color name="widget_protein">#E37400</color>
+    <!-- Cercle du chef, pastille de série, boutons et ligne du repas -->
+    <color name="widget_chef_circle">#E6F4EA</color>
+    <color name="widget_streak_bg">#FEEFC3</color>
+    <color name="widget_streak_text">#8A4B00</color>
+    <color name="widget_btn_bg">#D7EFDC</color>
+    <color name="widget_btn_text">#0D652D</color>
+    <color name="widget_tile_bg">#EEF2EC</color>
 </resources>

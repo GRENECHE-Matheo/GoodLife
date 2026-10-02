@@ -47,7 +47,7 @@ object Weekly {
     fun myStats(): WeekStats? {
         val p = Repo.profile.value ?: return null
         val game = Repo.game.value
-        val s = Game.summarize(Repo.meals.value, p, game, Repo.steps.value.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom)
+        val s = Game.summarize(Repo.meals.value, p, game, Repo.steps.value.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom, richFrom = Repo.settings.value.richScoreFrom)
         val from = monday()
         val past = s.history.filter { it.date >= from }
         val days = past.count { it.status == DayStatus.REUSSI || it.status == DayStatus.RATTRAPE } +

@@ -1,46 +1,157 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Petit widget : le chef, la série, les calories et les pas du jour -->
+<!--
+    Petit widget (2×2) : la série en haut, le chef au centre dans l'anneau des calories du jour,
+    puis les calories mangées et les pas. Les textes et chiffres ci-dessous ne servent qu'à l'aperçu
+    (liste des widgets) : ChefWidgets les remplace tous à chaque mise à jour.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+    android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="6dp">
+    android:paddingStart="12dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="10dp">
 
-    <ImageView
-        android:id="@+id/widget_chef"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:contentDescription="@string/widget_chef_desc"
-        android:src="@drawable/widget_chef_preview"
-        android:scaleType="fitCenter" />
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_streak"
+            android:ellipsize="end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_pill_streak"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:paddingStart="8dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp"
+            android:text="🔥 12"
+            android:textColor="@color/widget_streak_text"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_freeze"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:maxLines="1"
+            android:text="❄️ 1"
+            android:textColor="@color/widget_sub"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:minHeight="60dp">
+
+        <ProgressBar
+            android:id="@+id/widget_ring"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_gravity="center"
+            android:indeterminate="false"
+            android:max="100"
+            android:progress="62"
+            android:progressDrawable="@drawable/widget_ring" />
+
+        <ImageView
+            android:id="@+id/widget_chef"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:background="@drawable/widget_chef_circle"
+            android:contentDescription="@string/widget_chef_desc"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_chef_preview" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_kcal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:text="1 240"
+                android:textColor="@color/widget_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_kcal_sub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_preview_kcal_left"
+                android:textColor="@color/widget_accent_strong"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_steps_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_steps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:text="5 432"
+                android:textColor="@color/widget_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_steps_sub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_steps_unit"
+                android:textColor="@color/widget_steps"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/widget_streak"
+        android:id="@+id/widget_note"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:maxLines="1"
-        android:text="🔥 0"
-        android:textColor="@color/widget_text"
-        android:textSize="15sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_kcal"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/widget_sub"
-        android:textSize="11sp" />
-
-    <TextView
-        android:id="@+id/widget_steps"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:textColor="@color/widget_sub"
-        android:textSize="11sp" />
+        android:textSize="12sp"
+        android:visibility="gone" />
 </LinearLayout>

@@ -5,6 +5,7 @@ import com.goodlife.app.i18n.tp
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,7 +76,15 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 /** Un message de la conversation avec le coach, et les repas qu'il propose d'ajouter au planning. */
-private class CoachEntry(val message: ChatMessage, val meals: List<CoachMeal> = emptyList(), val shopping: List<com.goodlife.app.ai.ShopItem> = emptyList())
+private class CoachEntry(
+    val message: ChatMessage,
+    val meals: List<CoachMeal> = emptyList(),
+    val shopping: List<com.goodlife.app.ai.ShopItem> = emptyList(),
+    val fridgeAdd: List<com.goodlife.app.data.FridgeItem> = emptyList(),
+    val fridgeRemove: List<Pair<String, Double>> = emptyList(),
+    val sessions: List<com.goodlife.app.data.SportSession> = emptyList(),
+    val removeDays: List<Int> = emptyList()
+)
 
 /**
  * La conversation reste en mémoire tant que l'app est ouverte (pour pouvoir revenir à l'accueil et y retourner),
@@ -109,7 +118,8 @@ Tu es « le chef », le coach bienveillant de l'app GoodLife : alimentation, cui
 Tu tutoies, tu es chaleureux, positif et concret. Tu t'appuies sur les chiffres de la personne donnés plus bas
 (sans les réciter tous) pour personnaliser tes conseils. Jamais de culpabilisation ni de régime restrictif ;
 ne pousse jamais à manger sous l'objectif calorique. Réponse courte (2 à 8 phrases, listes « • » permises).
-Réponds UNIQUEMENT en JSON : {"reply": "ta réponse", "meals": [], "courses": []}
+Réponds UNIQUEMENT en JSON : {"reply": "ta réponse", "meals": [], "courses": [], "frigo_ajout": [], "frigo_retrait": [],
+"programme_seances": [], "programme_retirer": []}
 Si la personne envoie une photo (aliment, plat, étiquette, frigo, menu…), décris prudemment ce que tu vois et donne
 un conseil adapté ; une estimation de calories reste approximative : dis-le, et ne prétends jamais en être sûr.
 "courses" reste vide, SAUF si la personne demande une liste de courses (ou des repas pour plusieurs jours et une liste) :
@@ -120,7 +130,18 @@ planning de la semaine…). Chaque repas : {"date": "AAAA-MM-JJ", "slot": "PETIT
 "name": "nom court", "kcal": 0, "description": "ingrédients et quantités, en une ou deux phrases"}.
 Dates à partir d'aujourd'hui (jamais un créneau déjà passé aujourd'hui), au plus 14 jours. Respecte les allergies,
 les habitudes et l'objectif calorique réparti sur la journée, en tenant compte de ce qui est déjà mangé ou prévu.
-Ne dis jamais que tu as ajouté les repas au planning : la personne les ajoute elle-même avec un bouton si elle le veut.
+Pour changer les repas d'un jour précis, propose les nouveaux repas de ce jour dans "meals" : ils remplaceront ceux du
+même créneau quand la personne validera.
+"frigo_ajout" reste vide, SAUF si la personne dit ce qu'elle a chez elle ou ce qu'elle vient d'acheter : chaque article
+{"nom": "nom simple", "quantite": nombre, "unite": "pièce|g|kg|ml|L|boîte|paquet|bouteille", "rayon": "Fruits et légumes|Viandes et poissons|Produits frais|Épicerie|Surgelés|Boulangerie|Boissons|Autres"}.
+"frigo_retrait" reste vide, SAUF si elle dit avoir fini, mangé ou jeté quelque chose de SON FRIGO (liste plus bas) :
+{"nom": "nom EXACT de la liste du frigo", "quantite": nombre dans la même unité}.
+"programme_seances" reste vide, SAUF si elle demande de modifier son programme sportif (remplacer un exercice, séance plus
+facile, autre jour…) : donne chaque séance modifiée ou ajoutée en entier {"jour": 1-7 (1 = lundi), "titre": "...",
+"minutes": 30, "echauffement": "...", "exercices": [{"nom": "...", "detail": "...", "repos": "...", "conseil": "..."}],
+"retour_au_calme": "..."} ; elle remplace la séance de ce jour. "programme_retirer" : jours de séances à supprimer.
+Respecte toujours ses limites et douleurs. Ne dis jamais que tu as déjà modifié le planning, le frigo, la liste ou le
+programme : la personne valide elle-même chaque proposition avec un bouton.
 """
 
 @Composable
@@ -181,7 +202,7 @@ fun CoachScreen(onBack: () -> Unit) {
             try {
                 val system = CHAT_RULES + "\n" + COACH_RULES + t("\nChiffres et contexte de la personne :\n") + Coach.aiContext()
                 val r = Gemini(settings.apiKey, settings.model).coach(system, entries.map { it.message })
-                entries.add(CoachEntry(ChatMessage(false, r.text), r.meals, r.shopping))
+                entries.add(CoachEntry(ChatMessage(false, r.text), r.meals, r.shopping, r.fridgeAdd, r.fridgeRemove, r.sessions, r.removeDays))
                 CoachSession.persist()
             } catch (e: Exception) {
                 entries.removeAt(entries.lastIndex)
@@ -228,7 +249,7 @@ fun CoachScreen(onBack: () -> Unit) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (dailyWord.isNotBlank()) Bubble(false, dailyWord)
                                 Bubble(false,
-                                    if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres, et si je te propose des repas, tu pourras les ajouter à ton planning en un geste.")
+                                    if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres. Dis-moi aussi ce que tu as dans ton frigo, ou ce que tu veux changer dans ton planning ou ton programme : je te le propose, tu valides d'un bouton.")
                                     else t("Pour discuter avec moi, active l'IA et ajoute ta clé Gemini dans Profil › Paramètres › Intelligence artificielle (18 ans et plus). En attendant, je te laisse mes petits mots ici et dans tes notifications !")
                                 )
                             }
@@ -241,6 +262,8 @@ fun CoachScreen(onBack: () -> Unit) {
                             if (!e.message.fromUser) {
                                 if (e.meals.isNotEmpty()) MealProposals(i, e.meals)
                                 if (e.shopping.isNotEmpty()) ShoppingProposal(i, e.shopping)
+                                if (e.fridgeAdd.isNotEmpty() || e.fridgeRemove.isNotEmpty()) FridgeProposal(i, e.fridgeAdd, e.fridgeRemove)
+                                if (e.sessions.isNotEmpty() || e.removeDays.isNotEmpty()) ProgramProposal(i, e.sessions, e.removeDays)
                                 AiContentFooter(t("Coach GoodLife\n%1\$s", e.message.text), Modifier.widthIn(max = 340.dp))
                             }
                         }
@@ -310,10 +333,19 @@ fun CoachScreen(onBack: () -> Unit) {
                             onDismiss = { askConsent = null; input = q }
                         )
                     }
+                    // Une seule ligne (le détail complet a été accepté au premier message, et reste à un appui)
+                    var privacyInfo by remember { mutableStateOf(false) }
                     Text(
-                        t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. L'historique reste chiffré sur ton téléphone, sans les photos."),
+                        t("Envoyé à Google Gemini avec ta clé · En savoir plus"),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                            .clickable { privacyInfo = true }
+                    )
+                    if (privacyInfo) androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { privacyInfo = false },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { privacyInfo = false }) { Text(t("OK")) } },
+                        title = { Text(t("Ce que voit Google")) },
+                        text = { Text(t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. L'historique reste chiffré sur ton téléphone, sans les photos.")) }
                     )
                 }
             }
@@ -341,9 +373,13 @@ private fun CoachConsentDialog(onAccept: () -> Unit, onDismiss: () -> Unit) {
 @Composable
 private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
     val added = CoachSession.added
+    val plan by Repo.plan.collectAsState()
+    fun existing(m: CoachMeal) = plan.firstOrNull { it.date == m.date && it.slot == m.slot && !it.done }
     fun add(i: Int, m: CoachMeal) {
         val key = "$entry#$i"
         if (added[key] == true) return
+        // Un repas déjà prévu sur ce créneau (pas encore mangé) est remplacé
+        existing(m)?.let { Repo.deletePlanned(it.id) }
         Repo.addPlanned(PlannedMeal(
             id = System.currentTimeMillis() + i, date = m.date, slot = m.slot, name = m.name, kcal = m.kcal, description = m.description
         ))
@@ -361,11 +397,14 @@ private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
                             color = MaterialTheme.colorScheme.onSecondaryContainer)
                         if (m.description.isNotBlank()) Text(m.description, style = MaterialTheme.typography.bodySmall,
                             maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        val old = if (done) null else existing(m)
+                        if (old != null) Text(t("Remplace « %1\$s »", old.name), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     TextButton(enabled = !done, onClick = { add(i, m) }) {
                         Icon(if (done) Icons.Filled.Check else Icons.Filled.DateRange, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(if (done) t("Ajouté") else t("Ajouter"))
+                        Text(if (done) t("Ajouté") else if (existing(m) != null) t("Remplacer") else t("Ajouter"))
                     }
                 }
             }
@@ -374,7 +413,7 @@ private fun MealProposals(entry: Int, meals: List<CoachMeal>) {
         if (meals.size > 1 && remaining > 0) FilledTonalButton(onClick = { meals.forEachIndexed { i, m -> add(i, m) } }) {
             Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
-            Text(t("Tout ajouter au planning (%1\$s)", remaining))
+            Text(t("Tout valider dans le planning (%1\$s)", remaining))
         }
     }
 }
@@ -447,7 +486,12 @@ private object CoachHistory {
                 .put("meals", org.json.JSONArray().apply { e.meals.forEach { m ->
                     put(org.json.JSONObject().put("d", m.date).put("s", m.slot.name).put("n", m.name).put("k", m.kcal).put("x", m.description)) } })
                 .put("shop", org.json.JSONArray().apply { e.shopping.forEach { s ->
-                    put(org.json.JSONObject().put("n", s.name).put("q", s.qty).put("r", s.aisle)) } }))
+                    put(org.json.JSONObject().put("n", s.name).put("q", s.qty).put("r", s.aisle)) } })
+                .put("fa", org.json.JSONArray().apply { e.fridgeAdd.forEach { f ->
+                    put(org.json.JSONObject().put("n", f.name).put("q", f.qty).put("u", f.unit).put("r", f.aisle)) } })
+                .put("fr", org.json.JSONArray().apply { e.fridgeRemove.forEach { (n, q) -> put(org.json.JSONObject().put("n", n).put("q", q)) } })
+                .put("ps", org.json.JSONArray().apply { e.sessions.forEach { put(it.toJson()) } })
+                .put("pr", org.json.JSONArray(e.removeDays)))
         }
         val title = entries.firstOrNull { it.message.fromUser }?.message?.text?.take(60) ?: t("Conversation")
         val json = org.json.JSONObject().put("id", id).put("title", title).put("at", System.currentTimeMillis())
@@ -465,7 +509,12 @@ private object CoachHistory {
                     it.optString("n"), it.optInt("k"), it.optString("x")) } } } ?: emptyList()
             val shop = o.optJSONArray("shop")?.let { m -> (0 until m.length()).map { j -> m.getJSONObject(j).let {
                 com.goodlife.app.ai.ShopItem(it.optString("n"), it.optString("q"), it.optString("r")) } } } ?: emptyList()
-            CoachEntry(ChatMessage(o.optBoolean("u"), text), meals, shop)
+            val fa = o.optJSONArray("fa")?.let { m -> (0 until m.length()).map { j -> m.getJSONObject(j).let {
+                com.goodlife.app.data.FridgeItem(it.optString("n"), it.optDouble("q", 1.0), it.optString("u"), it.optString("r")) } } } ?: emptyList()
+            val fr = o.optJSONArray("fr")?.let { m -> (0 until m.length()).map { j -> m.getJSONObject(j).let { it.optString("n") to it.optDouble("q", 0.0) } } } ?: emptyList()
+            val ps = o.optJSONArray("ps")?.let { m -> (0 until m.length()).mapNotNull { j -> runCatching { com.goodlife.app.data.SportSession.fromJson(m.getJSONObject(j)) }.getOrNull() } } ?: emptyList()
+            val pr = o.optJSONArray("pr")?.let { m -> (0 until m.length()).map { m.optInt(it) } } ?: emptyList()
+            CoachEntry(ChatMessage(o.optBoolean("u"), text), meals, shop, fa, fr, ps, pr)
         }
         val added = c.json.optJSONObject("added")?.let { o -> o.keys().asSequence().associateWith { true } } ?: emptyMap()
         return list to added
@@ -529,4 +578,49 @@ private fun CoachHistoryScreen(onClose: () -> Unit, onOpen: (CoachHistory.Conv) 
         confirmButton = { TextButton(onClick = { CoachHistory.clear(); CoachSession.id = 0L; convs = emptyList(); confirmClear = false }) { Text(t("Effacer")) } },
         dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(t("Annuler")) } }
     )
+}
+
+/** Le chef propose de mettre à jour « Mon frigo » : rien ne change avant l'appui sur le bouton. */
+@Composable
+private fun FridgeProposal(entry: Int, add: List<com.goodlife.app.data.FridgeItem>, remove: List<Pair<String, Double>>) {
+    val added = CoachSession.added
+    val key = "$entry#frigo"
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.widthIn(max = 360.dp).padding(top = 6.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(t("🧊 Mettre à jour ton frigo"), style = MaterialTheme.typography.titleSmall)
+            if (add.isNotEmpty()) Text(t("Ajouter : %1\$s", add.joinToString(", ") { "${it.name} (${it.qtyText()})" }),
+                style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
+            if (remove.isNotEmpty()) Text(t("Retirer : %1\$s", remove.joinToString(", ") { (n, q) -> "$n (${if (q % 1.0 == 0.0) q.toLong() else q})" }),
+                style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
+            if (added[key] == true) Text(t("Frigo mis à jour ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            else FilledTonalButton(onClick = {
+                if (add.isNotEmpty()) com.goodlife.app.data.Fridge.add(add)
+                if (remove.isNotEmpty()) com.goodlife.app.data.Fridge.remove(remove)
+                added[key] = true; CoachSession.persist()
+            }) { Text(t("Mettre à jour mon frigo")) }
+        }
+    }
+}
+
+/** Le chef propose de modifier le programme sportif : séances remplacées ou ajoutées, jours retirés. */
+@Composable
+private fun ProgramProposal(entry: Int, sessions: List<com.goodlife.app.data.SportSession>, removeDays: List<Int>) {
+    val added = CoachSession.added
+    val key = "$entry#programme"
+    val days = listOf(t("Lundi"), t("Mardi"), t("Mercredi"), t("Jeudi"), t("Vendredi"), t("Samedi"), t("Dimanche"))
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.widthIn(max = 360.dp).padding(top = 6.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(t("🏋️ Modifier ton programme"), style = MaterialTheme.typography.titleSmall)
+            sessions.forEach { s ->
+                Text(t("%1\$s : %2\$s (%3\$s min)", days[s.day - 1], s.title, s.minutes), style = MaterialTheme.typography.labelLarge)
+                Text(s.exercises.joinToString(", ") { "${it.name} ${it.detail}" }, style = MaterialTheme.typography.bodySmall,
+                    maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+            if (removeDays.isNotEmpty()) Text(t("Séances retirées : %1\$s", removeDays.joinToString(", ") { days[it - 1] }), style = MaterialTheme.typography.bodySmall)
+            if (added[key] == true) Text(t("Programme mis à jour ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            else FilledTonalButton(onClick = { Repo.applySessions(sessions, removeDays); added[key] = true; CoachSession.persist() }) {
+                Text(t("Appliquer à mon programme"))
+            }
+        }
+    }
 }

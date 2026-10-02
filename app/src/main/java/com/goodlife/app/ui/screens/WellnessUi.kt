@@ -6,6 +6,7 @@ import com.goodlife.app.i18n.t
 import com.goodlife.app.i18n.tp
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -202,16 +203,27 @@ fun BadgesSection(summary: GameSummary) {
     val all = remember(summary) { Milestones.badges(summary) }
     LaunchedEffect(all) { Milestones.markBadgesSeen(all) }
     SectionCard(title = t("Badges · %1\$s/%2\$s", all.count { it.unlocked }, all.size), icon = Icons.Filled.EmojiEvents) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            all.forEach { b -> BadgeChip(b) }
+        // Grille qui remplit toute la largeur : autant de colonnes que la place le permet (≥ 92 dp chacune),
+        // de la plus petite à la plus grande largeur de téléphone ou de tablette
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val gap = 8.dp
+            val cols = ((maxWidth + gap) / (92.dp + gap)).toInt().coerceIn(2, 8)
+            Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                all.chunked(cols).forEach { row ->
+                    Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                        row.forEach { b -> BadgeChip(b, Modifier.weight(1f).fillMaxHeight()) }
+                        repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun BadgeChip(b: Badge) {
+private fun BadgeChip(b: Badge, modifier: Modifier = Modifier) {
     Surface(shape = RoundedCornerShape(16.dp), color = if (b.unlocked) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.width(100.dp)) {
+        modifier = modifier) {
         Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(if (b.unlocked) b.emoji else "🔒", style = MaterialTheme.typography.headlineSmall)
             Text(b.title, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2,

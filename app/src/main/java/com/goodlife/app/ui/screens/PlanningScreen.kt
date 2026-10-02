@@ -2,6 +2,10 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.Close
 import com.goodlife.app.i18n.t
 
 import androidx.compose.animation.AnimatedContent
@@ -109,6 +113,8 @@ fun PlanningScreen() {
     var selected by rememberSaveable { mutableStateOf(localDay(0)) }
     var addSlot by remember { mutableStateOf<MealSlot?>(null) }
     var generate by remember { mutableStateOf(false) }
+    var redoDay by remember { mutableStateOf<String?>(null) }
+    var confirmClear by remember { mutableStateOf(false) }
     var shopping by remember { mutableStateOf(false) }
     var fridge by remember { mutableStateOf(false) }
 
@@ -129,7 +135,7 @@ fun PlanningScreen() {
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { shopping = true }) { Text(t("🛒 Liste de courses")) }
-            if (settings.aiEnabled) OutlinedButton(onClick = { fridge = true }) { Text(t("🧊 Mon frigo")) }
+            OutlinedButton(onClick = { fridge = true }) { Text(t("🧊 Mon frigo")) }
         }
 
         // Semaine : « 29 sept. – 5 oct. » avec flèches
@@ -146,6 +152,11 @@ fun PlanningScreen() {
             IconButton(onClick = { week++; selected = weekDays(week).first() }) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, t("Semaine suivante"))
             }
+        }
+        val clearable = plan.count { it.date in days && it.date >= localDay(0) && !it.done }
+        if (clearable > 0) TextButton(onClick = { confirmClear = true }, modifier = Modifier.align(Alignment.End)) {
+            Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+            Text(t("Vider la semaine (%1\$s repas)", clearable))
         }
 
         // 7 pastilles de jour sur une ligne, un point sous les jours déjà planifiés
@@ -186,7 +197,13 @@ fun PlanningScreen() {
             val total = ofDay.sumOf { it.kcal }
             val cost = ofDay.sumOf { it.costEur }
             SectionCard {
-                Text(fmt(day, "EEEE d MMMM").replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(fmt(day, "EEEE d MMMM").replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    if (settings.aiEnabled && day >= localDay(0)) TextButton(onClick = { redoDay = day }) {
+                        Icon(Icons.Filled.AutoAwesome, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp))
+                        Text(if (ofDay.any { !it.done }) t("Changer ce jour") else t("Prévoir ce jour"))
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (target > 0) t("%1\$s / %2\$s kcal prévues", total, target) else t("%1\$s kcal prévues", total),
@@ -230,7 +247,15 @@ fun PlanningScreen() {
     addSlot?.let { s ->
         AddToPlanDialog(initialSlot = s, initialDate = selected, onDismiss = { addSlot = null })
     }
-    if (generate) WeekPlanDialog(startDate = days.first(), onDismiss = { generate = false }, onDone = { selected = it })
+    if (generate) WeekPlanDialog(startDate = maxOf(days.first(), localDay(0)), onDismiss = { generate = false }, onDone = { selected = it })
+    redoDay?.let { d -> WeekPlanDialog(startDate = d, days = 1, onDismiss = { redoDay = null }, onDone = { selected = it }) }
+    if (confirmClear) AlertDialog(
+        onDismissRequest = { confirmClear = false },
+        title = { Text(t("Vider la semaine ?")) },
+        text = { Text(t("Les repas prévus à partir d'aujourd'hui et pas encore mangés seront retirés. Ton journal ne change pas.")) },
+        confirmButton = { TextButton(onClick = { Repo.clearPlanned(days.filter { it >= localDay(0) }.toSet()); confirmClear = false }) { Text(t("Vider")) } },
+        dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(t("Annuler")) } }
+    )
     if (shopping) androidx.compose.ui.window.Dialog(onDismissRequest = { shopping = false },
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) { ShoppingScreen(onBack = { shopping = false }) }
     if (fridge) FridgeDialog(onDismiss = { fridge = false })
@@ -297,11 +322,11 @@ private fun PlannedRow(m: PlannedMeal) {
 
 /** Génère la semaine avec l'IA : budget, nombre de personnes, repas à prévoir. */
 @Composable
-private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (String) -> Unit) {
+private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (String) -> Unit, days: Int = 7) {
     val settings by Repo.settings.collectAsState()
     val profile by Repo.profile.collectAsState()
     val scope = rememberCoroutineScope()
-    var budget by rememberSaveable { mutableStateOf("50") }
+    var budget by rememberSaveable { mutableStateOf(if (days == 1) "10" else "50") }
     var people by rememberSaveable { mutableIntStateOf(1) }
     var slots by remember { mutableStateOf(setOf(MealSlot.DEJEUNER, MealSlot.DINER)) }
     var notes by rememberSaveable { mutableStateOf(Repo.settings.value.planNotes) }
@@ -314,17 +339,25 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
     AlertDialog(
         onDismissRequest = { if (!loading) onDismiss() },
         icon = { Icon(Icons.Filled.AutoAwesome, null) },
-        title = { Text(if (result == null) t("Planifier ma semaine") else t("Ta semaine est prête")) },
+        title = {
+            Text(when {
+                days == 1 && result == null -> t("Changer le %1\$s", fmt(startDate, "EEEE d MMMM"))
+                days == 1 -> t("Ta journée est prête")
+                result == null -> t("Planifier ma semaine")
+                else -> t("Ta semaine est prête")
+            })
+        },
         text = {
             val r = result
             if (r == null) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    t("À partir du %1\$s. L'IA vise ton budget avec les prix moyens en supermarché en France : ce sont des estimations.", fmt(startDate, "EEEE d MMMM")),
+                    if (days == 1) t("L'IA vise ton budget avec les prix moyens actuels en supermarché en France : ce sont des estimations.")
+                    else t("À partir du %1\$s. L'IA vise ton budget avec les prix moyens actuels en supermarché en France : ce sont des estimations.", fmt(startDate, "EEEE d MMMM")),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
                     budget, { budget = it.filter(Char::isDigit).take(4) },
-                    label = { Text(t("Budget de la semaine (€)")) }, singleLine = true,
+                    label = { Text(if (days == 1) t("Budget de la journée (€)") else t("Budget de la semaine (€)")) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -357,10 +390,10 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                 if (loading) Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(10.dp))
-                    Text(t("L'IA prépare ta semaine…"), style = MaterialTheme.typography.bodySmall)
+                    Text(if (days == 1) t("L'IA prépare ta journée…") else t("L'IA prépare ta semaine…"), style = MaterialTheme.typography.bodySmall)
                 }
                 if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            } else Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val total = r.first.sumOf { it.costEur }
                 Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
@@ -369,6 +402,23 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                     }
                 }
                 if (r.second.isNotBlank()) Text(r.second, style = MaterialTheme.typography.bodyMedium)
+                // Aperçu repas par repas : on voit tout avant de valider, et on peut retirer ce qui ne plaît pas
+                r.first.groupBy { it.date }.toSortedMap().forEach { (d, list) ->
+                    Text(fmt(d, "EEEE d MMMM").replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary)
+                    list.sortedBy { it.slot.ordinal }.forEach { m ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(m.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text(listOfNotNull(m.slot.label, "${m.kcal} kcal", m.costEur.takeIf { it > 0 }?.let { "≈ ${euros(it)}" }).joinToString(" · "),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { result = r.copy(first = r.first.filterNot { it.id == m.id }) }) {
+                                Icon(Icons.Filled.Close, t("Retirer ce repas"))
+                            }
+                        }
+                    }
+                }
                 Text(
                     t("Les repas déjà prévus (non mangés) sur ces créneaux seront remplacés."),
                     style = MaterialTheme.typography.bodySmall,
@@ -389,7 +439,7 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                         scope.launch {
                             try {
                                 result = Gemini(settings.apiKey, settings.model)
-                                    .planWeek(profile!!, startDate, b!!, people, MealSlot.entries.filter { it in slots }, notes.trim())
+                                    .planWeek(profile!!, startDate, b!!, people, MealSlot.entries.filter { it in slots }, notes.trim(), days)
                             } catch (e: Exception) {
                                 error = e.message
                             } finally {
@@ -399,8 +449,8 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
                     }
                 ) { Text(t("Générer")) }
             } else {
-                TextButton(onClick = {
-                    Repo.addPlannedWeek(r.first, r.first.map { it.date }.toSet() + weekDaysFrom(startDate), slots)
+                TextButton(enabled = r.first.isNotEmpty(), onClick = {
+                    Repo.addPlannedWeek(r.first, r.first.map { it.date }.toSet() + weekDaysFrom(startDate, days), slots)
                     // Liste de courses remplie toute seule à partir de la semaine (en arrière-plan, même si le dialogue se ferme)
                     if (withShopping) {
                         val meals = r.first
@@ -423,7 +473,7 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
     )
 }
 
-private fun weekDaysFrom(start: String): Set<String> {
+private fun weekDaysFrom(start: String, days: Int = 7): Set<String> {
     val c = Calendar.getInstance().apply { time = parse(start) ?: time }
-    return (0..6).map { ISO.format(c.time).also { c.add(Calendar.DAY_OF_YEAR, 1) } }.toSet()
+    return (0 until days).map { ISO.format(c.time).also { c.add(Calendar.DAY_OF_YEAR, 1) } }.toSet()
 }

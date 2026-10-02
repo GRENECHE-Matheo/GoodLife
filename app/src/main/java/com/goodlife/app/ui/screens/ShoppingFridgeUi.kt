@@ -194,6 +194,11 @@ fun ShoppingScreen(onBack: () -> Unit) {
                                 .putExtra(Intent.EXTRA_TEXT, Shopping.text(items)), t("Partager la liste")))
                         }
                     }) { Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Partager")) }
+                    // Articles achetés : rangés dans « Mon frigo » en un geste (et retirés de la liste)
+                    if (items.any { it.checked }) TextButton(onClick = {
+                        com.goodlife.app.data.Fridge.add(items.filter { it.checked }.map { it.toFridgeItem() })
+                        update(items.filter { !it.checked })
+                    }) { Text(t("Ranger les cochés dans le frigo")) }
                     TextButton(onClick = { update(items.filter { !it.checked }) }) { Text(t("Retirer les cochés")) }
                     TextButton(onClick = { update(emptyList()) }) { Text(t("Tout effacer")) }
                 }
@@ -223,113 +228,5 @@ class CameraFiles : FileProvider()
 fun FridgeDialog(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { FridgeContent(onDismiss) }
-    }
-}
-
-@Composable
-private fun FridgeContent(onClose: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val settings by Repo.settings.collectAsState()
-    val profile by Repo.profile.collectAsState()
-    val meals by Repo.meals.collectAsState()
-    var photo by remember { mutableStateOf<ByteArray?>(null) }
-    var written by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var result by remember { mutableStateOf<FridgeResult?>(null) }
-    var planFor by remember { mutableStateOf<FridgeIdea?>(null) }
-    var info by remember { mutableStateOf<String?>(null) }
-    val shotUri = remember {
-        val dir = File(context.cacheDir, "camera").apply { mkdirs() }
-        FileProvider.getUriForFile(context, context.packageName + ".camera", File(dir, "frigo.jpg"))
-    }
-    val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        if (ok) scope.launch {
-            photo = withContext(Dispatchers.IO) { readPhoto(context, shotUri) }
-            runCatching { File(File(context.cacheDir, "camera"), "frigo.jpg").delete() }   // la photo n'est pas gardée
-        }
-    }
-    val askCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) takePhoto.launch(shotUri) else error = t("Sans l'accès à la caméra, choisis plutôt une photo dans ta galerie.")
-    }
-    val pick = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) scope.launch { photo = withContext(Dispatchers.IO) { readPhoto(context, uri) } }
-    }
-    val p = profile ?: return
-    val remaining = (p.targetKcal - Repo.mealsOfDay(meals).sumOf { it.kcal }).coerceAtLeast(0)
-    val aiReady = Repo.aiAllowed() && settings.apiKey.isNotBlank()
-
-    ScreenColumn {
-        SubScreenHeader(t("J'ai ça dans mon frigo"), onClose)
-        if (!aiReady) {
-            Text(t("Cette fonction utilise l'IA : active-la et ajoute ta clé Gemini dans Profil › Paramètres (18 ans et plus)."),
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            return@ScreenColumn
-        }
-        SectionCard {
-            Text(t("Prends en photo ton frigo ou tes placards, et/ou écris ce que tu as. Le chef te propose des recettes anti-gaspi."),
-                style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = {
-                    if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) takePhoto.launch(shotUri)
-                    else askCamera.launch(Manifest.permission.CAMERA)
-                }) { Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Photo")) }
-                OutlinedButton(onClick = { pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Galerie"))
-                }
-            }
-            photo?.let { bytes ->
-                val bmp = remember(bytes) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
-                if (bmp != null) Image(bmp, t("Photo du frigo"), Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
-                TextButton(onClick = { photo = null }) { Text(t("Retirer la photo")) }
-            }
-            OutlinedTextField(written, { written = it.take(400) }, label = { Text(t("Ce que tu as (facultatif)")) },
-                placeholder = { Text(t("Ex : 3 œufs, épinards, riz, une tomate…")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
-            Button(enabled = !loading && (photo != null || written.isNotBlank()), onClick = {
-                loading = true; error = null; result = null
-                scope.launch {
-                    try { result = Gemini(settings.apiKey, settings.model).fridge(photo, written, p, remaining) }
-                    catch (e: Exception) { error = e.message } finally { loading = false }
-                }
-            }) {
-                if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp)); Text(t("Que cuisiner ?"))
-            }
-            Text(t("La photo et ta liste sont envoyées à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée."),
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-        result?.let { r ->
-            if (r.seen.isNotEmpty()) SectionCard(title = t("Le chef a repéré")) { Text(r.seen.joinToString(", "), style = MaterialTheme.typography.bodyMedium) }
-            r.ideas.forEach { idea ->
-                SectionCard(title = idea.name) {
-                    Text(t("%1\$s · %2\$s kcal · %3\$s min", idea.moment.replaceFirstChar { it.uppercase() }, idea.kcal, idea.minutes),
-                        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    if (idea.uses.isNotEmpty()) Text(t("Avec : %1\$s", idea.uses.joinToString(", ")), style = MaterialTheme.typography.bodyMedium)
-                    if (idea.missing.isNotEmpty()) Text(t("Il te manque : %1\$s", idea.missing.joinToString(", ")), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    idea.steps.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodySmall) }
-                    AiContentFooter("Recette du frigo : ${idea.name}\n${idea.steps.joinToString("\n")}")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledTonalButton(onClick = { planFor = idea }) { Text(t("Planifier")) }
-                        if (idea.missing.isNotEmpty()) TextButton(onClick = {
-                            Shopping.add(idea.missing.map { ShopItem(it, "", t("Pour « %1\$s »", idea.name)) })
-                            info = t("Ajouté à ta liste de courses : %1\$s", idea.missing.joinToString(", "))
-                        }) { Text(t("Ajouter les manquants à la liste")) }
-                    }
-                }
-            }
-            if (r.tip.isNotBlank()) Text(r.tip, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-            if (info != null) Text(info!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-        }
-    }
-
-    planFor?.let { idea ->
-        AddToPlanDialog(
-            initialName = idea.name, initialKcal = idea.kcal, initialSlot = MealSlot.guess(idea.moment),
-            description = t("Avec : ") + idea.uses.joinToString(", "),
-            recipe = Recipe(1, idea.minutes, idea.kcal, idea.uses + idea.missing, idea.steps, ""),
-            editableName = false, onDismiss = { planFor = null }
-        )
     }
 }

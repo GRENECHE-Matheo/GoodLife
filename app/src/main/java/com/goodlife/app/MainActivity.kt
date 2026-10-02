@@ -249,7 +249,13 @@ private fun MainTabs() {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // Demande venue d'une notification (écran Amis, dans l'onglet Profil)
     val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
-    LaunchedEffect(navRequest) { if (navRequest == "friends") tab = 4 }
+    LaunchedEffect(navRequest) {
+        when (navRequest) {
+            "friends" -> tab = 4
+            // Bouton « Photo » du widget : onglet Scanner
+            "scan" -> { tab = 1; com.goodlife.app.social.AppNav.request.value = null }
+        }
+    }
     // Retour du téléphone : depuis Scanner, Planning, Forme ou Profil, on revient à l'accueil (seul l'accueil ferme l'app).
     // Les écrans ouverts par-dessus (paramètres, amis, quiz…) gèrent leur propre retour en premier.
     androidx.activity.compose.BackHandler(enabled = tab != 0) { tab = 0 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.StrokeCap
 import com.goodlife.app.game.Game
@@ -121,19 +123,25 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     val game by Repo.game.collectAsState()
     val p = profile ?: return
     val steps by Repo.steps.collectAsState()
-    val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom) }
+    val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom, richFrom = Repo.settings.value.richScoreFrom) }
     var overlay by rememberSaveable { mutableStateOf("") }
-    SlideSwitch(overlay, depth = { when (it) { "" -> 0; "progress", "news", "coach" -> 1; else -> 2 } }) { screen ->
+    SlideSwitch(overlay, depth = { when { it == "" -> 0; it.startsWith("progress") || it == "news" || it == "coach" -> 1; else -> 2 } }) { screen ->
         when (screen) {
             "news" -> NewsScreen(onBack = { overlay = "" })
             "coach" -> CoachScreen(onBack = { overlay = "" })
             "progress" -> ProgressScreen(summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" })
+            // Ouvert depuis « Mon suivi » : directement sur le bon graphique (ou la pesée)
+            "progress:kcal", "progress:steps", "progress:weight", "progress:weighin" -> ProgressScreen(
+                summary, onBack = { overlay = "" }, onQuiz = { overlay = "quiz" },
+                focus = screen.substringAfter(':').let { if (it == "weighin") "weight" else it },
+                startWeighIn = screen == "progress:weighin"
+            )
             "quiz" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" })
             "quizgel" -> QuizScreen(summary.recoverableStreak, summary.quizDoneToday, summary.level.totalXp, onClose = { overlay = "" }, gelMode = true)
             else -> HomeContent(
                 onScan, summary, onProgress = { overlay = "progress" }, onQuiz = { overlay = "quiz" },
                 onOpenProfile = onOpenProfile, onNews = { overlay = "news" }, onCoach = { overlay = "coach" },
-                onGel = { overlay = "quizgel" }
+                onGel = { overlay = "quizgel" }, onTrack = { overlay = "progress:$it" }
             )
         }
     }
@@ -148,7 +156,8 @@ private fun HomeContent(
     onOpenProfile: () -> Unit,
     onNews: () -> Unit,
     onCoach: () -> Unit,
-    onGel: () -> Unit
+    onGel: () -> Unit,
+    onTrack: (String) -> Unit
 ) {
     val profile by Repo.profile.collectAsState()
     val meals by Repo.meals.collectAsState()
@@ -295,6 +304,9 @@ private fun HomeContent(
             }
         }
         QuickMeals()
+        // Actus : tout en haut, faciles à trouver
+        NewsTeaser(onOpen = onNews)
+        FridgeUndoCard()
 
         // Mise à jour disponible : bien visible, en haut (vérifiée à chaque ouverture de l'app)
         val update = if (settings.checkUpdates) Updater.availableUpdate() else null
@@ -359,6 +371,7 @@ private fun HomeContent(
             }
         }
 
+        TrackCard(onTrack)
         CoachCard(summary, p, onOpen = onCoach)
         MissionsCard(summary)
         if (!settings.notifAsked) NotifOptInCard()
@@ -445,15 +458,13 @@ private fun HomeContent(
             }
         }
 
-        NewsTeaser(onOpen = onNews)
-
         SectionCard(title = t("7 derniers jours"), icon = Icons.Filled.BarChart) {
             val days = (-6..0).toList()
             val values = days.map { d -> Repo.mealsOfDay(meals, d).sumOf { it.kcal }.toFloat() }
             val labels = days.map { d ->
                 formatDay(Repo.dayBounds(d).first).take(3).replaceFirstChar { it.uppercase() }
             }
-            WeekBars(values, p.targetKcal.toFloat(), labels, MaterialTheme.colorScheme.primary)
+            WeekBars(values, p.targetKcal.toFloat(), labels, MaterialTheme.colorScheme.primary, format = { "%.0f kcal".format(it) })
             Text(
                 t("Moyenne : %1\$s kcal/jour · la ligne jaune = ton objectif", values.average().toInt()),
                 style = MaterialTheme.typography.bodySmall,
@@ -549,5 +560,61 @@ private fun MealRow(m: Meal, favorite: Boolean, onFavorite: () -> Unit, onDelete
                 tint = if (favorite) GoogleYellow else MaterialTheme.colorScheme.onSurfaceVariant)
         }
         IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, t("Supprimer")) }
+    }
+}
+
+/**
+ * « Mon suivi » : calories, pas et poids en un coup d'œil. Chaque case ouvre directement son graphique ;
+ * « Me peser » ouvre la pesée sans chercher.
+ */
+@Composable
+private fun TrackCard(onTrack: (String) -> Unit) {
+    val meals by Repo.meals.collectAsState()
+    val steps by Repo.steps.collectAsState()
+    val game by Repo.game.collectAsState()
+    val profile by Repo.profile.collectAsState()
+    val settings by Repo.settings.collectAsState()
+    val p = profile ?: return
+    val avgKcal = remember(meals) {
+        (-7..-1).map { d -> Repo.mealsOfDay(meals, d).sumOf { it.kcal } }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.average()?.toInt()
+    }
+    val todaySteps = steps.days[com.goodlife.app.data.localDay(0)]?.steps
+    val weight = game.weights.lastOrNull()?.second ?: p.weightKg
+    SectionCard(title = t("Mon suivi"), icon = Icons.Filled.BarChart) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Max)) {
+            TrackTile("🔥", avgKcal?.let { t("%1\$s kcal", it) } ?: "—", t("moyenne 7 j"), Modifier.weight(1f)) { onTrack("kcal") }
+            TrackTile("👣", if (settings.stepsEnabled && todaySteps != null) formatSteps(todaySteps) else "—", t("pas aujourd'hui"), Modifier.weight(1f)) { onTrack("steps") }
+            TrackTile("⚖️", "%.1f kg".format(weight), t("dernier poids"), Modifier.weight(1f)) { onTrack("weight") }
+        }
+        FilledTonalButton(onClick = { onTrack("weighin") }, modifier = Modifier.fillMaxWidth()) {
+            Text(t("⚖️ Me peser"))
+        }
+    }
+}
+
+@Composable
+private fun TrackTile(emoji: String, value: String, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxHeight()) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(emoji, style = MaterialTheme.typography.titleMedium)
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 2)
+        }
+    }
+}
+
+/** Après « Retirer du frigo » : ce qui a été retiré, avec « Annuler ». */
+@Composable
+private fun FridgeUndoCard() {
+    val last by com.goodlife.app.data.Fridge.lastRemoval.collectAsState()
+    val (text, _) = last ?: return
+    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(t("🧊 Retiré du frigo : %1\$s", text), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 10.dp))
+            TextButton(onClick = { com.goodlife.app.data.Fridge.undoLastRemoval() }) { Text(t("Annuler")) }
+            IconButton(onClick = { com.goodlife.app.data.Fridge.lastRemoval.value = null }) { Icon(Icons.Filled.Close, t("Fermer")) }
+        }
     }
 }

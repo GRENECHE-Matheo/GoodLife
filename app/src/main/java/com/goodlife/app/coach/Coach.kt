@@ -40,7 +40,7 @@ object Coach {
 
     fun summary(): GameSummary? {
         val p = Repo.profile.value ?: return null
-        return Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom)
+        return Game.summarize(Repo.meals.value, p, Repo.game.value, Repo.steps.value.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom, richFrom = Repo.settings.value.richScoreFrom)
     }
 
     /** Les 7 derniers jours, aujourd'hui compris (aujourd'hui compte comme un jour en cours). */
@@ -165,10 +165,11 @@ object Coach {
         Repo.sport.value.program?.let { pr ->
             sb.append(t("Programme sportif : but « %1\$s », niveau %2\$s, %3\$s jours/semaine, matériel : ", pr.goal, pr.level, pr.daysPerWeek))
                 .append(pr.equipment.ifEmpty { listOf("aucun") }.joinToString()).append(t(". Séances : "))
-                .append(pr.sessions.joinToString(" ; ") { t("jour %1\$s %2\$s (%3\$s min)", it.day, it.title, it.minutes) })
+                .append(pr.sessions.joinToString(" ; ") { t("jour %1\$s %2\$s (%3\$s min)", it.day, it.title, it.minutes) + " : " + it.exercises.joinToString(", ") { e -> "${e.name} ${e.detail}" } })
             if (pr.limits.isNotBlank()) sb.append(t(". Limites / douleurs : %1\$s", pr.limits))
             sb.append(".\n")
         }
+        com.goodlife.app.data.Fridge.promptList().takeIf { it.isNotBlank() }?.let { sb.append(t("Son frigo : ")).append(it).append(".\n") }
         val upcoming = Repo.plan.value.filter { it.date >= localDay(0) && it.date <= localDay(7) && !it.done }
             .sortedWith(compareBy({ it.date }, { it.slot.ordinal }))
         if (upcoming.isNotEmpty()) {

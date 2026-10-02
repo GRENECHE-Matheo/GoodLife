@@ -184,41 +184,6 @@ fun MacroBar(label: String, value: Double, target: Int, color: Color) {
     }
 }
 
-/** Petit histogramme sur 7 jours avec une ligne d'objectif. */
-@Composable
-fun WeekBars(values: List<Float>, goal: Float, labels: List<String>, barColor: Color) {
-    val goalColor = MaterialTheme.colorScheme.tertiary
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val grow = remember { Animatable(0f) }
-    LaunchedEffect(values) { grow.snapTo(0f); grow.animateTo(1f, tween(700, easing = FastOutSlowInEasing)) }
-    Column {
-        Canvas(Modifier.fillMaxWidth().height(120.dp)) {
-            val max = maxOf(goal * 1.2f, values.maxOrNull() ?: 0f, 1f)
-            val slot = size.width / values.size
-            val barW = slot * 0.5f
-            values.forEachIndexed { i, v ->
-                val x = i * slot + (slot - barW) / 2
-                drawRoundRect(track, Offset(x, 0f), Size(barW, size.height), CornerRadius(barW / 2))
-                val h = size.height * (v / max) * grow.value
-                if (h > 0f) {
-                    drawRoundRect(barColor, Offset(x, size.height - h), Size(barW, h), CornerRadius(barW / 2))
-                }
-            }
-            val gy = size.height - size.height * (goal / max)
-            drawLine(goalColor, Offset(0f, gy), Offset(size.width, gy), strokeWidth = 2.dp.toPx())
-        }
-        Row(Modifier.fillMaxWidth()) {
-            labels.forEach {
-                Text(
-                    it, Modifier.weight(1f), textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
 /** Colonne défilante commune à tous les écrans : largeur max 640 dp et centrée (tablettes, paysage). */
 @Composable
 fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {

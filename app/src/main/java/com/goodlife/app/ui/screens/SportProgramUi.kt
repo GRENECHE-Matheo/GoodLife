@@ -26,6 +26,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Remove
@@ -119,7 +122,7 @@ fun ProgramTab() {
                 Column(Modifier.weight(1f)) {
                     Text(t("Ton programme sur mesure"), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        t("Dis ce que tu veux, ce que tu aimes et le matériel que tu as : l'IA prépare ta semaine. Chaque séance faite rapporte %1\$s XP.", Game.SESSION_XP),
+                        t("Dis ce que tu veux, ce que tu aimes et le matériel que tu as : l'IA prépare ta semaine. Lance le chrono à chaque séance : jusqu'à %1\$s XP selon le temps passé.", Game.SESSION_XP),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -128,7 +131,7 @@ fun ProgramTab() {
                 Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(t("Créer mon programme"))
             }
         }
-        else -> ProgramView(program, sport.done, onNew = { setup = true })
+        else -> ProgramView(program, sport, onNew = { setup = true })
     }
 }
 
@@ -229,10 +232,13 @@ private fun Label(text: String) =
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
 @Composable
-private fun ProgramView(program: SportProgram, done: Set<String>, onNew: () -> Unit) {
+private fun ProgramView(program: SportProgram, sport: com.goodlife.app.data.SportState, onNew: () -> Unit) {
+    val done = sport.done
     var chat by remember { mutableStateOf(false) }
     var confirmNew by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     var reward by remember { mutableStateOf<String?>(null) }
+    var rewardOk by remember { mutableStateOf(true) }
     val today = todayIndex()
     // Séances faites cette semaine (lundi → aujourd'hui)
     val weekDays = (0 until today).map { localDay(-it) }.toSet()
@@ -252,16 +258,26 @@ private fun ProgramView(program: SportProgram, done: Set<String>, onNew: () -> U
         )
         if (program.advice.isNotBlank()) Text(program.advice, style = MaterialTheme.typography.bodyMedium)
     }
-    if (reward != null) Text(reward!!, color = successColor, fontWeight = FontWeight.Bold)
+    if (reward != null) Text(reward!!, color = if (rewardOk) successColor else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
 
     program.sessions.forEachIndexed { i, s ->
         SessionCard(
             s, isToday = s.day == today, doneToday = "${localDay(0)}#$i" in done,
-            onDone = {
-                val xp = Repo.markSessionDone(i)
-                if (xp != null) {
-                    Sounds.play(Sfx.LEVEL_UP)
-                    reward = if (xp > 0) t("Bravo ! +%1\$s XP", xp) else t("Bravo ! (XP sport du jour déjà au maximum)")
+            runningSince = if (sport.running == i) sport.runningSince else 0L,
+            otherRunning = sport.running >= 0 && sport.running != i,
+            onStart = { Repo.startSession(i) },
+            onCancel = { Repo.cancelSession() },
+            onFinish = {
+                val r = Repo.finishSession(s.minutes)
+                if (r != null) {
+                    val (xp, minutes) = r
+                    rewardOk = minutes >= Game.SESSION_MIN_MINUTES
+                    if (minutes < Game.SESSION_MIN_MINUTES) {
+                        reward = t("Séance trop courte (%1\$s min) : il faut au moins %2\$s minutes pour gagner de l'XP.", minutes, Game.SESSION_MIN_MINUTES)
+                    } else {
+                        Sounds.play(Sfx.LEVEL_UP)
+                        reward = if (xp > 0) t("Bravo ! %1\$s min, +%2\$s XP", minutes, xp) else t("Bravo ! (XP sport du jour déjà au maximum)")
+                    }
                 }
             }
         )
@@ -273,6 +289,16 @@ private fun ProgramView(program: SportProgram, done: Set<String>, onNew: () -> U
         }
         OutlinedButton(onClick = { confirmNew = true }) { Text(t("Nouveau programme")) }
     }
+    TextButton(onClick = { confirmDelete = true }) {
+        Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Supprimer le programme"))
+    }
+    if (confirmDelete) AlertDialog(
+        onDismissRequest = { confirmDelete = false },
+        title = { Text(t("Supprimer le programme ?")) },
+        text = { Text(t("Le programme disparaît. Les séances déjà faites et l'XP gagnée restent.")) },
+        confirmButton = { TextButton(onClick = { confirmDelete = false; Repo.cancelSession(); Repo.setProgram(null) }) { Text(t("Supprimer")) } },
+        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(t("Annuler")) } }
+    )
 
     if (chat) AiChatDialog(
         title = t("Mon programme : %1\$s", program.goal),
@@ -292,7 +318,11 @@ private fun ProgramView(program: SportProgram, done: Set<String>, onNew: () -> U
 }
 
 @Composable
-private fun SessionCard(s: SportSession, isToday: Boolean, doneToday: Boolean, onDone: () -> Unit) {
+private fun SessionCard(
+    s: SportSession, isToday: Boolean, doneToday: Boolean,
+    runningSince: Long, otherRunning: Boolean,
+    onStart: () -> Unit, onCancel: () -> Unit, onFinish: () -> Unit
+) {
     var open by rememberSaveable(s.title, s.day) { mutableStateOf(isToday) }
     SectionCard(container = if (isToday) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
         Row(
@@ -328,9 +358,35 @@ private fun SessionCard(s: SportSession, isToday: Boolean, doneToday: Boolean, o
                     }
                 }
                 if (s.cooldown.isNotBlank()) Text(t("Retour au calme : %1\$s", s.cooldown), style = MaterialTheme.typography.bodyMedium)
-                Button(enabled = !doneToday, onClick = onDone, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                    Icon(Icons.Filled.CheckCircle, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
-                    Text(if (doneToday) t("Faite aujourd'hui") else t("Séance faite (+%1\$s XP)", Game.SESSION_XP))
+                when {
+                    doneToday -> Button(enabled = false, onClick = {}, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        Icon(Icons.Filled.CheckCircle, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(t("Faite aujourd'hui"))
+                    }
+                    runningSince > 0L -> {
+                        // Chrono de la séance (continue même si l'app est fermée)
+                        var now by remember { mutableStateOf(System.currentTimeMillis()) }
+                        LaunchedEffect(runningSince) { while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(1000) } }
+                        val sec = ((now - runningSince) / 1000).coerceAtLeast(0)
+                        Text(
+                            "%d:%02d".format(sec / 60, sec % 60),
+                            style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            t("XP selon le temps passé : rien sous %1\$s min, %2\$s XP à %3\$s min.", Game.SESSION_MIN_MINUTES, Game.SESSION_XP, s.minutes),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = onFinish, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Filled.CheckCircle, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(t("Terminer"))
+                            }
+                            OutlinedButton(onClick = onCancel) { Text(t("Annuler")) }
+                        }
+                    }
+                    else -> Button(enabled = !otherRunning, onClick = onStart, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        Icon(Icons.Filled.PlayArrow, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
+                        Text(if (otherRunning) t("Une autre séance est en cours") else t("Commencer la séance"))
+                    }
                 }
             }
         }

@@ -83,6 +83,19 @@ object Game {
         }
     }
 
+    /** Durée minimale d'une séance du programme pour gagner de l'XP. */
+    const val SESSION_MIN_MINUTES = 5
+
+    /**
+     * Séance du programme : XP selon le temps réellement passé (chrono), au plus [SESSION_XP] quand la durée prévue
+     * est atteinte. Moins de 5 minutes : rien. Le temps au-delà de la durée prévue ne rapporte pas plus.
+     */
+    fun sessionXp(minutes: Int, plannedMinutes: Int): Int {
+        if (minutes < SESSION_MIN_MINUTES) return 0
+        val planned = plannedMinutes.coerceAtLeast(SESSION_MIN_MINUTES)
+        return (SESSION_XP * minOf(minutes, planned).toDouble() / planned).roundToInt().coerceIn(1, SESSION_XP)
+    }
+
     /** Une sortie GPS : 1 XP par tranche de 2 minutes en mouvement, au plus 30. */
     fun outingXp(movingMinutes: Long): Int = (movingMinutes / 2).toInt().coerceIn(0, 30)
 
@@ -100,7 +113,30 @@ object Game {
             Goal.MAINTIEN -> t("reste proche de ton objectif calorique")
             Goal.PRISE -> t("atteins ton objectif calorique, sans trop le dépasser")
         }
-        return t("Score du jour = ton alimentation : %1\$s. Ta série continue dès %2\$s/100. Les pas rapportent de l'XP : +%3\$s XP les jours où tu atteins ton objectif.", food, STREAK_SCORE, STEP_GOAL_XP)
+        return t("Score du jour sur 100 = ton alimentation : calories sur 60 points (%1\$s), protéines sur 25 points (ton objectif du jour) et repas répartis dans la journée sur 15 points. Ta série continue dès %2\$s/100. Les pas rapportent de l'XP : +%3\$s XP les jours où tu atteins ton objectif.", food, STREAK_SCORE, STEP_GOAL_XP)
+    }
+
+    /**
+     * Score enrichi (depuis la v0.12) : calories 60 points, protéines 25 points, repas répartis 15 points.
+     * Si aucun repas du jour n'a ses macros (saisie sans détail), les protéines ne pénalisent pas : elles suivent
+     * la note des calories.
+     */
+    fun richScore(meals: List<Meal>, target: Int, goal: Goal, proteinTarget: Double): Int {
+        val kcal = meals.sumOf { it.kcal }
+        if (kcal <= 0 || target <= 0) return 0
+        val food = foodScore(kcal, target, goal).toDouble()
+        val macrosKnown = meals.any { it.proteinG + it.carbsG + it.fatG > 0.0 }
+        val protein = meals.sumOf { it.proteinG }
+        // 40 % de l'objectif ou moins : 0 point ; 90 % ou plus : 25 points
+        val proteinPts = if (!macrosKnown || proteinTarget <= 0.0) food * 0.25
+                         else ((protein / proteinTarget - 0.4) / 0.5).coerceIn(0.0, 1.0) * 25.0
+        // Moments de repas : deux prises à moins de 2 h d'écart comptent pour un seul repas
+        var moments = 0; var last = Long.MIN_VALUE
+        for (ts in meals.map { it.timestamp }.sorted()) {
+            if (last == Long.MIN_VALUE || ts - last >= 2 * 3_600_000L) { moments++; last = ts }
+        }
+        val mealPts = when { moments >= 3 -> 15.0; moments == 2 -> 10.0; else -> 5.0 }
+        return (food * 0.6 + proteinPts + mealPts).roundToInt().coerceIn(0, 100)
     }
 
     /** Score alimentation 0..100 pour une journée. */
@@ -135,7 +171,14 @@ object Game {
      * Score du jour (0..100) et réussite. Depuis la v0.9.6, seule l'alimentation compte ([foodOnly]) ;
      * avant, 60 % alimentation + 40 % pas ([step] = null si les pas n'étaient pas suivis ce jour-là).
      */
-    fun evaluate(kcal: Int, target: Int, goal: Goal, step: StepDay?, foodOnly: Boolean = true): Pair<Int, Boolean> {
+    fun evaluate(
+        kcal: Int, target: Int, goal: Goal, step: StepDay?, foodOnly: Boolean = true,
+        dayMeals: List<Meal>? = null, proteinTarget: Double = 0.0
+    ): Pair<Int, Boolean> {
+        if (dayMeals != null) {
+            val rich = richScore(dayMeals, target, goal, proteinTarget)
+            return rich to (kcal > 0 && rich >= STREAK_SCORE)
+        }
         val food = foodScore(kcal, target, goal)
         val score = if (foodOnly || step == null || step.goal <= 0) food
                     else (food * 0.6 + stepScore(step.steps, step.goal) * 0.4).roundToInt()
@@ -177,10 +220,14 @@ object Game {
         steps: Map<String, StepDay> = emptyMap(),
         now: Calendar = Calendar.getInstance(),
         newRulesFrom: String = "",  // AAAA-MM-JJ : avant ce jour, anciennes règles de validation
-        foodOnlyFrom: String = ""   // AAAA-MM-JJ : à partir de ce jour, le score ne compte que l'alimentation
+        foodOnlyFrom: String = "",  // AAAA-MM-JJ : à partir de ce jour, le score ne compte que l'alimentation
+        richFrom: String = ""       // AAAA-MM-JJ : à partir de ce jour, score enrichi (calories, protéines, repas)
     ): GameSummary {
         fun foodOnly(day: String) = foodOnlyFrom.isEmpty() || day >= foodOnlyFrom
-        val byDay = meals.groupBy { fmt.format(java.util.Date(it.timestamp)) }.mapValues { e -> e.value.sumOf { it.kcal } }
+        val mealsByDay = meals.groupBy { fmt.format(java.util.Date(it.timestamp)) }
+        val byDay = mealsByDay.mapValues { e -> e.value.sumOf { it.kcal } }
+        // Les jours d'avant gardent leur ancien score : on ne réécrit pas l'historique
+        fun richMeals(day: String) = if (richFrom.isNotEmpty() && day >= richFrom) mealsByDay[day].orEmpty() else null
         val todayKey = fmt.format(now.time)
         val firstDay = byDay.keys.minOrNull()
 
@@ -196,7 +243,7 @@ object Game {
                 if (key >= todayKey) break
                 val kcal = byDay[key] ?: 0
                 val step = steps[key]
-                val (score, newOk) = evaluate(kcal, profile.targetKcal, profile.goal, step, foodOnly(key))
+                val (score, newOk) = evaluate(kcal, profile.targetKcal, profile.goal, step, foodOnly(key), richMeals(key), profile.proteinG.toDouble())
                 val ok = if (newRulesFrom.isNotEmpty() && key < newRulesFrom) legacyOk(kcal, profile.targetKcal, profile.goal) else newOk
                 val status = when {
                     ok -> DayStatus.REUSSI
@@ -223,7 +270,7 @@ object Game {
 
         val todayKcal = byDay[todayKey] ?: 0
         val todayStep = steps[todayKey]
-        val (todayScore, todayOk) = evaluate(todayKcal, profile.targetKcal, profile.goal, todayStep, foodOnly(todayKey))
+        val (todayScore, todayOk) = evaluate(todayKcal, profile.targetKcal, profile.goal, todayStep, foodOnly(todayKey), richMeals(todayKey), profile.proteinG.toDouble())
         val today = DayResult(
             todayKey, todayKcal, todayScore,
             if (todayOk) DayStatus.REUSSI else if (todayKcal == 0) DayStatus.VIDE else DayStatus.RATE,

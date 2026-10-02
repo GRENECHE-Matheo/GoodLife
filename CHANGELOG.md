@@ -8,6 +8,39 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.12.0 — 02/10/2026
+
+**L'app au quotidien : un vrai frigo, un chef qui agit, un score plus juste et des widgets refaits.**
+
+- ✨ **Mon frigo** : l'inventaire de ce que tu as à la maison, rangé par rayon, avec + et − pour ajuster en un geste.
+  On le remplit à la main, depuis la liste de courses (« Ranger les cochés dans le frigo »), en photographiant son
+  **ticket de caisse** (l'IA liste les aliments, tu valides), ou simplement en le disant au chef. « Que cuisiner ? »
+  part maintenant de ton frigo.
+- ✨ **Option : retirer du frigo après une photo de repas** (désactivée par défaut) : le chef propose ce qui a été
+  utilisé, tu valides ou tu choisis « Pas mangé chez moi », et l'accueil propose d'annuler.
+- ✨ **Le chef agit sur l'app** : quand tu lui parles, il peut proposer de mettre à jour ton frigo, de changer les repas
+  d'un jour (« Remplacer ») ou de modifier ton programme sportif. Rien n'est appliqué sans ton appui sur le bouton.
+- ✨ **Planning** : aperçu repas par repas avant de valider (avec une croix pour retirer un repas proposé),
+  **« Changer ce jour »**, **« Vider la semaine »**, et les repas passés jamais validés sont retirés tout seuls.
+- 🛠️ **Prix actuels** : une fois par mois, l'IA cherche sur Google les prix moyens en supermarché (sans aucune donnée
+  personnelle) pour estimer le planning ; chaque recette donne le prix de ses ingrédients et le prix au kilo.
+- ✨ **Photo : on corrige le poids, pas les calories.** Chaque aliment reconnu a son poids en grammes ; en le changeant,
+  ses calories et le total se recalculent.
+- ✨ **Boissons** : l'eau, le thé et le café sans sucre photographiés s'ajoutent au suivi de l'eau ; les autres boissons
+  comptent en calories. Une photo d'eau seule ajoute juste l'eau.
+- 🛠️ **Score du jour enrichi** (à partir d'aujourd'hui, les jours passés gardent leur score) : calories sur 60 points,
+  protéines sur 25 et repas répartis dans la journée sur 15. C'est lui qui fait avancer la série.
+- 🛠️ **Gels de série visibles** dans « Mes progrès », avec la règle pour en gagner et le prochain gel.
+- 🛠️ **Sport sans triche** : chaque séance du programme se fait avec un chrono ; l'XP dépend du temps passé (rien sous
+  5 minutes, au plus la durée prévue). Le programme peut aussi être supprimé.
+- ✨ **Les deux widgets refaits** : anneau des calories autour du chef, série, pas, eau, protéines, prochain repas du
+  planning, et boutons « Photo » et « + Eau ». Ils s'adaptent à leur taille et au thème sombre, et ne montrent aucun
+  chiffre si l'app est verrouillée.
+- 🛠️ **Plus facile à trouver** : actus en haut de l'accueil, carte « Mon suivi » (calories, pas, poids) qui ouvre le bon
+  graphique, bouton « Me peser » ; dans les graphiques, **touche un point pour voir sa valeur**.
+- 🛠️ Badges en grille qui remplit toute la largeur de l'écran, quel que soit le téléphone.
+- 🛠️ Sous la conversation avec le chef, une seule ligne au lieu d'un paragraphe (le détail reste à un appui).
+
 ## v0.11.0 — 01/10/2026
 
 **Itinéraires bien plus rapides, nouvelle icône, et un grand contrôle avant Google Play.**

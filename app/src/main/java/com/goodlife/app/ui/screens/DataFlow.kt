@@ -52,7 +52,7 @@ fun DataFlowSummary(showAi: Boolean = true) {
         if (showAi) {
             FlowLine(
                 Icons.Filled.AutoAwesome, t("IA (si tu l'actives) → Google Gemini"),
-                t("Photo du repas (ou du frigo, ou celle que tu joins au coach) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres de la semaine (scores, pas, sport, poids) et ton planning. Envoyé avec ta propre clé. Jamais ton prénom, ton sommeil ni tes positions.")
+                t("Photo du repas (ou du frigo, du ticket de caisse, ou celle que tu joins au coach) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres de la semaine (scores, pas, sport, poids), ton planning, ton programme et le contenu de « Mon frigo ». Envoyé avec ta propre clé. Jamais ton prénom, ton sommeil ni tes positions.")
             )
         }
         FlowLine(

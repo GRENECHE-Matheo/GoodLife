@@ -48,7 +48,33 @@ data class FridgeResult(val seen: List<String>, val ideas: List<FridgeIdea>, val
 /** Repas proposé par le coach, ajouté au planning seulement si la personne appuie sur « Ajouter ». */
 data class CoachMeal(val date: String, val slot: MealSlot, val name: String, val kcal: Int, val description: String)
 
-data class CoachReply(val text: String, val meals: List<CoachMeal>, val shopping: List<ShopItem> = emptyList())
+/**
+ * Réponse du coach. Tout ce qu'il propose de changer (planning, courses, frigo, programme) est affiché avec un
+ * bouton : rien n'est appliqué sans l'accord de la personne.
+ */
+data class CoachReply(
+    val text: String,
+    val meals: List<CoachMeal>,
+    val shopping: List<ShopItem> = emptyList(),
+    val fridgeAdd: List<com.goodlife.app.data.FridgeItem> = emptyList(),
+    val fridgeRemove: List<Pair<String, Double>> = emptyList(),
+    val sessions: List<SportSession> = emptyList(),   // séances modifiées ou ajoutées (remplacent celle du même jour)
+    val removeDays: List<Int> = emptyList()           // jours de séance à retirer du programme (1 = lundi … 7)
+)
+
+/** Lit une séance de sport au format JSON de l'IA. */
+internal fun parseSession(se: JSONObject, defaultMinutes: Int): SportSession = SportSession(
+    day = se.optInt("jour", 1).coerceIn(1, 7),
+    title = se.optString("titre").take(60).ifBlank { t("Séance") },
+    minutes = se.optInt("minutes", defaultMinutes).coerceIn(5, 180),
+    warmup = se.optString("echauffement").take(300),
+    exercises = se.optJSONArray("exercices")?.let { a ->
+        (0 until a.length()).mapNotNull { i -> a.optJSONObject(i) }.map { ex ->
+            Exercise(ex.optString("nom").take(60), ex.optString("detail").take(60), ex.optString("repos").take(30), ex.optString("conseil").take(200))
+        }
+    }?.filter { it.name.isNotBlank() }?.take(12) ?: emptyList(),
+    cooldown = se.optString("retour_au_calme").take(300)
+)
 
 /**
  * Client minimal de l'API Gemini (Google AI Studio), avec la clé personnelle de chaque utilisateur.
@@ -139,7 +165,23 @@ class Gemini(private val apiKey: String, private val model: String) {
         val shopping = o.optJSONArray("courses")?.mapObjects {
             ShopItem(it.optString("nom").trim().take(60), it.optString("quantite").trim().take(30), it.optString("rayon").trim().ifBlank { t("Autres") }.take(30))
         }?.filter { it.name.isNotBlank() }?.take(80) ?: emptyList()
-        CoachReply(reply.take(3000), meals, shopping)
+        val fridge = com.goodlife.app.data.Fridge
+        val fridgeAdd = o.optJSONArray("frigo_ajout")?.mapObjects { a ->
+            val n = a.optString("nom").trim().take(60).ifBlank { return@mapObjects null }
+            val q = a.optDouble("quantite", 1.0).takeUnless { it.isNaN() || it <= 0.0 } ?: 1.0
+            com.goodlife.app.data.FridgeItem(n, q.coerceAtMost(100_000.0), fridge.cleanUnit(a.optString("unite")), fridge.cleanAisle(a.optString("rayon")))
+        }?.filterNotNull()?.take(40) ?: emptyList()
+        val known = fridge.items.value.map { it.name.lowercase() }.toSet()
+        val fridgeRemove = o.optJSONArray("frigo_retrait")?.mapObjects { r ->
+            val n = r.optString("nom").trim()
+            val q = r.optDouble("quantite", 0.0)
+            if (n.lowercase() in known && q > 0.0 && !q.isNaN()) n to q.coerceAtMost(100_000.0) else null
+        }?.filterNotNull()?.take(40) ?: emptyList()
+        val sessions = o.optJSONArray("programme_seances")?.mapObjects { se -> parseSession(se, 30) }
+            ?.filter { it.exercises.isNotEmpty() }?.take(7) ?: emptyList()
+        val removeDays = o.optJSONArray("programme_retirer")?.let { a -> (0 until a.length()).map { a.optInt(it, 0) } }
+            ?.filter { it in 1..7 }?.distinct() ?: emptyList()
+        CoachReply(reply.take(3000), meals, shopping, fridgeAdd, fridgeRemove, sessions, removeDays)
     }
 
     /**
@@ -363,7 +405,7 @@ class Gemini(private val apiKey: String, private val model: String) {
 
     // ------------------------------------------------------------------
 
-    suspend fun analyzeFood(jpeg: ByteArray, profile: Profile?): FoodAnalysis {
+    suspend fun analyzeFood(jpeg: ByteArray, profile: Profile?, fridge: String = ""): FoodAnalysis {
         val allergies = profile?.allergies?.takeIf { it.isNotBlank() } ?: t("aucune connue")
         val prompt = """
             Tu aides à estimer les calories d'un repas (usage bien-être, pas d'avis médical). Analyse la photo de nourriture.
@@ -375,6 +417,13 @@ class Gemini(private val apiKey: String, private val model: String) {
             et ses ingrédients bien reconnaissables). Liste vide si rien ne correspond ou si ce n'est pas une vraie photo de nourriture.
             Dans "portions", donne chaque aliment ou plat servi avec son NOMBRE visible (ex. 2 bananes → {"nom": "Banane", "nombre": 2} ;
             une assiette de pâtes → {"nom": "Assiette de pâtes", "nombre": 1}). Noms courts, au singulier, avec une majuscule.
+            BOISSONS : compte toutes les boissons visibles. Leurs calories vont dans "kcal" (sodas, jus, sirops, lait, café sucré…).
+            Dans "eau_ml", mets SEULEMENT le volume d'eau plate ou gazeuse, de thé, de café ou d'infusion SANS sucre ni lait
+            (0 sinon ; un sirop, un jus ou un soda ne compte pas comme de l'eau). "boisson_seule" = true si la photo ne montre
+            qu'une ou des boissons, sans nourriture.
+            ${if (fridge.isNotBlank()) """FRIGO de la personne (nom (quantité unité)) : $fridge
+            Dans "frigo_utilise", liste les articles de CE frigo qui ont servi à ce repas, avec le NOM EXACT de la liste
+            et la quantité utilisée dans la même unité (estimation prudente ; rien si tu n'es pas sûr).""" else ""}
             Réponds UNIQUEMENT en JSON, en français, avec exactement ce format :
             {"plat": "nom court du plat",
              "aliments": [{"nom": "...", "quantite_g": 0, "kcal": 0}],
@@ -382,14 +431,20 @@ class Gemini(private val apiKey: String, private val model: String) {
              "allergenes_detectes": ["..."], "confiance": 0.0,
              "conseil": "une phrase courte et bienveillante",
              "dex": ["id"],
-             "portions": [{"nom": "...", "nombre": 1}]}
+             "portions": [{"nom": "...", "nombre": 1}],
+             "eau_ml": 0, "boisson_seule": false,
+             "frigo_utilise": [{"nom": "...", "quantite": 0}]}
         """.trimIndent()
         val o = call(prompt, jpeg)
-        val items = o.optJSONArray("aliments")?.mapObjects { a ->
-            val q = a.optDouble("quantite_g", 0.0).roundToInt()
-            val k = a.optDouble("kcal", 0.0).roundToInt()
-            "${a.optString("nom")} · ${q} g · $k kcal"
-        } ?: emptyList()
+        val fridgeNames = com.goodlife.app.data.Fridge.items.value.map { it.name.lowercase() }.toSet()
+        val foods = o.optJSONArray("aliments")?.mapObjects { a ->
+            com.goodlife.app.data.FoodPart(
+                a.optString("nom").trim().take(60),
+                a.optDouble("quantite_g", 0.0).takeUnless { it.isNaN() }?.roundToInt()?.coerceIn(0, 5000) ?: 0,
+                a.optDouble("kcal", 0.0).takeUnless { it.isNaN() }?.roundToInt()?.coerceIn(0, Repo.MAX_MEAL_KCAL) ?: 0
+            )
+        }?.filter { it.name.isNotBlank() }?.take(15) ?: emptyList()
+        val items = foods.map { "${it.name} · ${it.grams} g · ${it.kcal} kcal" }
         val portions = o.optJSONArray("portions")?.mapObjects { p ->
             val n = p.optInt("nombre", 1).coerceIn(1, 50)
             p.optString("nom").trim().take(40).takeIf { it.isNotBlank() }?.let { mealName(n, it) }
@@ -404,8 +459,36 @@ class Gemini(private val apiKey: String, private val model: String) {
             allergens = o.optJSONArray("allergenes_detectes")?.strings() ?: emptyList(),
             confidence = o.optDouble("confiance", 0.0),
             advice = o.optString("conseil"),
-            dexIds = o.optJSONArray("dex")?.strings()?.filter { com.goodlife.app.dex.Nutridex.byId(it) != null }?.take(4) ?: emptyList()
+            dexIds = o.optJSONArray("dex")?.strings()?.filter { com.goodlife.app.dex.Nutridex.byId(it) != null }?.take(4) ?: emptyList(),
+            foods = foods,
+            waterMl = o.optDouble("eau_ml", 0.0).takeUnless { it.isNaN() }?.roundToInt()?.coerceIn(0, 3000) ?: 0,
+            drinkOnly = o.optBoolean("boisson_seule", false),
+            // Seulement des articles qui existent vraiment dans le frigo
+            fridgeUsed = if (fridge.isBlank()) emptyList() else o.optJSONArray("frigo_utilise")?.mapObjects { f ->
+                val n = f.optString("nom").trim()
+                val q = f.optDouble("quantite", 0.0)
+                if (n.lowercase() in fridgeNames && q > 0.0 && !q.isNaN()) n to q.coerceAtMost(100_000.0) else null
+            }?.filterNotNull()?.take(12) ?: emptyList()
         )
+    }
+
+    /** Ticket de caisse ou courses posées sur la table : les aliments achetés, pour remplir « Mon frigo ». */
+    suspend fun groceries(jpeg: ByteArray): List<com.goodlife.app.data.FridgeItem> {
+        val fridge = com.goodlife.app.data.Fridge
+        val prompt = """
+            La photo montre un ticket de caisse de supermarché ou des courses posées. Liste les ALIMENTS et BOISSONS achetés
+            (ignore les produits non alimentaires, les sacs, les remises et les totaux). Sur un ticket, lis chaque ligne :
+            la quantité est le nombre d'articles, ou le poids si l'article est vendu au poids. Noms simples et courts en
+            français, avec une majuscule (ex. « Yaourt nature », pas le code du magasin).
+            "unite" parmi : ${fridge.UNITS.joinToString(", ")}. "rayon" parmi : ${fridge.AISLES.joinToString(", ")}.
+            Réponds UNIQUEMENT en JSON : {"articles": [{"nom": "...", "quantite": 1, "unite": "pièce", "rayon": "..."}]}
+        """.trimIndent()
+        val o = call(prompt, jpeg)
+        return o.optJSONArray("articles")?.mapObjects { a ->
+            val n = a.optString("nom").trim().take(60).ifBlank { return@mapObjects null }
+            val q = a.optDouble("quantite", 1.0).takeUnless { it.isNaN() || it <= 0.0 } ?: 1.0
+            com.goodlife.app.data.FridgeItem(n, q.coerceAtMost(100_000.0), fridge.cleanUnit(a.optString("unite")), fridge.cleanAisle(a.optString("rayon")))
+        }?.filterNotNull()?.take(60)?.ifEmpty { null } ?: throw AiException(t("Aucun aliment reconnu sur cette photo. Essaie avec le ticket bien à plat et lisible."))
     }
 
     suspend fun recommendTarget(profile: Profile, stepsAverage: Int = 0): Profile {
@@ -447,23 +530,49 @@ class Gemini(private val apiKey: String, private val model: String) {
      * Planning de la semaine avec budget. Les prix sont des estimations (prix moyens en supermarché en France),
      * pas des prix relevés en direct. Renvoie les repas (jour 0 = premier jour) et un court conseil.
      */
+    /**
+     * Repères de prix ACTUELS en supermarché en France, trouvés par la recherche Google de Gemini, gardés un mois sur
+     * le téléphone (une seule recherche par mois). Vide si la recherche n'est pas disponible avec cette clé.
+     */
+    suspend fun priceRefs(): String {
+        val month = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
+        runCatching { JSONObject(Repo.getExtra("price_refs") ?: "{}") }.getOrNull()?.let { o ->
+            if (o.optString("month") == month && o.optString("text").isNotBlank()) return o.optString("text")
+        }
+        val g = runCatching {
+            chatWithSearch(
+                "Tu donnes des prix moyens constatés en supermarché en France, en euros, sans inventer : appuie-toi sur la recherche.",
+                listOf(ChatMessage(true, "Quels sont les prix moyens ACTUELS ($month) en supermarché en France (marques distributeur) pour : " +
+                    "6 œufs, 1 kg de riz, 500 g de pâtes, 1 kg de blanc de poulet, 1 kg de bœuf haché 5 %, 1 L de lait, 500 g de yaourt nature, " +
+                    "200 g d'emmental râpé, 1 kg de pommes de terre, 1 kg de carottes, 1 kg de pommes, 1 kg de bananes, 1 kg de tomates, " +
+                    "1 kg de lentilles sèches, 1 boîte de thon, 1 L d'huile d'olive, 1 baguette, 1 kg de saumon ? Réponds en une liste courte « produit : prix »."))
+            )
+        }.getOrNull()
+        val text = g?.takeIf { it.searched }?.text?.take(1500).orEmpty()
+        if (text.isNotBlank()) Repo.putExtra("price_refs", JSONObject().put("month", month).put("text", text).toString())
+        return text
+    }
+
     suspend fun planWeek(
         p: Profile,
         startDate: String,
         budgetEur: Int,
         people: Int,
         slots: List<MealSlot>,
-        notes: String = ""
+        notes: String = "",
+        days: Int = 7
     ): Pair<List<PlannedMeal>, String> {
         val slotNames = slots.joinToString(", ") { it.label.lowercase() }
+        val prices = priceRefs()
         val prompt = """
-            Tu es un coach nutrition qui fait les courses en France. Prépare un planning de repas sur 7 jours
+            Tu es un coach nutrition qui fait les courses en France. Prépare un planning de repas sur $days jour(s)
             à partir du $startDate (jour 0) pour $people personne(s).
             Repas à prévoir chaque jour : $slotNames.
-            Budget total de la semaine pour ces repas : $budgetEur € pour tout le foyer. Rapproche-toi le plus
+            Budget total pour ces $days jour(s) : $budgetEur € pour tout le foyer. Rapproche-toi le plus
             possible de ce budget sans le dépasser (ni beaucoup moins : utilise-le intelligemment).
-            Estime le coût de chaque repas pour tout le foyer avec les prix moyens actuels en supermarché en France
-            (marques distributeur, produits de saison), et reste réaliste.
+            Estime le coût de chaque repas pour tout le foyer avec les prix moyens ACTUELS en supermarché en France
+            (inflation comprise, marques distributeur, produits de saison), et reste réaliste.
+            ${if (prices.isNotBlank()) "Repères de prix actuels trouvés en ligne ce mois-ci (à utiliser) :\n$prices" else ""}
             Objectif de la personne : ${p.goal.label}, environ ${p.targetKcal} kcal par jour pour elle.
             Habitudes alimentaires : ${p.habits.ifBlank { "non précisées" }}
             ALLERGIES (à exclure absolument) : ${p.allergies.ifBlank { "aucune" }}
@@ -479,7 +588,7 @@ class Gemini(private val apiKey: String, private val model: String) {
         val start = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(startDate)!!
         val meals = o.optJSONArray("repas")?.mapObjects { m ->
             val day = m.optInt("jour", -1)
-            if (day !in 0..6) return@mapObjects null
+            if (day !in 0 until days) return@mapObjects null
             val date = java.util.Calendar.getInstance().apply { time = start; add(java.util.Calendar.DAY_OF_YEAR, day) }
             PlannedMeal(
                 id = System.nanoTime(),
@@ -531,18 +640,8 @@ class Gemini(private val apiKey: String, private val model: String) {
             "jour" : 1 = lundi … 7 = dimanche. Exactement $daysPerWeek séances, 4 à 8 exercices chacune.
         """.trimIndent()
         val o = call(prompt, null)
-        val sessions = o.optJSONArray("seances")?.mapObjects { se ->
-            SportSession(
-                day = se.optInt("jour", 1).coerceIn(1, 7),
-                title = se.optString("titre").take(60).ifBlank { t("Séance") },
-                minutes = se.optInt("minutes", minutes).coerceIn(5, 180),
-                warmup = se.optString("echauffement").take(300),
-                exercises = se.optJSONArray("exercices")?.mapObjects { ex ->
-                    Exercise(ex.optString("nom").take(60), ex.optString("detail").take(60), ex.optString("repos").take(30), ex.optString("conseil").take(200))
-                }?.filter { it.name.isNotBlank() }?.take(12) ?: emptyList(),
-                cooldown = se.optString("retour_au_calme").take(300)
-            )
-        }?.filter { it.exercises.isNotEmpty() }?.sortedBy { it.day }?.take(7) ?: emptyList()
+        val sessions = o.optJSONArray("seances")?.mapObjects { se -> parseSession(se, minutes) }
+            ?.filter { it.exercises.isNotEmpty() }?.sortedBy { it.day }?.take(7) ?: emptyList()
         if (sessions.isEmpty()) throw AiException(t("L'IA n'a pas proposé de programme. Réessaie."))
         return SportProgram(
             System.currentTimeMillis(), goal, level, equipment, daysPerWeek, minutes, likes, limits,
@@ -648,11 +747,15 @@ class Gemini(private val apiKey: String, private val model: String) {
             ALLERGIES (à exclure absolument) : ${p?.allergies?.ifBlank { "aucune" } ?: "aucune"}
             Habitudes : ${p?.habits?.ifBlank { "non précisées" } ?: "non précisées"}
             Quantités précises en grammes ou unités, étapes courtes, en français.
+            Pour chaque ingrédient, ajoute son coût estimé pour la quantité utilisée et son prix au rayon, avec les prix
+            moyens ACTUELS en supermarché en France, au format « 200 g de riz — ≈ 0,40 € (2,00 €/kg) ».
+            ${priceRefs().takeIf { it.isNotBlank() }?.let { "Repères de prix actuels trouvés en ligne ce mois-ci :\n$it" } ?: ""}
             Réponds UNIQUEMENT en JSON :
             {"portions": 1, "minutes": 0, "kcal_portion": 0,
-             "ingredients": ["quantité + ingrédient"],
+             "ingredients": ["quantité + ingrédient — ≈ coût (prix au kg, au L ou à la pièce)"],
              "etapes": ["étape courte"],
-             "astuce": "une astuce courte"}
+             "astuce": "une astuce courte",
+             "cout_total_eur": 0.0}
         """.trimIndent()
         val o = call(prompt, null)
         return Recipe(
@@ -661,7 +764,8 @@ class Gemini(private val apiKey: String, private val model: String) {
             kcalPerServing = o.optDouble("kcal_portion", kcal.toDouble()).roundToInt(),
             ingredients = o.optJSONArray("ingredients")?.strings() ?: emptyList(),
             steps = o.optJSONArray("etapes")?.strings() ?: emptyList(),
-            tip = o.optString("astuce")
+            tip = o.optString("astuce"),
+            costEur = o.optDouble("cout_total_eur", 0.0).takeUnless { it.isNaN() }?.coerceIn(0.0, 500.0) ?: 0.0
         )
     }
 

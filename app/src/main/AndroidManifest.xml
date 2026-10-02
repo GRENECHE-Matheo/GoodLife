@@ -157,6 +157,10 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_chef_medium" />
         </receiver>
+        <!-- Bouton « + Eau » du widget (interne à l'app) -->
+        <receiver
+            android:name=".widget.WidgetWaterReceiver"
+            android:exported="false" />
 
         <!-- Notifications du coach (programmées sur le téléphone, jamais depuis un serveur) -->
         <receiver

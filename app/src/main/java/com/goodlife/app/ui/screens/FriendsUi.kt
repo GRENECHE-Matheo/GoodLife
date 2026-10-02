@@ -527,7 +527,7 @@ private fun Leaderboard(friends: List<Person>, by: String, onPerson: (String) ->
     val steps = Repo.steps.collectAsState().value
     val dex = Repo.dex.collectAsState().value
     val settings = Repo.settings.collectAsState().value
-    val me = remember(meals, game, steps, profile) { profile?.let { Game.summarize(meals, it, game, steps.days, newRulesFrom = settings.scoreRulesFrom, foodOnlyFrom = settings.foodOnlyFrom) } }
+    val me = remember(meals, game, steps, profile) { profile?.let { Game.summarize(meals, it, game, steps.days, newRulesFrom = settings.scoreRulesFrom, foodOnlyFrom = settings.foodOnlyFrom, richFrom = settings.richScoreFrom) } }
 
     data class Row3(val id: String?, val name: String, val level: Int?, val streak: Int?, val dex: Int?) {
         fun value(by: String): Int? = when (by) { "streak" -> this.streak; "dex" -> this.dex; else -> this.level }

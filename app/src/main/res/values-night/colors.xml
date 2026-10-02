@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widgets du chef (thème sombre) -->
+<!-- Widgets du chef (thème sombre, Material 3) -->
 <resources>
-    <color name="widget_bg">#F21F2329</color>
+    <color name="widget_bg">#FF1D211E</color>
     <color name="widget_text">#E8EAED</color>
     <color name="widget_sub">#9AA0A6</color>
     <color name="widget_accent">#81C995</color>
-    <color name="widget_track">#3C4043</color>
+    <color name="widget_accent_strong">#A8DAB5</color>
+    <color name="widget_track">#3A403C</color>
     <color name="widget_steps">#8AB4F8</color>
+    <color name="widget_water">#78D9EC</color>
+    <color name="widget_protein">#FCAD70</color>
+    <color name="widget_chef_circle">#26382C</color>
+    <color name="widget_streak_bg">#4A3A12</color>
+    <color name="widget_streak_text">#FDD663</color>
+    <color name="widget_btn_bg">#2A4A33</color>
+    <color name="widget_btn_text">#C4EED0</color>
+    <color name="widget_tile_bg">#272C28</color>
 </resources>

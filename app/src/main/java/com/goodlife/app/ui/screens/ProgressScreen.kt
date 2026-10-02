@@ -64,6 +64,11 @@ import com.goodlife.app.ui.theme.successColor
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
 
 val FLAME = Color(0xFFFF8A00)
 
@@ -74,13 +79,20 @@ fun statusLabel(s: DayStatus) = when (s) {
     DayStatus.VIDE -> t("Rien noté")
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit) {
+fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit, focus: String = "", startWeighIn: Boolean = false) {
     BackHandler(onBack = onBack)
     val profile by Repo.profile.collectAsState()
     val game by Repo.game.collectAsState()
     val p = profile ?: return
-    var weighIn by remember { mutableStateOf(false) }
+    var weighIn by remember { mutableStateOf(startWeighIn) }
+    // Ouvert depuis l'accueil sur une section précise (poids, pas, calories) : on la fait défiler à l'écran
+    val requesters = remember { HashMap<String, BringIntoViewRequester>() }
+    fun focusReq(key: String) = requesters.getOrPut(key) { BringIntoViewRequester() }
+    LaunchedEffect(focus) {
+        if (focus.isNotEmpty()) { kotlinx.coroutines.delay(250); requesters[focus]?.bringIntoView() }
+    }
     val lvl = summary.level
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -110,6 +122,91 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                 }
             }
 
+            // ---- Suivi : calories, pas, poids, score (en haut, faciles à trouver ; touche un graphique pour voir la valeur) ----
+            val last14 = (summary.history.takeLast(13) + summary.today)
+            // ---- Calories ----
+            SectionCard(modifier = Modifier.bringIntoViewRequester(focusReq("kcal")), title = t("Calories"), icon = Icons.AutoMirrored.Filled.ShowChart) {
+                LineChart(
+                    values = last14.map { if (it.kcal > 0) it.kcal.toFloat() else null },
+                    labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
+                    color = MaterialTheme.colorScheme.secondary,
+                    minY = 0f,
+                    reference = p.targetKcal.toFloat(),
+                    tips = last14.map { dayLabel(it.date).replaceFirstChar { c -> c.uppercase() } },
+                    format = { "%.0f kcal".format(it) }
+                )
+                Text(
+                    t("Pointillés : ton objectif (%1\$s kcal).", p.targetKcal),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // ---- Pas ----
+            val stepsData by Repo.steps.collectAsState()
+            if (stepsData.days.isNotEmpty()) {
+                SectionCard(modifier = Modifier.bringIntoViewRequester(focusReq("steps")), title = t("Pas"), icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
+                    val stepDays = last14.map { stepsData.days[it.date] }
+                    LineChart(
+                        values = stepDays.map { it?.steps?.toFloat() },
+                        labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
+                        color = MaterialTheme.colorScheme.tertiary,
+                        minY = 0f,
+                        reference = com.goodlife.app.steps.Steps.goal().toFloat(),
+                        tips = last14.map { dayLabel(it.date).replaceFirstChar { c -> c.uppercase() } },
+                        format = { t("%1\$s pas", formatSteps(it.toInt())) }
+                    )
+                    Text(
+                        t("Pointillés : ton objectif du jour (%1\$s pas).", formatSteps(com.goodlife.app.steps.Steps.goal())),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // ---- Poids ----
+            SectionCard(modifier = Modifier.bringIntoViewRequester(focusReq("weight")), title = t("Poids"), icon = Icons.Filled.FitnessCenter) {
+                val w = game.weights.takeLast(20)
+                if (w.size >= 2) {
+                    LineChart(
+                        values = w.map { it.second.toFloat() },
+                        labels = w.mapIndexed { i, e -> if (i == 0 || i == w.lastIndex) e.first.substring(5) else "" },
+                        color = MaterialTheme.colorScheme.tertiary,
+                        tips = w.map { dayLabel(it.first).replaceFirstChar { c -> c.uppercase() } },
+                        format = { "%.1f kg".format(it) }
+                    )
+                    val diff = w.last().second - w.first().second
+                    Text(
+                        t("Depuis le %1\$s : %2\$s kg", w.first().first.substring(8) + "/" + w.first().first.substring(5, 7), (if (diff >= 0) "+" else "") + "%.1f".format(diff)),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        t("Ajoute tes pesées pour voir ta courbe (une par semaine suffit)."),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                FilledTonalButton(onClick = { weighIn = true }) { Text(t("Nouvelle pesée")) }
+            }
+
+            // ---- Score quotidien ----
+            SectionCard(title = t("Score par jour"), icon = Icons.AutoMirrored.Filled.ShowChart) {
+                LineChart(
+                    values = last14.map { if (it.kcal > 0) it.score.toFloat() else null },
+                    labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
+                    color = MaterialTheme.colorScheme.primary,
+                    minY = 0f, maxY = 100f,
+                    tips = last14.map { dayLabel(it.date).replaceFirstChar { c -> c.uppercase() } },
+                    format = { "%.0f/100".format(it) }
+                )
+                Text(
+                    t("100 = calories dans l'objectif, assez de protéines et des repas répartis. Le dernier point est aujourd'hui (en cours)."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // ---- Série ----
             SectionCard(title = t("Série"), icon = Icons.Filled.LocalFireDepartment) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -120,6 +217,17 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
                     )
                 }
                 Text(t("Record : %1\$s", days(summary.bestStreak)), style = MaterialTheme.typography.bodyMedium)
+                // Gels de série : visibles, avec la règle pour en gagner
+                Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                        Text(t("Gels ❄️ : %1\$s / %2\$s", game.freezes, Game.MAX_FREEZES), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            t("Tu gagnes un gel tous les %1\$s jours de série (%2\$s au plus). Si ta série casse, un gel la sauve : il suffit de réussir un quiz de %3\$s questions le lendemain.", Game.FREEZE_EVERY, Game.MAX_FREEZES, Game.FREEZE_QUESTIONS) +
+                                (if (game.freezes < Game.MAX_FREEZES) " " + t("Prochain gel dans %1\$s.", days(Game.FREEZE_EVERY - summary.streak % Game.FREEZE_EVERY)) else ""),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
                 Text(
                     t("Aujourd'hui : %1\$s / %2\$s kcal · score %3\$s/100 ", summary.today.kcal, p.targetKcal, summary.today.score) +
                         if (summary.today.status == DayStatus.REUSSI) t("(dans l'objectif pour l'instant)") else "",
@@ -156,82 +264,6 @@ fun ProgressScreen(summary: GameSummary, onBack: () -> Unit, onQuiz: () -> Unit)
 
             BadgesSection(summary)
             FeelingInsights()
-
-            // ---- Score quotidien ----
-            val last14 = (summary.history.takeLast(13) + summary.today)
-            SectionCard(title = t("Score par jour"), icon = Icons.AutoMirrored.Filled.ShowChart) {
-                LineChart(
-                    values = last14.map { if (it.kcal > 0) it.score.toFloat() else null },
-                    labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
-                    color = MaterialTheme.colorScheme.primary,
-                    minY = 0f, maxY = 100f
-                )
-                Text(
-                    t("100 = pile dans ton objectif. Le dernier point est aujourd'hui (en cours)."),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // ---- Calories ----
-            SectionCard(title = t("Calories"), icon = Icons.AutoMirrored.Filled.ShowChart) {
-                LineChart(
-                    values = last14.map { if (it.kcal > 0) it.kcal.toFloat() else null },
-                    labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
-                    color = MaterialTheme.colorScheme.secondary,
-                    minY = 0f,
-                    reference = p.targetKcal.toFloat()
-                )
-                Text(
-                    t("Pointillés : ton objectif (%1\$s kcal).", p.targetKcal),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // ---- Pas ----
-            val stepsData by Repo.steps.collectAsState()
-            if (stepsData.days.isNotEmpty()) {
-                SectionCard(title = t("Pas"), icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
-                    val stepDays = last14.map { stepsData.days[it.date] }
-                    LineChart(
-                        values = stepDays.map { it?.steps?.toFloat() },
-                        labels = last14.mapIndexed { i, d -> if (i % 2 == last14.size % 2) d.date.takeLast(2) else "" },
-                        color = MaterialTheme.colorScheme.tertiary,
-                        minY = 0f,
-                        reference = com.goodlife.app.steps.Steps.goal().toFloat()
-                    )
-                    Text(
-                        t("Pointillés : ton objectif du jour (%1\$s pas).", formatSteps(com.goodlife.app.steps.Steps.goal())),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // ---- Poids ----
-            SectionCard(title = t("Poids"), icon = Icons.Filled.FitnessCenter) {
-                val w = game.weights.takeLast(20)
-                if (w.size >= 2) {
-                    LineChart(
-                        values = w.map { it.second.toFloat() },
-                        labels = w.mapIndexed { i, e -> if (i == 0 || i == w.lastIndex) e.first.substring(5) else "" },
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                    val diff = w.last().second - w.first().second
-                    Text(
-                        t("Depuis le %1\$s : %2\$s kg", w.first().first.substring(8) + "/" + w.first().first.substring(5, 7), (if (diff >= 0) "+" else "") + "%.1f".format(diff)),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    Text(
-                        t("Ajoute tes pesées pour voir ta courbe (une par semaine suffit)."),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                FilledTonalButton(onClick = { weighIn = true }) { Text(t("Nouvelle pesée")) }
-            }
 
             // ---- Historique ----
             SectionCard(title = t("7 derniers jours")) {
