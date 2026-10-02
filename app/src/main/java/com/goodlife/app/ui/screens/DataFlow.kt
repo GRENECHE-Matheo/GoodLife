@@ -65,7 +65,7 @@ fun DataFlowSummary(showAi: Boolean = true) {
         )
         FlowLine(
             Icons.Filled.Map, t("Carte → OpenFreeMap et OpenStreetMap"),
-            t("La zone affichée, et celle où tu prépares une boucle ou un itinéraire, ou cherches des clubs ; pour le dénivelé, les tuiles d'altitude de cette zone (Terrain Tiles, Amazon) ; pour la recherche d'un lieu, le texte tapé (Nominatim). Ta position exacte et tes tracés GPS restent sur le téléphone.")
+            t("La zone affichée, et celle où tu prépares une boucle ou un itinéraire, cherches des clubs ou télécharges une carte hors ligne ; pour le dénivelé, les tuiles d'altitude de cette zone (Terrain Tiles, Amazon) ; pour la recherche d'un lieu, le texte tapé (Nominatim). Ta position exacte et tes tracés GPS restent sur le téléphone.")
         )
         FlowLine(
             Icons.Filled.Newspaper, t("Actus du jour → sites d'actualité"),

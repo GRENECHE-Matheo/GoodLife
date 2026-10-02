@@ -301,11 +301,12 @@ private val LOOP_COLORS = listOf(
 fun OutingsTab() {
     var screen by rememberSaveable { mutableStateOf("") }
     var retry by rememberSaveable { mutableStateOf(0L) }
-    var offlineBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    // Choix d'une zone hors ligne sur la carte (le cadre)
+    var offlinePicking by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = screen.isNotEmpty()) { screen = if (screen.startsWith("detail:")) "history" else "" }
     when {
         screen == "history" -> OutingHistory(onBack = { screen = "" }, onOpen = { screen = "detail:$it" })
-        screen == "offline" -> OfflineZonesScreen(offlineBounds, onBack = { screen = "" })
+        screen == "offline" -> OfflineZonesScreen(onBack = { screen = "" }, onPick = { offlinePicking = true; screen = "" })
         screen.startsWith("detail:") -> OutingDetail(
             id = screen.removePrefix("detail:").toLong(),
             onBack = { screen = "history" },
@@ -319,7 +320,9 @@ fun OutingsTab() {
             retryRoute = retry,
             onClearRetry = { retry = 0L },
             onHistory = { screen = "history" },
-            onOffline = { b -> offlineBounds = b; screen = "offline" }
+            offlinePicking = offlinePicking,
+            onOfflinePicking = { offlinePicking = it },
+            onOfflineZones = { offlinePicking = false; screen = "offline" }
         )
     }
 }
@@ -327,7 +330,10 @@ fun OutingsTab() {
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
-private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: () -> Unit, onOffline: (LatLngBounds?) -> Unit) {
+private fun OutingsMap(
+    retryRoute: Long, onClearRetry: () -> Unit, onHistory: () -> Unit,
+    offlinePicking: Boolean, onOfflinePicking: (Boolean) -> Unit, onOfflineZones: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val handle = remember { MapHandle() }
@@ -438,8 +444,9 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         Tracker.setPlanned(null); destination = null; loops = emptyList(); onClearRetry()
     }
     // Retour du téléphone sur la carte : on défait d'abord ce qui est ouvert (dessin, club, itinéraire, boucles)
-    BackHandler(enabled = live == null && (drawing || selected != null || planned != null || destination != null || loops.isNotEmpty() || mode != "activite")) {
+    BackHandler(enabled = live == null && (offlinePicking || drawing || selected != null || planned != null || destination != null || loops.isNotEmpty() || mode != "activite")) {
         when {
+            offlinePicking -> onOfflinePicking(false)
             drawing -> drawing = false
             selected != null -> selected = null
             planned != null || destination != null -> cancelRoute()
@@ -533,7 +540,13 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
 
     val sheet = androidx.compose.material3.rememberBottomSheetScaffoldState()
     // Partie visible du tiroir replié : l'essentiel (trajet, GO) ; plus haute pendant une sortie
+    val picking = offlinePicking && live == null
+    var offlineBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    val offlineZones by com.goodlife.app.track.OfflineMaps.zones.collectAsState()
+    // Téléchargements hors ligne interrompus : ils reprennent à l'ouverture de la carte
+    LaunchedEffect(Unit) { com.goodlife.app.track.OfflineMaps.refresh(context) }
     val peek = when {
+        picking -> 340.dp
         live != null -> 300.dp
         planned != null || loops.isNotEmpty() || mode == "clubs" -> 210.dp
         else -> 168.dp
@@ -547,8 +560,8 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         val bottom = with(density) { peek.toPx().toDouble() }
         runCatching { m.locationComponent.paddingWhileTracking(doubleArrayOf(0.0, 0.0, 0.0, bottom * 0.7), 300L) }
     }
-    val searchVisible = live == null && !drawing && mode == "activite"
-    val topInset = if (live == null && !drawing) (if (searchVisible) 112.dp else 60.dp) else 12.dp
+    val searchVisible = live == null && !drawing && !picking && mode == "activite"
+    val topInset = if (live == null && !drawing && !picking) (if (searchVisible) 112.dp else 60.dp) else 12.dp
     androidx.compose.material3.BottomSheetScaffold(
         scaffoldState = sheet,
         sheetPeekHeight = peek,
@@ -569,6 +582,12 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                 if (routeError != null && live == null) Text(routeError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 val l = live
                 when {
+                    picking -> OfflinePickPanel(
+                        offlineBounds, offlineZones.size,
+                        onCancel = { onOfflinePicking(false) },
+                        onZones = onOfflineZones,
+                        onStarted = onOfflineZones
+                    )
                     l != null -> LivePanel(l, best, planned, onPause = { Tracker.togglePause() }, onStop = { confirmStop = true })
                     mode == "clubs" -> ClubsPanel(
                         selected, places, handle.map?.cameraPosition?.target, busy != null, placesError,
@@ -685,18 +704,18 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     val m = handle.map; val s = handle.style
                     if (m != null && s != null) showMe(m, s, context, follow = live != null, type = live?.type ?: type, avatar = live != null)
                 }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, t("Ma position")) }
-                if (live == null) SmallFloatingActionButton(
-                    onClick = { onOffline(handle.map?.projection?.visibleRegion?.latLngBounds) },
+                if (live == null && !picking) SmallFloatingActionButton(
+                    onClick = { drawing = false; onOfflinePicking(true) },
                     containerColor = MaterialTheme.colorScheme.surface
                 ) { Icon(Icons.Filled.DownloadForOffline, t("Cartes hors ligne")) }
                 // Pinceau : dessiner son trajet
-                if (live == null && mode != "clubs") SmallFloatingActionButton(
+                if (live == null && !picking && mode != "clubs") SmallFloatingActionButton(
                     onClick = { drawing = true; mode = "activite"; loops = emptyList(); routeError = null },
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                 ) { Icon(Icons.Filled.Brush, t("Dessiner un trajet")) }
             }
             // En haut : le choix du mode (compact) et la recherche d'un lieu dessous (mode Activité)
-            if (live == null && !drawing) Column(
+            if (live == null && !drawing && !picking) Column(
                 Modifier.align(Alignment.TopCenter).padding(top = 8.dp, start = 12.dp, end = 12.dp).widthIn(max = 480.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -736,6 +755,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface)
                 )
             }
+            if (picking) OfflineFrame(handle.map, top = 72.dp, bottom = peek + 16.dp, onBounds = { offlineBounds = it })
             if (drawing) BrushOverlay(handle.map, onStroke = { stroke -> drawing = false; routeAlong(stroke, dest = destination) }, onCancel = { drawing = false })
             // Localisation refusée : explication
             if (!locationGranted && live == null) Surface(
@@ -1075,74 +1095,6 @@ private fun ClubsPanel(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (error != null) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-/** Cartes hors ligne : zones téléchargées et téléchargement de la zone affichée. */
-@Composable
-private fun OfflineZonesScreen(bounds: LatLngBounds?, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val zones by OfflineMaps.zones.collectAsState()
-    var name by remember { mutableStateOf(t("Ma zone")) }
-    var detailed by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) { OfflineMaps.refresh(context) }
-    val maxZoom = if (detailed) 16 else 14
-    val tiles = bounds?.let { OfflineMaps.tileCount(it, maxZoom) } ?: 0L
-    val bytes = bounds?.let { OfflineMaps.estimateBytes(it, maxZoom) } ?: 0L
-    fun mo(b: Long) = "%.0f Mo".format(b / 1_048_576.0)
-
-    com.goodlife.app.ui.ScreenColumn {
-        com.goodlife.app.ui.SubScreenHeader(t("Cartes hors ligne"), onBack)
-        Text(
-            t("Le GPS marche sans internet ; une zone téléchargée affiche aussi le fond de carte sans réseau (campagne, forêt, montagne). Télécharge seulement les zones où tu vas, pour ne pas remplir ton téléphone."),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        com.goodlife.app.ui.SectionCard(title = t("Télécharger la zone affichée")) {
-            if (bounds == null) Text(t("Ouvre la carte, cadre la zone voulue, puis reviens ici."), style = MaterialTheme.typography.bodySmall)
-            else {
-                OutlinedTextField(name, { name = it.take(40) }, label = { Text(t("Nom de la zone")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(detailed, { detailed = true }, label = { Text(t("Détaillée (chemins)")) })
-                    FilterChip(!detailed, { detailed = false }, label = { Text(t("Légère (rues)")) })
-                }
-                val tooBig = tiles > OfflineMaps.MAX_TILES
-                Text(
-                    if (tooBig) t("Zone trop grande pour ce niveau de détail : zoome davantage sur la carte ou choisis « Légère ».")
-                    else t("Taille estimée : environ %1\$s", mo(bytes)),
-                    color = if (tooBig) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Button(enabled = !tooBig && name.isNotBlank(), onClick = {
-                    error = null
-                    OfflineMaps.download(context, name.trim(), bounds, maxZoom) { error = it }
-                }) { Icon(Icons.Filled.DownloadForOffline, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Télécharger")) }
-                Text(t("Garde l'app ouverte pendant le téléchargement."), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-        com.goodlife.app.ui.SectionCard(title = t("Mes zones")) {
-            if (zones.isEmpty()) Text(t("Aucune zone téléchargée."), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            zones.sortedByDescending { it.createdAt }.forEachIndexed { i, z ->
-                if (i > 0) HorizontalDivider()
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(z.name, fontWeight = FontWeight.Medium)
-                        Text(
-                            if (z.complete) t("Prête · %1\$s", mo(z.sizeBytes)) else t("Téléchargement %1\$s %% · %2\$s", (z.progress * 100).toInt(), mo(z.sizeBytes)),
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (!z.complete) androidx.compose.material3.LinearProgressIndicator(
-                            progress = { z.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                        )
-                    }
-                    TextButton(onClick = { OfflineMaps.delete(z) }) { Icon(Icons.Filled.Delete, t("Supprimer")) }
-                }
-            }
-        }
-        Text(t("Carte : OpenFreeMap © OpenMapTiles, données © contributeurs OpenStreetMap."),
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

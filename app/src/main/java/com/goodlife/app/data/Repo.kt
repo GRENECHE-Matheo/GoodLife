@@ -939,6 +939,8 @@ object Repo {
         Fridge.reload()
         // Cache des tuiles d'itinéraires : rien de personnel, mais on repart de zéro
         appContext?.let { runCatching { java.io.File(it.cacheDir, "route_tiles").deleteRecursively() } }
+        // Zones hors ligne (leur nom peut être personnel : « Chez moi »…)
+        appContext?.let { runCatching { com.goodlife.app.track.OfflineMaps.deleteAll(it) } }
         appContext?.let { com.goodlife.app.coach.CoachNotifier.schedule(it) }
     }
 

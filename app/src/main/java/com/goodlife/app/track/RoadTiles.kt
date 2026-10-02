@@ -139,29 +139,68 @@ internal object RoadTiles {
     private suspend fun fetchAll(tiles: List<Pair<Int, Int>>, z: Int): List<Triple<Int, Int, ByteArray>> = withContext(Dispatchers.IO) {
         val dir = cacheDir() ?: throw IOException("cache")
         prune(dir)
-        val tpl = template(dir)
-        val version = tpl.removePrefix(HOST).substringBefore("/{z}").replace(Regex("[^A-Za-z0-9_]"), "_")
+        // Adresse des tuiles demandée seulement s'il en manque (zone hors ligne : aucun réseau nécessaire)
+        var tpl: String? = null
+        val lock = Any()
+        fun tpl(): String = synchronized(lock) { tpl ?: template(dir).also { tpl = it } }
         val gate = Semaphore(6)
         coroutineScope {
             tiles.map { (x, y) ->
                 async {
                     gate.withPermit {
+                        // Zone téléchargée pour le hors-ligne : rien à télécharger
+                        OfflineData.roads(z, x, y)?.let { return@withPermit Triple(x, y, it.readBytes()) }
                         // En cache : seulement la couche des rues (5 à 10 fois plus léger que la tuile entière)
-                        val f = File(dir, "${version}_${z}_${x}_$y.roads")
-                        val bytes = if (f.exists()) f.readBytes() else {
-                            val url = tpl.replace("{z}", z.toString()).replace("{x}", x.toString()).replace("{y}", y.toString())
-                            var last: IOException? = null
-                            var got: ByteArray? = null
-                            for (attempt in 0 until 2) {
-                                try { got = get(url); break } catch (e: IOException) { last = e }
-                            }
-                            roadsOnly(got ?: throw (last ?: IOException("tile"))).also { b -> runCatching { f.writeBytes(b) } }
-                        }
+                        val t = tpl()
+                        val f = File(dir, "${version(t)}_${z}_${x}_$y.roads")
+                        val bytes = if (f.exists()) f.readBytes() else download(t, z, x, y).also { b -> runCatching { f.writeBytes(b) } }
                         Triple(x, y, bytes)
                     }
                 }
             }.awaitAll()
         }
+    }
+
+    private fun version(tpl: String) = tpl.removePrefix(HOST).substringBefore("/{z}").replace(Regex("[^A-Za-z0-9_]"), "_")
+    private fun url(tpl: String, z: Int, x: Int, y: Int) = tpl.replace("{z}", z.toString()).replace("{x}", x.toString()).replace("{y}", y.toString())
+
+    /** Télécharge une tuile (deux essais) et n'en garde que les rues. */
+    private fun download(tpl: String, z: Int, x: Int, y: Int): ByteArray {
+        var last: IOException? = null
+        for (attempt in 0 until 2) {
+            try { return roadsOnly(get(url(tpl, z, x, y))) } catch (e: IOException) { last = e }
+        }
+        throw last ?: IOException("tile")
+    }
+
+    /** Hors ligne : enregistre les rues d'une tuile dans le dossier d'une zone (rien si elle y est déjà). */
+    fun saveOffline(dir: File, z: Int, x: Int, y: Int) {
+        val f = File(dir, OfflineData.roadsName(z, x, y))
+        if (f.exists()) return
+        val cache = cacheDir() ?: throw IOException("cache")
+        val bytes = download(template(cache), z, x, y)
+        val tmp = File(dir, f.name + ".tmp")
+        tmp.writeBytes(bytes)
+        if (!tmp.renameTo(f)) { tmp.delete(); throw IOException("write") }
+    }
+
+    /**
+     * Taille d'une tuile complète de la carte telle qu'elle est stockée (compressée), sans la télécharger : sert à
+     * estimer la place d'une zone hors ligne. -1 si inconnue.
+     */
+    fun tileBytes(z: Int, x: Int, y: Int): Long {
+        val cache = cacheDir() ?: return -1
+        val conn = (URL(url(template(cache), z, x, y)).openConnection() as HttpURLConnection).apply {
+            requestMethod = "HEAD"; connectTimeout = 8_000; readTimeout = 8_000; instanceFollowRedirects = false
+            setRequestProperty("User-Agent", USER_AGENT); setRequestProperty("Accept-Encoding", "gzip")
+        }
+        return try {
+            when (conn.responseCode) {
+                204, 404 -> 0L
+                in 200..299 -> conn.getHeaderField("Content-Length")?.toLongOrNull() ?: -1L
+                else -> -1L
+            }
+        } catch (e: IOException) { -1L } finally { conn.disconnect() }
     }
 
     // ---------- Lecture des tuiles (protobuf « Mapbox Vector Tile ») ----------

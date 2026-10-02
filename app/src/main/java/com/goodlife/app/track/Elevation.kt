@@ -64,6 +64,22 @@ object Elevation {
         } finally { conn.disconnect() }
     }
 
+    /** Hors ligne : enregistre une tuile d'altitude (zoom 12) dans le dossier d'une zone (rien si elle y est déjà). */
+    fun saveOffline(dir: File, x: Int, y: Int) {
+        val f = File(dir, OfflineData.elevName(x, y))
+        if (f.exists()) return
+        var last: IOException? = null
+        for (attempt in 0 until 2) {
+            try {
+                val tmp = File(dir, f.name + ".tmp")
+                tmp.writeBytes(download(x, y))
+                if (!tmp.renameTo(f)) { tmp.delete(); throw IOException("write") }
+                return
+            } catch (e: IOException) { last = e }
+        }
+        throw last ?: IOException("elevation")
+    }
+
     /** Terrarium : altitude = R × 256 + G + B / 256 − 32 768. */
     private fun decode(png: ByteArray): Tile? {
         val bmp = BitmapFactory.decodeByteArray(png, 0, png.size, BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }) ?: return null
@@ -87,7 +103,7 @@ object Elevation {
                     synchronized(memory) { memory[k] }?.let { return@async k to it }
                     gate.withPermit {
                         val x = (k shr 32).toInt(); val y = k.toInt()
-                        val f = File(d, "t12_${x}_$y.png")
+                        val f = OfflineData.elevation(x, y) ?: File(d, "t12_${x}_$y.png")
                         val bytes = if (f.exists()) f.readBytes() else download(x, y).also { b -> runCatching { f.writeBytes(b) } }
                         decode(bytes)?.let { t -> synchronized(memory) { memory[k] = t }; k to t }
                     }
