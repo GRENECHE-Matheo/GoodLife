@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.ui.FoldableSection
 import com.goodlife.app.i18n.t
 
@@ -162,7 +165,7 @@ fun BackupSection() {
                 Spacer(Modifier.width(8.dp))
                 Text(t("Sauvegarder maintenant"))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = { message = null; askPassword = true }) { Text(t("Changer mot de passe / fichier")) }
                 TextButton(onClick = { confirmOff = true }) { Text(t("Désactiver"), color = MaterialTheme.colorScheme.error) }
             }

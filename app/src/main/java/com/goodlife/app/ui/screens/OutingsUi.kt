@@ -1,7 +1,8 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.graphics.graphicsLayer
 import com.goodlife.app.i18n.t
@@ -1049,7 +1050,7 @@ private fun ClubsPanel(
         Text(t("Tarif : %1\$s", selected.price.ifBlank { t("non renseigné") }), style = MaterialTheme.typography.bodyMedium)
         if (selected.hours.isNotBlank()) Text(t("Horaires : %1\$s", selected.hours), style = MaterialTheme.typography.bodySmall)
         if (selected.phone.isNotBlank()) Text(t("Téléphone : %1\$s", selected.phone), style = MaterialTheme.typography.bodySmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (selected.website.isNotBlank()) Button(onClick = {
                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(selected.website))) }
             }) { Icon(Icons.Filled.Language, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Site du club")) }
@@ -1075,7 +1076,7 @@ private fun ClubsPanel(
                 sorted.forEachIndexed { i, p ->
                     if (i > 0) HorizontalDivider()
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(p) }.padding(vertical = 8.dp),
+                        Modifier.fillMaxWidth().clickable { onPick(p) }.padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(Modifier.size(10.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(PLACE_COLOR)))
@@ -1224,7 +1225,7 @@ private fun OutingDetail(id: Long, onBack: () -> Unit, onRetry: (Long) -> Unit) 
             Button(onClick = { onRetry(o.routeId) }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Replay, null); Spacer(Modifier.width(8.dp)); Text(t("Refaire ce parcours et battre mon record"))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedButton(onClick = { rename = true }) { Text(t("Nommer ce parcours")) }
                 TextButton(onClick = { confirmDelete = true }) {
                     Icon(Icons.Filled.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(t("Supprimer"))

@@ -197,7 +197,7 @@ private fun ProgramSetup(onDone: () -> Unit, onCancel: () -> Unit) {
             )
         }
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Button(
                 enabled = safe && !loading && profile != null,
                 onClick = {
@@ -283,7 +283,7 @@ private fun ProgramView(program: SportProgram, sport: com.goodlife.app.data.Spor
         )
     }
     AiContentFooter(t("Programme sportif : ") + program.sessions.joinToString(" | ") { "${it.title} : " + it.exercises.joinToString(", ") { e -> e.name } })
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         FilledTonalButton(onClick = { chat = true }) {
             Icon(Icons.AutoMirrored.Filled.Chat, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Poser une question"))
         }
@@ -326,7 +326,7 @@ private fun SessionCard(
     var open by rememberSaveable(s.title, s.day) { mutableStateOf(isToday) }
     SectionCard(container = if (isToday) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { open = !open },
+            Modifier.fillMaxWidth().clickable { open = !open },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
@@ -340,7 +340,7 @@ private fun SessionCard(
             if (doneToday) Icon(Icons.Filled.CheckCircle, t("Faite"), tint = successColor)
             Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
         }
-        AnimatedVisibility(open) {
+        AnimatedVisibility(open, exit = androidx.compose.animation.shrinkVertically()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (s.warmup.isNotBlank()) Text(t("Échauffement : %1\$s", s.warmup), style = MaterialTheme.typography.bodyMedium)
                 s.exercises.forEachIndexed { i, e ->

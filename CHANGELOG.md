@@ -8,6 +8,23 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.15.0 — 03/10/2026
+
+**Cartes hors ligne refaites, et une app plus propre sur tous les téléphones.**
+
+- ✨ **Cartes hors ligne : choisis ta zone dans un cadre**, directement sur la carte (déplace, zoome, tire les coins).
+  La **taille s'affiche en direct**, avec la place libre de ton téléphone ; elle est mesurée sur la zone elle-même.
+- ✨ **Plus de limite de taille** : seule la place libre compte (l'app te prévient si ça ne rentre pas).
+- ✨ **Deux qualités** : **Complète** (toute la carte, et les **itinéraires, boucles et dénivelé marchent sans réseau**)
+  ou **Légère** (villes et grandes routes, pour se repérer).
+- 🛠️ Un téléchargement coupé **reprend tout seul** à la prochaine ouverture de la carte (ou avec « Reprendre »).
+- 🔋 Pendant une sortie, le petit bonhomme ne fait plus travailler le téléphone quand l'écran est éteint.
+- 🐛 Les **coins des lettres** n'étaient plus rognés au bord de certaines cartes (programme, planning, clubs).
+- 🐛 En repliant une carte, **le texte et le bas de la carte bougent ensemble** (plus de décalage).
+- 🛠️ Les **rangées de boutons passent à la ligne** quand l'écran est étroit, au lieu d'écraser leur texte, et les
+  onglets ne coupent plus un mot en deux avec un grand texte.
+- 🔒 « Effacer mes données » supprime aussi les cartes hors ligne.
+
 ## v0.14.0 — 03/10/2026
 
 **Une carte plus grande et plus vivante, des trajets plus longs, et une app plus simple à régler.**

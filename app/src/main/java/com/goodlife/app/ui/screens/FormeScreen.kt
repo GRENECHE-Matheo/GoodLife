@@ -39,7 +39,7 @@ fun FormeScreen() {
         }
         if (!active) PrimaryTabRow(selectedTabIndex = tab) {
             listOf(t("Programme"), t("Carte"), t("Sommeil")).forEachIndexed { i, label ->
-                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label) })
+                Tab(selected = tab == i, onClick = { tab = i }, text = { com.goodlife.app.ui.FitText(label) })
             }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {

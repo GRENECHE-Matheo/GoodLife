@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.i18n.t
 
 import android.Manifest
@@ -146,7 +149,7 @@ fun ShoppingScreen(onBack: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         (1..4).forEach { n -> FilterChip(people == n, { people = n }, label = { Text("$n") }) }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (aiReady) Button(enabled = !loading, onClick = {
                             loading = true; error = null
                             scope.launch {
@@ -187,7 +190,7 @@ fun ShoppingScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilledTonalButton(onClick = {
                         runCatching {
                             context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain")

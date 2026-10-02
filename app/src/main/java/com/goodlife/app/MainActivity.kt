@@ -332,7 +332,7 @@ private fun MainTabs() {
                         selected = tab == i,
                         onClick = { tab = i },
                         icon = { Icon(t.icon, null) },
-                        label = { Text(t.label) }
+                        label = { com.goodlife.app.ui.FitText(t.label) }
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -354,7 +354,7 @@ private fun MainTabs() {
                                 selected = tab == i,
                                 onClick = { tab = i },
                                 icon = { Icon(t.icon, null) },
-                                label = { Text(t.label, maxLines = 1) }
+                                label = { com.goodlife.app.ui.FitText(t.label) }
                             )
                         }
                     }

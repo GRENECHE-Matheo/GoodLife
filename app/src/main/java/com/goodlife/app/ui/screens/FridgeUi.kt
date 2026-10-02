@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.i18n.t
 import com.goodlife.app.i18n.tp
 import androidx.compose.foundation.clickable
@@ -184,7 +187,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
         }
         Fridge.AISLES.forEach { aisle ->
             val list = items.filter { it.aisle == aisle }
-            if (list.isNotEmpty()) SectionCard(title = Fridge.aisleLabel(aisle), modifier = Modifier.animateContentSize()) {
+            if (list.isNotEmpty()) SectionCard(title = Fridge.aisleLabel(aisle)) {
                 list.forEachIndexed { i, item ->
                     if (i > 0) HorizontalDivider()
                     FridgeRow(item, onEdit = { edit = item })
@@ -204,7 +207,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
                 else t("Prends en photo ton frigo ou tes placards, et/ou écris ce que tu as. Le chef te propose des recettes anti-gaspi."),
                 style = MaterialTheme.typography.bodyMedium
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FilledTonalButton(onClick = { camera("ideas") }) { Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Photo")) }
                 OutlinedButton(onClick = { gallery("ideas") }) { Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Galerie")) }
             }
@@ -240,7 +243,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
                     if (idea.missing.isNotEmpty()) Text(t("Il te manque : %1\$s", idea.missing.joinToString(", ")), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     idea.steps.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodySmall) }
                     AiContentFooter("Recette du frigo : ${idea.name}\n${idea.steps.joinToString("\n")}")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilledTonalButton(onClick = { planFor = idea }) { Text(t("Planifier")) }
                         if (idea.missing.isNotEmpty()) TextButton(onClick = {
                             Shopping.add(idea.missing.map { ShopItem(it, "", t("Pour « %1\$s »", idea.name)) })

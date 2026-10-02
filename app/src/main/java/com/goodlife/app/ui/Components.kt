@@ -1,5 +1,6 @@
 package com.goodlife.app.ui
 
+import androidx.compose.ui.draw.drawWithContent
 import com.goodlife.app.i18n.t
 import com.goodlife.app.i18n.tp
 
@@ -91,7 +92,7 @@ fun SectionCard(
         colors = CardDefaults.cardColors(containerColor = container)
     ) {
         Column(
-            Modifier.animateContentSize(spring(stiffness = Spring.StiffnessMediumLow)).padding(20.dp),
+            Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (title != null) {
@@ -125,7 +126,7 @@ fun FoldableSection(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Column(Modifier.animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))) {
+        Column {
             Row(
                 Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -142,11 +143,14 @@ fun FoldableSection(
                     if (open) t("Replier") else t("Ouvrir")
                 )
             }
-            if (open) Column(
-                Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                content = content
-            )
+            // Le contenu s'ouvre et se ferme avec la carte (pas de décalage entre le texte et le bas de la carte)
+            androidx.compose.animation.AnimatedVisibility(open, exit = androidx.compose.animation.shrinkVertically()) {
+                Column(
+                    Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = content
+                )
+            }
         }
     }
 }
@@ -259,3 +263,19 @@ fun formatDay(ms: Long): String = SimpleDateFormat("EEE d MMM", com.goodlife.app
 fun days(n: Int): String = tp(n, "%1\$s jour", "%1\$s jours")
 fun formatDuration(min: Long): String = "${min / 60} h ${"%02d".format(min % 60)}"
 fun String.toNumber(): Double? = replace(',', '.').trim().toDoubleOrNull()
+
+/**
+ * Texte sur une seule ligne qui rétrécit un peu (jusqu'aux deux tiers) s'il ne tient pas, au lieu d'être coupé au
+ * milieu d'un mot : pour les onglets et la barre du bas, avec un grand texte ou un petit écran.
+ */
+@Composable
+fun FitText(text: String, modifier: Modifier = Modifier, style: androidx.compose.ui.text.TextStyle = androidx.compose.material3.LocalTextStyle.current) {
+    var scale by androidx.compose.runtime.remember(text) { androidx.compose.runtime.mutableFloatStateOf(1f) }
+    var ready by androidx.compose.runtime.remember(text) { androidx.compose.runtime.mutableStateOf(false) }
+    Text(
+        text, maxLines = 1, softWrap = false,
+        style = style.copy(fontSize = style.fontSize * scale),
+        modifier = modifier.drawWithContent { if (ready) drawContent() },
+        onTextLayout = { r -> if (r.didOverflowWidth && scale > 0.67f) scale *= 0.92f else ready = true }
+    )
+}

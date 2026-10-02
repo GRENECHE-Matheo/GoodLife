@@ -189,7 +189,7 @@ fun NutridexScreen(onBack: () -> Unit, title: String = DEX_NAME, unlockedIds: Se
                 items(entries, key = { it.id }) { e ->
                     val isUnlocked = e.id in unlocked
                     Column(
-                        Modifier.clip(RoundedCornerShape(16.dp)).clickable { open = e }.padding(4.dp),
+                        Modifier.clip(RoundedCornerShape(16.dp)).clickable { open = e }.padding(6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         // Débloqué : l'aliment se colorie ; la photo s'affiche quand on le touche

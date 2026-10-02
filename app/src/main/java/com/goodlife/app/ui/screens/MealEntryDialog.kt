@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.i18n.t
 
 import androidx.compose.foundation.clickable
@@ -82,7 +85,7 @@ fun AddMealDialog(onDismiss: () -> Unit, onAdd: (Meal) -> Unit) {
         title = { Text(t("Ajouter un repas")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(byFood, { byFood = true }, label = { Text(t("Aliment + grammes")) })
                     FilterChip(!byFood, { byFood = false }, label = { Text(t("Calories")) })
                 }

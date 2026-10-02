@@ -1,7 +1,8 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.i18n.t
 
 import androidx.compose.animation.AnimatedVisibility
@@ -196,7 +197,7 @@ private fun HomeContent(
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Appuyer sur sa photo ou son nom ouvre les infos du compte
             Row(
-                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(onClick = onOpenProfile).padding(4.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(onClick = onOpenProfile).padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
             Avatar(avatar, p.name, 44.dp)
@@ -339,7 +340,7 @@ private fun HomeContent(
                     }
                 }
                 if (game.freezes > 0) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Button(onClick = onGel) { Text(t("Utiliser un gel ❄️")) }
                         TextButton(onClick = onQuiz) { Text(t("Quiz classique (%1\$s/%2\$s)", QuizBank.PASS, QuizBank.PER_DAY)) }
                     }
@@ -439,7 +440,7 @@ private fun HomeContent(
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilledTonalButton(enabled = !sugLoading, onClick = { ask(append = false) }) {
                         if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         else Icon(if (suggestions.isEmpty()) Icons.Filled.AutoAwesome else Icons.Filled.Refresh, null, Modifier.size(18.dp))
@@ -516,7 +517,7 @@ private fun SuggestionRow(
             Text("${s.kcal} kcal", color = MaterialTheme.colorScheme.primary)
             Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
         }
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(visible = expanded, exit = androidx.compose.animation.shrinkVertically()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
                 Text(s.description, style = MaterialTheme.typography.bodyMedium)
                 if (s.why.isNotBlank()) {
@@ -526,7 +527,7 @@ private fun SuggestionRow(
                     )
                 }
                 AiContentFooter(t("Idée de repas : %1\$s (%2\$s kcal)\n%3\$s\n%4\$s", s.name, s.kcal, s.description, s.why))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilledTonalButton(onClick = onPlan) {
                         Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))

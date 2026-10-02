@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.i18n.t
 
 import android.Manifest
@@ -131,7 +134,7 @@ fun NotifOptInCard() {
             t("Un bilan le matin, un petit mot à midi, un rappel le soir seulement si ta série est en danger, et un bilan le dimanche. Préparés sur ton téléphone, jamais plus d'un à la fois, et réglables dans Paramètres."),
             style = MaterialTheme.typography.bodyMedium
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Button(onClick = ask) { Text(t("Activer")) }
             TextButton(onClick = { saveNotifPrefs(context, NotifPrefs(false, false, false, false)) }) { Text(t("Non merci")) }
         }

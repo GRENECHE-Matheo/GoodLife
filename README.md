@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.14.0
+## 🆕 Nouveautés de la v0.15.0
+
+- **Cartes hors ligne** : zone choisie dans un cadre, taille en direct, plus de limite, et en qualité Complète les
+  **itinéraires et le dénivelé marchent sans réseau**.
+- Affichage plus propre sur tous les téléphones (lettres, boutons, animations) et un peu moins de batterie en sortie.
+
+## Nouveautés de la v0.14.0
 
 - **Carte plus grande** (panneau du bas à tirer), **un petit bonhomme animé** à ta place pendant une sortie, carte plus zoomée.
 - **Trajets jusqu'à 150 km**, clubs plus rapides avec l'itinéraire dans l'app, **planning modifiable** et **paramètres regroupés**.

@@ -1,7 +1,8 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
 import com.goodlife.app.i18n.t
 
 import android.Manifest
@@ -355,7 +356,7 @@ fun ScanScreen(onDone: () -> Unit) {
                     }
                     error != null -> {
                         Text(error!!, color = MaterialTheme.colorScheme.error)
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Button(onClick = { analyze(current) }) { Text(t("Réessayer")) }
                             OutlinedButton(onClick = { reset() }) { Text(t("Nouvelle photo")) }
                         }
@@ -429,7 +430,7 @@ private fun ProductCard(p: FoodProduct, onAdd: (Meal) -> Unit, onRetake: () -> U
             modifier = Modifier.fillMaxWidth()
         )
         Text("$kcal kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Button(
                 enabled = g > 0 && g <= 5000,
                 onClick = {
@@ -532,7 +533,7 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> 
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (waterOnly) Button(onClick = { onAdd(null) }) { Text(t("Ajouter %1\$s ml d'eau", r.waterMl)) }
             else Button(
                 enabled = totalKcal > 0,

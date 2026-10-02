@@ -315,7 +315,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                             )
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         OutlinedButton(onClick = { replacingKey = true; keyDraft = ""; showKey = false; keySaved = false }) {
                             Text(t("Remplacer la clé"))
                         }
@@ -339,7 +339,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilledTonalButton(enabled = keyDraft.length >= 20, onClick = {
                             saveApiKey(context, keyDraft)
                             keyDraft = ""; showKey = false; keySaved = true; replacingKey = false

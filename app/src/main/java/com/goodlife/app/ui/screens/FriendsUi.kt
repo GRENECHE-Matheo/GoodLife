@@ -605,7 +605,7 @@ private fun FriendProfile(id: String, onBack: () -> Unit, onDex: (String) -> Uni
                 }
             }
             if (info != null) Text(info!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (p.friend) TextButton(onClick = { Repo.setFriend(p.id, false) }) { Text(t("Retirer des amis")) }
                 TextButton(onClick = { confirmBlock = true }) { Text(t("Bloquer"), color = MaterialTheme.colorScheme.error) }
             }

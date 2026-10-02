@@ -136,7 +136,7 @@ fun PlanningScreen() {
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             OutlinedButton(onClick = { shopping = true }) { Text(t("🛒 Liste de courses")) }
             OutlinedButton(onClick = { fridge = true }) { Text(t("🧊 Mon frigo")) }
         }
@@ -277,7 +277,7 @@ private fun PlannedRow(m: PlannedMeal) {
 
     Column(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { expanded = !expanded }.padding(vertical = 4.dp),
+            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
@@ -302,10 +302,10 @@ private fun PlannedRow(m: PlannedMeal) {
                 }) { Icon(Icons.Filled.Check, t("Marquer comme mangé")) }
             }
         }
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(visible = expanded, exit = androidx.compose.animation.shrinkVertically()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
                 if (m.description.isNotBlank()) Text(m.description, style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (m.recipe != null || aiOn) {
                         AssistChip(onClick = { showRecipe = true }, label = { Text(t("Recette")) })
                     }
