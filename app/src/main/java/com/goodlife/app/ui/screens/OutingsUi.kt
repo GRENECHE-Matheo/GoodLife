@@ -2,6 +2,7 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.graphics.graphicsLayer
 import com.goodlife.app.i18n.t
 
@@ -640,8 +641,13 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                 var spot by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
                 var faceLeft by remember { mutableStateOf(false) }
                 var prev by remember { mutableStateOf<LatLng?>(null) }
-                LaunchedEffect(Unit) {
+                val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+                LaunchedEffect(lifecycle) {
+                    // Seulement quand l'écran est visible, et au rythme de l'affichage : écran éteint ou app cachée,
+                    // la boucle s'arrête (pas de calcul pour rien pendant une longue sortie)
+                    lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                     while (true) {
+                        androidx.compose.runtime.withFrameNanos { }
                         val m = handle.map
                         val loc = runCatching { m?.locationComponent?.lastKnownLocation }.getOrNull()
                         spot = if (m != null && loc != null) m.projection.toScreenLocation(LatLng(loc.latitude, loc.longitude)).let { androidx.compose.ui.geometry.Offset(it.x, it.y) } else null
@@ -658,6 +664,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                             }
                         }
                         delay(33)
+                    }
                     }
                 }
                 spot?.let { pt ->
