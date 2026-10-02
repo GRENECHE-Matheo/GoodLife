@@ -69,7 +69,8 @@ fun AddToPlanDialog(
     recipe: Recipe? = null,
     editableName: Boolean = true,
     onDismiss: () -> Unit,
-    onAdded: () -> Unit = {}
+    onAdded: () -> Unit = {},
+    editing: PlannedMeal? = null   // repas déjà prévu à modifier
 ) {
     var name by remember { mutableStateOf(initialName) }
     var kcal by remember { mutableStateOf(initialKcal?.toString() ?: "") }
@@ -80,7 +81,7 @@ fun AddToPlanDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(t("Ajouter à l'emploi du temps")) },
+        title = { Text(if (editing != null) t("Modifier le repas") else t("Ajouter à l'emploi du temps")) },
         text = {
             Column(
                 Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
@@ -113,7 +114,12 @@ fun AddToPlanDialog(
             TextButton(
                 enabled = name.isNotBlank() && (k ?: 0) in 0..5000,
                 onClick = {
-                    Repo.addPlanned(
+                    if (editing != null) Repo.updatePlanned(editing.copy(
+                        date = date, slot = slot, name = name.trim(), kcal = k ?: 0,
+                        // Nouveau plat : l'ancienne recette ne correspond plus
+                        recipe = if (name.trim() == editing.name) editing.recipe else null
+                    ))
+                    else Repo.addPlanned(
                         PlannedMeal(
                             date = date, slot = slot, name = name.trim(), kcal = k ?: 0,
                             description = description, recipe = recipe
@@ -122,7 +128,7 @@ fun AddToPlanDialog(
                     onAdded()
                     onDismiss()
                 }
-            ) { Text(t("Ajouter")) }
+            ) { Text(if (editing != null) t("Enregistrer") else t("Ajouter")) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )

@@ -68,12 +68,16 @@ object Places {
     suspend fun around(lat: Double, lng: Double, radiusM: Int = 4000): List<SportPlace> = withContext(Dispatchers.IO) {
         val key = "${(lat * 50).roundToInt()}:${(lng * 50).roundToInt()}:$radiusM"
         cache[key]?.let { (at, list) -> if (System.currentTimeMillis() - at < 86_400_000L) return@withContext list }
+        // Rectangle autour du point (bien plus rapide pour le serveur qu'un cercle), seulement les lieux qui ont un nom
+        val dLat = radiusM / 111_320.0
+        val dLng = radiusM / (111_320.0 * kotlin.math.cos(Math.toRadians(lat)))
+        val bbox = String.format(java.util.Locale.US, "%.5f,%.5f,%.5f,%.5f", lat - dLat, lng - dLng, lat + dLat, lng + dLng)
         val q = """
-            [out:json][timeout:20];
+            [out:json][timeout:20][bbox:$bbox];
             (
-              nwr["leisure"~"^(sports_centre|fitness_centre|stadium|sports_hall)$"](around:$radiusM,$lat,$lng);
-              nwr["leisure"="swimming_pool"]["access"!~"private|no"]["name"](around:$radiusM,$lat,$lng);
-              nwr["club"="sport"](around:$radiusM,$lat,$lng);
+              nwr["leisure"~"^(sports_centre|fitness_centre|stadium|sports_hall)$"]["name"];
+              nwr["leisure"="swimming_pool"]["access"!~"private|no"]["name"];
+              nwr["club"="sport"]["name"];
             );
             out center tags 150;
         """.trimIndent()

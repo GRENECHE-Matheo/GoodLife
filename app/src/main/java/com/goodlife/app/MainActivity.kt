@@ -263,7 +263,9 @@ fun GoodLifeApp() {
     val stage = when {
         profile == null -> 0
         !settings.aiConsentAsked -> 1
-        else -> 2
+        // Options désactivées par défaut : proposées une fois, pour que personne ne passe à côté
+        !settings.featuresAsked -> 2
+        else -> 3
     }
     // Passage animé : accueil → choix de l'IA → application
     AnimatedContent(
@@ -274,6 +276,7 @@ fun GoodLifeApp() {
         when (st) {
             0 -> OnboardingScreen()
             1 -> AiChoiceScreen()
+            2 -> com.goodlife.app.ui.screens.OptionsOnboardingScreen()
             else -> MainTabs()
         }
     }

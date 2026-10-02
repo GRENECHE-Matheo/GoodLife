@@ -96,7 +96,7 @@ object Elevation {
         }
     }
 
-    /** Altitude (m) de chaque point, ou null si les données ne sont pas disponibles (hors ligne…). Au plus 40 tuiles. */
+    /** Altitude (m) de chaque point, ou null si les données ne sont pas disponibles (hors ligne…). Au plus 90 tuiles. */
     suspend fun of(lat: DoubleArray, lng: DoubleArray): FloatArray? {
         if (lat.isEmpty()) return FloatArray(0)
         val keys = HashSet<Long>()
@@ -104,7 +104,7 @@ object Elevation {
             // Les 4 pixels de l'interpolation (ils peuvent tomber sur la tuile voisine, en bord de tuile)
             val x0 = floor(tx(lng[i]) * 256.0 - 0.5).toLong(); val y0 = floor(ty(lat[i]) * 256.0 - 0.5).toLong()
             for (dx in 0..1) for (dy in 0..1) keys += key(((x0 + dx) shr 8).toInt(), ((y0 + dy) shr 8).toInt())
-            if (keys.size > 40) return null
+            if (keys.size > 90) return null
         }
         val t = runCatching { tiles(keys) }.getOrNull() ?: return null
         if (t.size < keys.size) return null

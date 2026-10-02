@@ -163,21 +163,22 @@ internal fun FridgeContent(onClose: () -> Unit) {
         // ---- Inventaire ----
         SectionCard(title = if (items.isEmpty()) t("Ce que j'ai à la maison") else t("Ce que j'ai à la maison · %1\$s", items.size), icon = Icons.Filled.Kitchen) {
             if (items.isEmpty()) Text(
-                t("Ton frigo est vide pour l'instant. Ajoute ce que tu as, prends ton ticket de caisse en photo, ou dis-le simplement au chef."),
+                t("Ton frigo est vide pour l'instant. Ajoute ce que tu as, prends en photo ton ticket ou ton frigo, ou dis-le simplement au chef."),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { adding = true }) { Icon(Icons.Filled.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Ajouter")) }
+                // Une seule photo : ticket de caisse, frigo, placards ou conserves
                 if (aiReady) FilledTonalButton(enabled = !receiptLoading, onClick = { camera("receipt") }) {
-                    if (receiptLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.Receipt, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp)); Text(t("Ticket de caisse"))
+                    if (receiptLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp)); Text(t("Photo"))
                 }
                 if (aiReady) OutlinedButton(enabled = !receiptLoading, onClick = { gallery("receipt") }) {
                     Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Galerie"))
                 }
             }
             if (aiReady) Text(
-                t("Ticket de caisse ou courses posées sur la table : l'IA liste les aliments achetés, tu valides avant l'ajout."),
+                t("Photo de ton ticket de caisse, de ton frigo, de tes placards ou de tes conserves : l'IA liste les aliments, tu valides avant l'ajout."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

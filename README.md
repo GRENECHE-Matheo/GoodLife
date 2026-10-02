@@ -22,7 +22,12 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.13.0
+## 🆕 Nouveautés de la v0.14.0
+
+- **Carte plus grande** (panneau du bas à tirer), **un petit bonhomme animé** à ta place pendant une sortie, carte plus zoomée.
+- **Trajets jusqu'à 150 km**, clubs plus rapides avec l'itinéraire dans l'app, **planning modifiable** et **paramètres regroupés**.
+
+## Nouveautés de la v0.13.0
 
 - **La carte comme un GPS** : types de trajet (plus court, petites routes, nature, sans côtes, grandes routes…),
   **dénivelé** avant de partir, **recherche de lieu**, **pinceau** pour dessiner son trajet.

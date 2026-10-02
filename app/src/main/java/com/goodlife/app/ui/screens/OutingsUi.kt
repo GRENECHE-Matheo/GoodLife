@@ -2,6 +2,7 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.ui.graphics.graphicsLayer
 import com.goodlife.app.i18n.t
 
 import android.Manifest
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.filled.Close
 import com.goodlife.app.track.OfflineMaps
 import com.goodlife.app.track.PlannedRoute
 import com.goodlife.app.track.Routing
@@ -32,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +50,7 @@ import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -145,7 +149,7 @@ class MapHandle {
 }
 
 @Composable
-fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier) {
+fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier, alwaysResumed: Boolean = false) {
     val context = LocalContext.current
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val mapView = remember {
@@ -161,14 +165,15 @@ fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier) {
             when (e) {
                 Lifecycle.Event.ON_START -> mapView.onStart()
                 Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                // Mini-fenêtre : l'activité est « en pause » mais la carte doit continuer à s'afficher
+                Lifecycle.Event.ON_PAUSE -> if (!alwaysResumed) mapView.onPause()
                 Lifecycle.Event.ON_STOP -> mapView.onStop()
                 else -> Unit
             }
         }
         lifecycle.addObserver(observer)
         if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) mapView.onStart()
-        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) mapView.onResume()
+        if (alwaysResumed || lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) mapView.onResume()
         onDispose {
             lifecycle.removeObserver(observer)
             mapView.onPause(); mapView.onStop(); mapView.onDestroy()
@@ -218,26 +223,56 @@ private fun Style.points(id: String, places: List<SportPlace>, color: Int) {
     ))
 }
 
-private fun MapLibreMap.fit(points: List<TrackPoint>) {
+private fun MapLibreMap.fit(points: List<TrackPoint>, bottomDp: Int = 24) {
     if (points.size < 2) return
     val b = LatLngBounds.Builder()
     points.forEach { b.include(LatLng(it.lat, it.lng)) }
     // Marges : le haut est couvert par le choix du mode et la recherche, la droite par les boutons ronds
     val d = android.content.res.Resources.getSystem().displayMetrics.density
-    runCatching { moveCamera(CameraUpdateFactory.newLatLngBounds(b.build(), (24 * d).toInt(), (150 * d).toInt(), (64 * d).toInt(), (24 * d).toInt())) }
+    runCatching { moveCamera(CameraUpdateFactory.newLatLngBounds(b.build(), (24 * d).toInt(), (130 * d).toInt(), (64 * d).toInt(), ((bottomDp + 16) * d).toInt())) }
 }
 
 @SuppressLint("MissingPermission")
-private fun showMe(map: MapLibreMap, style: Style, context: android.content.Context, follow: Boolean) {
+private fun showMe(
+    map: MapLibreMap, style: Style, context: android.content.Context, follow: Boolean,
+    type: OutingType = OutingType.RUN, avatar: Boolean = false, small: Boolean = false
+) {
     if (!TrackingService.hasPermission(context)) return
     runCatching {
         val lc = map.locationComponent
-        if (!lc.isLocationComponentActivated) lc.activateLocationComponent(LocationComponentActivationOptions.builder(context, style).build())
+        // Suivi plus vif : la caméra rattrape la position deux fois plus vite
+        val options = org.maplibre.android.location.LocationComponentOptions.builder(context)
+            .trackingAnimationDurationMultiplier(0.5f)
+            .compassAnimationEnabled(true)
+            .apply {
+                // Petite fenêtre (mode réduit) : flèche plus petite, sinon elle cache la carte
+                if (small) minZoomIconScale(0.45f).maxZoomIconScale(0.45f).accuracyAlpha(0f)
+                // Pendant une sortie, le petit bonhomme animé remplace le point bleu
+                if (avatar) {
+                    val hidden = com.goodlife.app.R.drawable.map_puck_hidden
+                    foregroundDrawable(hidden).foregroundDrawableStale(hidden).backgroundDrawable(hidden).backgroundDrawableStale(hidden)
+                        .bearingDrawable(hidden).gpsDrawable(hidden).accuracyAlpha(0f)
+                }
+            }
+            .build()
+        if (!lc.isLocationComponentActivated) lc.activateLocationComponent(
+            LocationComponentActivationOptions.builder(context, style)
+                .locationComponentOptions(options)
+                // Une position par seconde (une demi-seconde au plus vite), haute précision
+                .locationEngineRequest(
+                    org.maplibre.android.location.engine.LocationEngineRequest.Builder(1000L)
+                        .setPriority(org.maplibre.android.location.engine.LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
+                        .setFastestInterval(500L).build()
+                )
+                .build()
+        ) else lc.applyStyle(options)
         lc.isLocationComponentEnabled = true
-        // Pendant une sortie : comme un GPS, la carte suit la position et tourne dans le sens de la marche
-        lc.renderMode = if (follow) RenderMode.GPS else RenderMode.COMPASS
-        // Suivi + zoom en une seule transition (un zoom séparé annulerait le suivi)
-        if (follow) lc.setCameraMode(CameraMode.TRACKING_GPS, 750L, 17.0, null, null, null)
+        // À pied : la carte tourne avec la boussole (immédiat) ; course et vélo : dans le sens du déplacement (GPS)
+        val compass = type == OutingType.WALK
+        lc.renderMode = if (follow && !compass) RenderMode.GPS else RenderMode.COMPASS
+        // Suivi + zoom en une seule transition (un zoom séparé annulerait le suivi) : bien zoomé, comme un GPS
+        val zoom = if (small) 16.0 else if (type == OutingType.BIKE) 17.5 else 18.0
+        if (follow) lc.setCameraMode(if (compass) CameraMode.TRACKING_COMPASS else CameraMode.TRACKING_GPS, 500L, zoom, null, null, null)
         else lc.cameraMode = CameraMode.NONE
         lc.lastKnownLocation?.let { if (!follow) map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 14.0)) }
     }
@@ -288,6 +323,7 @@ fun OutingsTab() {
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
 private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: () -> Unit, onOffline: (LatLngBounds?) -> Unit) {
@@ -302,7 +338,8 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
     fun setType(t: OutingType) = Repo.updateSettings { it.copy(preferredOuting = t.name) }
     val style = com.goodlife.app.track.RouteStyle.of(settings.routeStyle)
     var drawing by remember { mutableStateOf(false) }
-    var lastStroke by remember { mutableStateOf<List<LatLng>>(emptyList()) }
+    // Un seul calcul à la fois : un nouveau choix annule le précédent (le dernier choix gagne toujours)
+    var routeJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     var mode by rememberSaveable { mutableStateOf("activite") }
     var destination by remember { mutableStateOf<LatLng?>(null) }
@@ -349,40 +386,64 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         handle.map?.locationComponent?.takeIf { it.isLocationComponentActivated }?.lastKnownLocation?.let { LatLng(it.latitude, it.longitude) }
     }.getOrNull()
 
-    fun routeTo(dest: LatLng, s: com.goodlife.app.track.RouteStyle = style) {
+    fun routeTo(dest: LatLng, s: com.goodlife.app.track.RouteStyle = style, t0: OutingType = type) {
         if (!hasAnyLocation(context)) { routeError = t("Autorise la localisation pour calculer l'itinéraire depuis ta position."); return }
-        busy = t("Calcul de l'itinéraire…"); routeError = null; lastStroke = emptyList()
-        scope.launch {
+        busy = t("Calcul de l'itinéraire…"); routeError = null
+        routeJob?.cancel()
+        routeJob = scope.launch {
             // Position de la carte, sinon une position GPS toute fraîche (téléphone qui n'en connaît pas encore)
             val from = myPosition() ?: freshPosition(context)
             if (from == null) { routeError = t("Position introuvable pour l'instant. Vérifie que la localisation est activée."); busy = null; return@launch }
-            try { Tracker.setPlanned(Routing.toDestination(from.latitude, from.longitude, dest.latitude, dest.longitude, type, s)) }
-            catch (e: Exception) { routeError = e.message; Tracker.setPlanned(null) }
-            finally { busy = null }
+            try { Tracker.setPlanned(Routing.toDestination(from.latitude, from.longitude, dest.latitude, dest.longitude, t0, s)); busy = null }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { routeError = e.message; busy = null }
         }
     }
     /** Trajet qui suit le trait dessiné au pinceau (et finit à la destination si elle est choisie). */
-    fun routeAlong(stroke: List<LatLng>, s: com.goodlife.app.track.RouteStyle = style) {
+    fun routeAlong(stroke: List<LatLng>, s: com.goodlife.app.track.RouteStyle = style, t0: OutingType = type, dest: LatLng? = destination) {
         if (stroke.size < 2) return
-        busy = t("Calcul du trajet dessiné…"); routeError = null; lastStroke = stroke
-        val d = destination
-        scope.launch {
+        busy = t("Calcul du trajet dessiné…"); routeError = null
+        routeJob?.cancel()
+        routeJob = scope.launch {
             val from = myPosition() ?: (if (hasAnyLocation(context)) freshPosition(context) else null) ?: stroke.first()
             try {
-                Tracker.setPlanned(Routing.alongStroke(from.latitude, from.longitude, stroke.map { it.latitude to it.longitude }, type, s,
-                    d?.latitude ?: Double.NaN, d?.longitude ?: Double.NaN))
-            } catch (e: Exception) { routeError = e.message }
-            finally { busy = null }
+                Tracker.setPlanned(Routing.alongStroke(from.latitude, from.longitude, stroke.map { it.latitude to it.longitude }, t0, s,
+                    dest?.latitude ?: Double.NaN, dest?.longitude ?: Double.NaN))
+                busy = null
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { routeError = e.message; busy = null }
         }
     }
-    /** Nouveau type de trajet : l'itinéraire en cours (destination ou trait) est recalculé avec. */
+    /**
+     * Recalcule l'itinéraire affiché avec un autre type de trajet ou une autre activité. La « recette » (trait dessiné,
+     * destination) est gardée dans l'itinéraire lui-même : ça marche même après être passé par un autre onglet.
+     */
+    fun recompute(s: com.goodlife.app.track.RouteStyle = style, t0: OutingType = type) {
+        val p = Tracker.planned.value ?: return
+        val dest = if (p.hasDestination) LatLng(p.destLat, p.destLng) else null
+        when {
+            p.stroke.size >= 2 -> routeAlong(p.stroke.map { LatLng(it.first, it.second) }, s, t0, dest)
+            dest != null -> routeTo(dest, s, t0)
+        }
+    }
     fun setStyle(s: com.goodlife.app.track.RouteStyle) {
         Repo.updateSettings { it.copy(routeStyle = s.name) }
         loops = emptyList()
-        val p = Tracker.planned.value
+        recompute(s)
+    }
+    /** Retire l'itinéraire (et la destination) : retour à la carte seule. */
+    fun cancelRoute() {
+        routeJob?.cancel(); busy = null; routeError = null
+        Tracker.setPlanned(null); destination = null; loops = emptyList(); onClearRetry()
+    }
+    // Retour du téléphone sur la carte : on défait d'abord ce qui est ouvert (dessin, club, itinéraire, boucles)
+    BackHandler(enabled = live == null && (drawing || selected != null || planned != null || destination != null || loops.isNotEmpty() || mode != "activite")) {
         when {
-            lastStroke.size >= 2 && p != null -> routeAlong(lastStroke, s)
-            destination != null && p != null && p.hasDestination -> routeTo(destination!!, s)
+            drawing -> drawing = false
+            selected != null -> selected = null
+            planned != null || destination != null -> cancelRoute()
+            loops.isNotEmpty() -> loops = emptyList()
+            else -> mode = "activite"
         }
     }
 
@@ -390,7 +451,20 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
     LaunchedEffect(handle.style, live != null, live?.gpsOk, locationGranted) {
         val map = handle.map ?: return@LaunchedEffect
         val style = handle.style ?: return@LaunchedEffect
-        showMe(map, style, context, follow = live != null)
+        showMe(map, style, context, follow = live != null, type = live?.type ?: type, avatar = live != null)
+    }
+    // Première position connue (parfois quelques secondes après l'ouverture) : la carte se centre une fois sur toi
+    LaunchedEffect(handle.map, locationGranted) {
+        val m = handle.map ?: return@LaunchedEffect
+        if (!locationGranted || Tracker.planned.value != null) return@LaunchedEffect
+        repeat(30) {
+            val loc = runCatching { m.locationComponent.takeIf { it.isLocationComponentActivated }?.lastKnownLocation }.getOrNull()
+            if (loc != null) {
+                if (m.cameraPosition.zoom < 10 && Tracker.planned.value == null) m.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 14.0))
+                return@LaunchedEffect
+            }
+            delay(500)
+        }
     }
     LaunchedEffect(handle.style, live?.points?.size, planned, loops, loopIndex, mode) {
         val style = handle.style ?: return@LaunchedEffect
@@ -410,7 +484,7 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         if (Tracker.live.value != null) return@LaunchedEffect
         val map = handle.map ?: return@LaunchedEffect
         val pts = planned?.points ?: if (mode == "parcours") loops.flatMap { it.points } else emptyList()
-        if (pts.size >= 2) map.fit(pts)
+        if (pts.size >= 2) map.fit(pts, if (planned != null || loops.isNotEmpty()) 210 else 168)
     }
     LaunchedEffect(handle.style, destination) {
         val d = destination
@@ -456,109 +530,42 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         wasLive = live != null
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            GoodMap(handle, Modifier.fillMaxSize())
-
-            // Boutons ronds à droite (sous la barre de recherche)
-            Column(Modifier.align(Alignment.TopEnd).padding(top = if (live == null && mode == "activite") 136.dp else 64.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallFloatingActionButton(onClick = {
-                    if (!locationGranted) askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                    val m = handle.map; val s = handle.style
-                    if (m != null && s != null) showMe(m, s, context, follow = live != null)
-                }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, t("Ma position")) }
-                if (live == null) SmallFloatingActionButton(
-                    onClick = { onOffline(handle.map?.projection?.visibleRegion?.latLngBounds) },
-                    containerColor = MaterialTheme.colorScheme.surface
-                ) { Icon(Icons.Filled.DownloadForOffline, t("Cartes hors ligne")) }
-                // Pinceau : dessiner son trajet
-                if (live == null && mode != "clubs") SmallFloatingActionButton(
-                    onClick = { drawing = true; mode = "activite"; loops = emptyList(); routeError = null },
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                ) { Icon(Icons.Filled.Brush, t("Dessiner un trajet")) }
-            }
-            // Sélecteur de mode, en haut, et la recherche d'un lieu dessous (mode Activité)
-            if (live == null && !drawing) Column(
-                Modifier.align(Alignment.TopCenter).padding(top = 12.dp, start = 12.dp, end = 12.dp).widthIn(max = 480.dp),
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)
+    val sheet = androidx.compose.material3.rememberBottomSheetScaffoldState()
+    // Partie visible du tiroir replié : l'essentiel (trajet, GO) ; plus haute pendant une sortie
+    val peek = when {
+        live != null -> 300.dp
+        planned != null || loops.isNotEmpty() || mode == "clubs" -> 210.dp
+        else -> 168.dp
+    }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    // Pendant une sortie, ta position est placée au-dessus du tiroir (et pas cachée dessous)
+    LaunchedEffect(handle.map, live != null, peek) {
+        val m = handle.map ?: return@LaunchedEffect
+        if (live == null) return@LaunchedEffect
+        delay(800)
+        val bottom = with(density) { peek.toPx().toDouble() }
+        runCatching { m.locationComponent.paddingWhileTracking(doubleArrayOf(0.0, 0.0, 0.0, bottom * 0.7), 300L) }
+    }
+    val searchVisible = live == null && !drawing && mode == "activite"
+    val topInset = if (live == null && !drawing) (if (searchVisible) 112.dp else 60.dp) else 12.dp
+    androidx.compose.material3.BottomSheetScaffold(
+        scaffoldState = sheet,
+        sheetPeekHeight = peek,
+        sheetMaxWidth = 640.dp,
+        sheetShadowElevation = 12.dp,
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        sheetContent = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            Surface(
-                shape = RoundedCornerShape(24.dp), shadowElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Row(Modifier.padding(4.dp)) {
-                    listOf("activite" to t("Activité"), "parcours" to t("Parcours"), "clubs" to t("Clubs")).forEach { (id, label) ->
-                        val on = mode == id
-                        Surface(
-                            onClick = { mode = id; selected = null; routeError = null },
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (on) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
-                        ) {
-                            Text(
-                                label, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+                // Calcul en cours ou erreur : tout en haut du tiroir, visible même replié
+                if (busy != null && live == null) Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp)); Text(busy!!, style = MaterialTheme.typography.bodySmall)
                 }
-            }
-            if (mode == "activite") MapSearchBar(
-                near = { myPosition() ?: handle.map?.cameraPosition?.target },
-                onPick = { place ->
-                    val d = LatLng(place.lat, place.lng)
-                    destination = d; loops = emptyList()
-                    handle.map?.animateCamera(CameraUpdateFactory.newLatLngZoom(d, 13.0))
-                    routeTo(d)
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            }
-            if (drawing) BrushOverlay(handle.map, onStroke = { stroke -> drawing = false; routeAlong(stroke) }, onCancel = { drawing = false })
-            // Localisation refusée : explication
-            if (!locationGranted && live == null) Surface(
-                shape = RoundedCornerShape(16.dp), shadowElevation = 3.dp,
-                modifier = Modifier.align(Alignment.TopStart).padding(top = if (mode == "activite") 136.dp else 64.dp, start = 12.dp).widthIn(max = 260.dp)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(t("Localisation désactivée"), style = MaterialTheme.typography.titleSmall)
-                    Text(t("Autorise-la pour te voir sur la carte et suivre tes activités."), style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = {
-                        askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                    }) { Text(t("Autoriser")) }
-                }
-            }
-            Text(
-                t("© OpenMapTiles · © OpenStreetMap"),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp)
-                    .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 4.dp),
-                color = androidx.compose.ui.graphics.Color.DarkGray
-            )
-            if (busy != null) Surface(
-                shape = RoundedCornerShape(20.dp), shadowElevation = 3.dp,
-                modifier = Modifier.align(Alignment.Center)
-            ) {
-                Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(10.dp)); Text(busy!!)
-                }
-            }
-        }
-
-        // ---- Panneau du bas ----
-        Surface(
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            tonalElevation = 2.dp, shadowElevation = 12.dp,
-            modifier = Modifier.align(Alignment.CenterHorizontally).widthIn(max = 640.dp).fillMaxWidth()
-        ) {
-            Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Poignée
-                Box(
-                    Modifier.padding(top = 8.dp).align(Alignment.CenterHorizontally).size(width = 36.dp, height = 4.dp)
-                        .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.outlineVariant)
-                )
+                if (routeError != null && live == null) Text(routeError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 val l = live
                 when {
                     l != null -> LivePanel(l, best, planned, onPause = { Tracker.togglePause() }, onStop = { confirmStop = true })
@@ -577,7 +584,13 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                             selected = p
                             handle.map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(p.lat, p.lng), 15.5))
                         },
-                        onClose = { selected = null }
+                        onClose = { selected = null },
+                        // « Y aller » : l'itinéraire est calculé ici, dans GoodLife
+                        onGo = { p ->
+                            val d = LatLng(p.lat, p.lng)
+                            selected = null; mode = "activite"; destination = d; loops = emptyList()
+                            routeTo(d)
+                        }
                     )
                     mode == "parcours" && planned == null -> {
                     // Pendant qu'on règle la distance, les rues autour sont déjà préparées (tuiles de la carte)
@@ -592,12 +605,13 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                         loading = busy != null,
                         onPropose = {
                             busy = t("Calcul des boucles…"); routeError = null; loopIndex = 0
-                            scope.launch {
+                            routeJob?.cancel()
+                            routeJob = scope.launch {
                                 val from = myPosition() ?: (if (hasAnyLocation(context)) freshPosition(context) else null) ?: handle.map?.cameraPosition?.target
                                 if (from == null) { routeError = t("Autorise la localisation pour proposer des boucles autour de toi."); busy = null; return@launch }
-                                try { loops = Routing.loops(from.latitude, from.longitude, loopKm * 1000.0, type, style) }
-                                catch (e: Exception) { routeError = e.message; loops = emptyList() }
-                                finally { busy = null }
+                                try { loops = Routing.loops(from.latitude, from.longitude, loopKm * 1000.0, type, style); busy = null }
+                                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                                catch (e: Exception) { routeError = e.message; loops = emptyList(); busy = null }
                             }
                         },
                         onChoose = { Tracker.setPlanned(loops.getOrNull(loopIndex)) },
@@ -605,23 +619,139 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     )
                     }
                     else -> StartPanel(
-                        type = type, onType = { t ->
-                            setType(t)
-                            if (lastStroke.size >= 2 && planned != null) routeAlong(lastStroke)
-                            else destination?.let { if (planned?.hasDestination == true) routeTo(it) }
-                        },
+                        type = type, onType = { t -> setType(t); recompute(t0 = t) },
                         style = style, onStyle = ::setStyle,
                         planned = planned, destination = destination != null, retry = retryRoute != 0L, best = best,
                         activities = outings.size,
                         onStart = { start() },
-                        onCancelRoute = {
-                            Tracker.setPlanned(null); destination = null; loops = emptyList(); lastStroke = emptyList(); onClearRetry()
-                        },
+                        onCancelRoute = { cancelRoute() },
                         onHistory = onHistory
                     )
                 }
-                if (routeError != null && live == null) Text(routeError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
+        }
+    ) { _ ->
+        Box(Modifier.fillMaxSize()) {
+            GoodMap(handle, Modifier.fillMaxSize())
+
+            // Petit bonhomme animé à ta position pendant une sortie
+            val l = live
+            if (l != null) {
+                var spot by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
+                var faceLeft by remember { mutableStateOf(false) }
+                var prev by remember { mutableStateOf<LatLng?>(null) }
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        val m = handle.map
+                        val loc = runCatching { m?.locationComponent?.lastKnownLocation }.getOrNull()
+                        spot = if (m != null && loc != null) m.projection.toScreenLocation(LatLng(loc.latitude, loc.longitude)).let { androidx.compose.ui.geometry.Offset(it.x, it.y) } else null
+                        // Tourné vers la gauche quand on avance vers la gauche de l'écran (d'après les deux dernières positions)
+                        if (m != null && loc != null) {
+                            val here = LatLng(loc.latitude, loc.longitude)
+                            val before = prev
+                            if (before == null) prev = here
+                            else if (before.distanceTo(here) > 4.0) {
+                                val dx = m.projection.toScreenLocation(here).x - m.projection.toScreenLocation(before).x
+                                val dy = m.projection.toScreenLocation(here).y - m.projection.toScreenLocation(before).y
+                                if (kotlin.math.abs(dx) > kotlin.math.abs(dy) * 0.3f) faceLeft = dx < 0
+                                prev = here
+                            }
+                        }
+                        delay(33)
+                    }
+                }
+                spot?.let { pt ->
+                    val half = with(density) { 28.dp.roundToPx() }
+                    MapAvatar(
+                        l.type, moving = !l.paused && !l.autoPaused && l.speed > 0.6,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset(pt.x.toInt() - half, pt.y.toInt() - half * 2 + 6) }
+                            .graphicsLayer { scaleX = if (faceLeft) -1f else 1f }
+                    )
+                }
+            }
+
+            // Boutons ronds à droite (sous la barre de recherche)
+            Column(Modifier.align(Alignment.TopEnd).padding(top = topInset + 8.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallFloatingActionButton(onClick = {
+                    if (!locationGranted) askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                    val m = handle.map; val s = handle.style
+                    if (m != null && s != null) showMe(m, s, context, follow = live != null, type = live?.type ?: type, avatar = live != null)
+                }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, t("Ma position")) }
+                if (live == null) SmallFloatingActionButton(
+                    onClick = { onOffline(handle.map?.projection?.visibleRegion?.latLngBounds) },
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) { Icon(Icons.Filled.DownloadForOffline, t("Cartes hors ligne")) }
+                // Pinceau : dessiner son trajet
+                if (live == null && mode != "clubs") SmallFloatingActionButton(
+                    onClick = { drawing = true; mode = "activite"; loops = emptyList(); routeError = null },
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ) { Icon(Icons.Filled.Brush, t("Dessiner un trajet")) }
+            }
+            // En haut : le choix du mode (compact) et la recherche d'un lieu dessous (mode Activité)
+            if (live == null && !drawing) Column(
+                Modifier.align(Alignment.TopCenter).padding(top = 8.dp, start = 12.dp, end = 12.dp).widthIn(max = 480.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Surface(shape = RoundedCornerShape(20.dp), shadowElevation = 3.dp, color = MaterialTheme.colorScheme.surface) {
+                    Row(Modifier.padding(3.dp)) {
+                        listOf("activite" to t("Activité"), "parcours" to t("Parcours"), "clubs" to t("Clubs")).forEach { (id, label) ->
+                            val on = mode == id
+                            Surface(
+                                onClick = { mode = id; selected = null; routeError = null },
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (on) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
+                            ) {
+                                Text(
+                                    label, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+                if (searchVisible) MapSearchBar(
+                    near = { myPosition() ?: handle.map?.cameraPosition?.target },
+                    onPick = { place ->
+                        val d = LatLng(place.lat, place.lng)
+                        destination = d; loops = emptyList()
+                        handle.map?.animateCamera(CameraUpdateFactory.newLatLngZoom(d, 13.0))
+                        routeTo(d)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // Itinéraire affiché dans un autre mode (clubs, boucles) : on peut le retirer d'ici
+                if (planned != null && mode != "activite") AssistChip(
+                    onClick = { cancelRoute() },
+                    label = { Text(t("Retirer l'itinéraire")) },
+                    leadingIcon = { Icon(Icons.Filled.Close, null, Modifier.size(18.dp)) },
+                    colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface)
+                )
+            }
+            if (drawing) BrushOverlay(handle.map, onStroke = { stroke -> drawing = false; routeAlong(stroke, dest = destination) }, onCancel = { drawing = false })
+            // Localisation refusée : explication
+            if (!locationGranted && live == null) Surface(
+                shape = RoundedCornerShape(16.dp), shadowElevation = 3.dp,
+                modifier = Modifier.align(Alignment.TopStart).padding(top = topInset + 8.dp, start = 12.dp).widthIn(max = 260.dp)
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(t("Localisation désactivée"), style = MaterialTheme.typography.titleSmall)
+                    Text(t("Autorise-la pour te voir sur la carte et suivre tes activités."), style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = {
+                        askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                    }) { Text(t("Autoriser")) }
+                }
+            }
+            // Mentions des données, juste au-dessus du tiroir
+            Text(
+                t("© OpenMapTiles · © OpenStreetMap"),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 6.dp, bottom = peek + 4.dp)
+                    .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 4.dp),
+                color = androidx.compose.ui.graphics.Color.DarkGray
+            )
         }
     }
 
@@ -705,8 +835,8 @@ private fun StartPanel(
             TextButton(onClick = onCancelRoute) { Text(t("Annuler")) }
         }
         ElevationProfile(planned)
-        // Le type de trajet ne s'applique qu'aux itinéraires calculés (pas à un parcours à refaire)
-        if (!retry) StylePicker(style, onStyle)
+        // Le type de trajet ne s'applique qu'aux itinéraires recalculables (destination, trait dessiné)
+        if (!retry && planned.reroutable) StylePicker(style, onStyle)
     } else {
         Text(
             if (destination) t("Destination choisie") else t("Cherche un lieu, fais un appui long sur la carte, ou dessine ton trajet ✏️"),
@@ -874,7 +1004,7 @@ private fun LivePanel(
 @Composable
 private fun ClubsPanel(
     selected: SportPlace?, places: List<SportPlace>, center: LatLng?, loading: Boolean, error: String?,
-    onSearch: () -> Unit, onPick: (SportPlace) -> Unit, onClose: () -> Unit
+    onSearch: () -> Unit, onPick: (SportPlace) -> Unit, onClose: () -> Unit, onGo: (SportPlace) -> Unit
 ) {
     val context = LocalContext.current
     if (selected != null) {
@@ -896,11 +1026,7 @@ private fun ClubsPanel(
             if (selected.website.isNotBlank()) Button(onClick = {
                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(selected.website))) }
             }) { Icon(Icons.Filled.Language, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(t("Site du club")) }
-            OutlinedButton(onClick = {
-                runCatching {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${selected.lat},${selected.lng}?q=${selected.lat},${selected.lng}(${Uri.encode(selected.name)})")))
-                }
-            }) { Text(t("Y aller")) }
+            OutlinedButton(onClick = { onGo(selected) }) { Text(t("Y aller")) }
         }
         Text(t("Données © OpenStreetMap, à vérifier auprès du club."), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1034,7 +1160,7 @@ private fun FinishedDialog(f: FinishedOuting, onDismiss: () -> Unit) {
         title = { Text(if (f.record) t("Nouveau record !") else t("Bravo, activité terminée !")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("${o.type.emoji} ${"%.2f".format(o.distanceM / 1000)} km en ${formatClock(o.movingMs)}", style = MaterialTheme.typography.titleMedium)
+                Text("${o.type.emoji} " + t("%1\$s km en %2\$s", "%.2f".format(o.distanceM / 1000), formatClock(o.movingMs)), style = MaterialTheme.typography.titleMedium)
                 Text(
                     (if (o.type == OutingType.BIKE) t("Moyenne %1\$s km/h", formatKmh(o.avgSpeed)) else t("Allure moyenne %1\$s min/km", formatPace(o.avgSpeed))) +
                         t(" · dénivelé +%1\$s m", "%.0f".format(o.elevGainM)),
@@ -1183,7 +1309,7 @@ fun PipNavigation() {
     LaunchedEffect(handle.style) {
         val map = handle.map ?: return@LaunchedEffect
         val style = handle.style ?: return@LaunchedEffect
-        showMe(map, style, context, follow = true)
+        showMe(map, style, context, follow = true, type = live?.type ?: OutingType.RUN, small = true)
     }
     LaunchedEffect(handle.style, live?.points?.size, planned) {
         val style = handle.style ?: return@LaunchedEffect
@@ -1193,7 +1319,7 @@ fun PipNavigation() {
         style.line("track", live?.points.orEmpty(), TRACK_COLOR, 5f)
     }
     Box(Modifier.fillMaxSize()) {
-        GoodMap(handle, Modifier.fillMaxSize())
+        GoodMap(handle, Modifier.fillMaxSize(), alwaysResumed = true)
         val l = live
         if (l != null) Surface(
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),

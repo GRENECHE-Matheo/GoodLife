@@ -2,6 +2,7 @@
 
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.ui.FoldableSection
 import com.goodlife.app.i18n.t
 
 import android.Manifest
@@ -155,7 +156,10 @@ fun StepsSettingsSection() {
         } else message = t("Accès aux pas refusé dans Health Connect.")
     }
 
-    SectionCard(title = t("Pas"), icon = Icons.AutoMirrored.Filled.DirectionsWalk) {
+    FoldableSection(
+        t("Pas"), Icons.AutoMirrored.Filled.DirectionsWalk,
+        if (settings.stepsEnabled) t("Activé · objectif %1\$s pas",formatSteps(Steps.goal())) else t("Désactivé")
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
                 Text(t("Suivre mes pas"), style = MaterialTheme.typography.bodyLarge)

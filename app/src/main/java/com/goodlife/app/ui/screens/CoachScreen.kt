@@ -138,8 +138,9 @@ même créneau quand la personne validera.
 {"nom": "nom simple", "quantite": nombre, "unite": "pièce|g|kg|ml|L|boîte|paquet|bouteille", "rayon": "Fruits et légumes|Viandes et poissons|Produits frais|Épicerie|Surgelés|Boulangerie|Boissons|Autres"}.
 "frigo_retrait" reste vide, SAUF si elle dit avoir fini, mangé ou jeté quelque chose de SON FRIGO (liste plus bas) :
 {"nom": "nom EXACT de la liste du frigo", "quantite": nombre dans la même unité}.
-"programme_seances" reste vide, SAUF si elle demande de modifier son programme sportif (remplacer un exercice, séance plus
-facile, autre jour…) : donne chaque séance modifiée ou ajoutée en entier {"jour": 1-7 (1 = lundi), "titre": "...",
+"programme_seances" reste vide, SAUF si elle demande un programme sportif, ou de modifier le sien (remplacer un exercice,
+séance plus facile, autre jour…). Pour un nouveau programme, donne toutes les séances de la semaine (jours de repos entre
+elles), adaptées à son niveau, son matériel et ses limites. Donne chaque séance modifiée ou ajoutée en entier {"jour": 1-7 (1 = lundi), "titre": "...",
 "minutes": 30, "echauffement": "...", "exercices": [{"nom": "...", "detail": "...", "repos": "...", "conseil": "..."}],
 "retour_au_calme": "..."} ; elle remplace la séance de ce jour. "programme_retirer" : jours de séances à supprimer.
 Respecte toujours ses limites et douleurs. Ne dis jamais que tu as déjà modifié le planning, le frigo, la liste ou le
@@ -612,9 +613,11 @@ private fun ProgramProposal(entry: Int, sessions: List<com.goodlife.app.data.Spo
     val added = CoachSession.added
     val key = "$entry#programme"
     val days = listOf(t("Lundi"), t("Mardi"), t("Mercredi"), t("Jeudi"), t("Vendredi"), t("Samedi"), t("Dimanche"))
+    // Pas encore de programme : c'est un nouveau programme à ajouter
+    val hasProgram = Repo.sport.collectAsState().value.program != null
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.widthIn(max = 360.dp).padding(top = 6.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(t("🏋️ Modifier ton programme"), style = MaterialTheme.typography.titleSmall)
+            Text(if (hasProgram || added[key] == true) t("🏋️ Modifier ton programme") else t("🏋️ Programme proposé"), style = MaterialTheme.typography.titleSmall)
             sessions.forEach { s ->
                 Text(t("%1\$s : %2\$s (%3\$s min)", days[s.day - 1], s.title, s.minutes), style = MaterialTheme.typography.labelLarge)
                 Text(s.exercises.joinToString(", ") { "${it.name} ${it.detail}" }, style = MaterialTheme.typography.bodySmall,
@@ -623,7 +626,7 @@ private fun ProgramProposal(entry: Int, sessions: List<com.goodlife.app.data.Spo
             if (removeDays.isNotEmpty()) Text(t("Séances retirées : %1\$s", removeDays.joinToString(", ") { days[it - 1] }), style = MaterialTheme.typography.bodySmall)
             if (added[key] == true) Text(t("Programme mis à jour ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             else FilledTonalButton(onClick = { Repo.applySessions(sessions, removeDays); added[key] = true; CoachSession.persist() }) {
-                Text(t("Appliquer à mon programme"))
+                Text(if (hasProgram) t("Appliquer à mon programme") else t("Ajouter ce programme"))
             }
         }
     }

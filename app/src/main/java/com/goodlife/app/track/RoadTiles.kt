@@ -40,9 +40,8 @@ internal class RawNetwork(val lat: DoubleArray, val lng: DoubleArray, val a: Int
 internal object RoadTiles {
     private const val TILEJSON = "https://tiles.openfreemap.org/planet"
     private const val HOST = "https://tiles.openfreemap.org/"
-    private const val Z = 14
     /** Au-delà, la zone est trop grande pour les tuiles (trop de données) : on passe par Overpass. */
-    const val MAX_TILES = 49
+    const val MAX_TILES = 64
     private const val SNAP = 2.0          // tolérance en pixels de tuile (4096 par tuile ≈ 0,4 m)
     private const val CELL = 64           // grille de recherche des croisements (pixels)
     private const val CACHE_DAYS = 30L
@@ -52,31 +51,38 @@ internal object RoadTiles {
 
     // ---------- Tuiles nécessaires ----------
 
-    private fun tileX(lng: Double) = (lng + 180.0) / 360.0 * (1 shl Z)
-    private fun tileY(lat: Double): Double {
+    private fun tileX(lng: Double, z: Int) = (lng + 180.0) / 360.0 * (1 shl z)
+    private fun tileY(lat: Double, z: Int): Double {
         val r = Math.toRadians(lat)
-        return (1.0 - ln(tan(r) + 1.0 / cos(r)) / Math.PI) / 2.0 * (1 shl Z)
+        return (1.0 - ln(tan(r) + 1.0 / cos(r)) / Math.PI) / 2.0 * (1 shl z)
     }
 
+    /**
+     * Zoom des tuiles : 14 (toutes les rues et tous les chemins) près de chez soi ; 12 pour les longs trajets (routes,
+     * rues et pistes cyclables, 16 fois moins de tuiles à télécharger pour la même distance).
+     */
+    const val DETAIL = 14
+    const val LONG = 12
+
     /** Tuiles d'un rectangle. */
-    fun tilesForBox(s: Double, w: Double, n: Double, e: Double): List<Pair<Int, Int>> {
-        val x0 = floor(tileX(w)).toInt(); val x1 = floor(tileX(e)).toInt()
-        val y0 = floor(tileY(n)).toInt(); val y1 = floor(tileY(s)).toInt()
+    fun tilesForBox(s: Double, w: Double, n: Double, e: Double, z: Int = DETAIL): List<Pair<Int, Int>> {
+        val x0 = floor(tileX(w, z)).toInt(); val x1 = floor(tileX(e, z)).toInt()
+        val y0 = floor(tileY(n, z)).toInt(); val y1 = floor(tileY(s, z)).toInt()
         return (x0..x1).flatMap { x -> (y0..y1).map { y -> x to y } }
     }
 
     /** Tuiles le long d'un trajet : celles dont le centre est à moins de [marginM] du segment départ–arrivée. */
-    fun tilesForCorridor(lat1: Double, lng1: Double, lat2: Double, lng2: Double, marginM: Double): List<Pair<Int, Int>> {
+    fun tilesForCorridor(lat1: Double, lng1: Double, lat2: Double, lng2: Double, marginM: Double, z: Int = DETAIL): List<Pair<Int, Int>> {
         val latC = (lat1 + lat2) / 2
         val kx = 111_320.0 * cos(Math.toRadians(latC))
         val dLat = marginM / 111_320.0; val dLng = marginM / kx
-        val box = tilesForBox(minOf(lat1, lat2) - dLat, minOf(lng1, lng2) - dLng, maxOf(lat1, lat2) + dLat, maxOf(lng1, lng2) + dLng)
-        val tileM = 40_075_016.0 * cos(Math.toRadians(latC)) / (1 shl Z)
+        val box = tilesForBox(minOf(lat1, lat2) - dLat, minOf(lng1, lng2) - dLng, maxOf(lat1, lat2) + dLat, maxOf(lng1, lng2) + dLng, z)
+        val tileM = 40_075_016.0 * cos(Math.toRadians(latC)) / (1 shl z)
         val ax = 0.0; val ay = 0.0
         val bx = (lng2 - lng1) * kx; val by = (lat2 - lat1) * 111_320.0
         return box.filter { (x, y) ->
-            val cLng = (x + 0.5) / (1 shl Z) * 360.0 - 180.0
-            val cLat = Math.toDegrees(atan(sinh(Math.PI * (1 - 2 * (y + 0.5) / (1 shl Z)))))
+            val cLng = (x + 0.5) / (1 shl z) * 360.0 - 180.0
+            val cLat = Math.toDegrees(atan(sinh(Math.PI * (1 - 2 * (y + 0.5) / (1 shl z)))))
             val px = (cLng - lng1) * kx; val py = (cLat - lat1) * 111_320.0
             val len2 = bx * bx + by * by
             val t = if (len2 == 0.0) 0.0 else (((px - ax) * bx + (py - ay) * by) / len2).coerceIn(0.0, 1.0)
@@ -130,7 +136,7 @@ internal object RoadTiles {
         }
     }
 
-    private suspend fun fetchAll(tiles: List<Pair<Int, Int>>): List<Triple<Int, Int, ByteArray>> = withContext(Dispatchers.IO) {
+    private suspend fun fetchAll(tiles: List<Pair<Int, Int>>, z: Int): List<Triple<Int, Int, ByteArray>> = withContext(Dispatchers.IO) {
         val dir = cacheDir() ?: throw IOException("cache")
         prune(dir)
         val tpl = template(dir)
@@ -141,9 +147,9 @@ internal object RoadTiles {
                 async {
                     gate.withPermit {
                         // En cache : seulement la couche des rues (5 à 10 fois plus léger que la tuile entière)
-                        val f = File(dir, "${version}_${Z}_${x}_$y.roads")
+                        val f = File(dir, "${version}_${z}_${x}_$y.roads")
                         val bytes = if (f.exists()) f.readBytes() else {
-                            val url = tpl.replace("{z}", Z.toString()).replace("{x}", x.toString()).replace("{y}", y.toString())
+                            val url = tpl.replace("{z}", z.toString()).replace("{x}", x.toString()).replace("{y}", y.toString())
                             var last: IOException? = null
                             var got: ByteArray? = null
                             for (attempt in 0 until 2) {
@@ -397,9 +403,9 @@ internal object RoadTiles {
 
     private fun pack(x: Long, y: Long) = (x shl 32) or (y and 0xFFFFFFFFL)
 
-    suspend fun network(tiles: List<Pair<Int, Int>>, bike: Boolean): RawNetwork {
-        val data = fetchAll(tiles)
-        return withContext(Dispatchers.Default) { build(data, bike) }
+    suspend fun network(tiles: List<Pair<Int, Int>>, bike: Boolean, z: Int = DETAIL): RawNetwork {
+        val data = fetchAll(tiles, z)
+        return withContext(Dispatchers.Default) { build(data, bike, z) }
     }
 
     /** Points de coupure trouvés : (segment, point entier). */
@@ -407,7 +413,7 @@ internal object RoadTiles {
         fun add(i: Int, x: Double, y: Double) { seg.add(i); pt.add((x.roundToLong() shl 32) or (y.roundToLong() and 0xFFFFFFFFL)) }
     }
 
-    private fun build(data: List<Triple<Int, Int, ByteArray>>, bike: Boolean): RawNetwork {
+    private fun build(data: List<Triple<Int, Int, ByteArray>>, bike: Boolean, z: Int): RawNetwork {
         val segs = Segs(); val levels = HashMap<String, Int>()
         for ((x, y, bytes) in data) readTile(x, y, bytes, bike, segs, levels)
         val n = segs.size
@@ -496,7 +502,7 @@ internal object RoadTiles {
         // 4. Nœuds (points entiers) et arêtes, segment par segment, points dans l'ordre le long du segment
         val index = LongIntMap(n)
         var lat = DoubleArray(1 shl 14); var lng = DoubleArray(1 shl 14); var count = 0
-        val world = 4096.0 * (1 shl Z)
+        val world = 4096.0 * (1 shl z)
         fun node(key: Long): Int {
             val known = index.get(key)
             if (known >= 0) return known

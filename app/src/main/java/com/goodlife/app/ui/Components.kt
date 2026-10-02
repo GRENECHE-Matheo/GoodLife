@@ -4,6 +4,10 @@ import com.goodlife.app.i18n.t
 import com.goodlife.app.i18n.tp
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.foundation.clickable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -100,6 +104,49 @@ fun SectionCard(
                 }
             }
             content()
+        }
+    }
+}
+
+/**
+ * Section repliable (Paramètres) : seul le titre est visible ; un appui l'ouvre ou la referme. L'état est retenu
+ * pendant la session (rotation comprise).
+ */
+@Composable
+fun FoldableSection(
+    title: String,
+    icon: ImageVector,
+    summary: String = "",
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var open by androidx.compose.runtime.saveable.rememberSaveable(title) { androidx.compose.runtime.mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(Modifier.animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))) {
+            Row(
+                Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    if (summary.isNotBlank() && !open) Text(summary, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
+                Icon(
+                    if (open) androidx.compose.material.icons.Icons.Filled.ExpandLess else androidx.compose.material.icons.Icons.Filled.ExpandMore,
+                    if (open) t("Replier") else t("Ouvrir")
+                )
+            }
+            if (open) Column(
+                Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content
+            )
         }
     }
 }

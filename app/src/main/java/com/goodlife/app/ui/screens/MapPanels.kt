@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -155,26 +156,30 @@ internal fun MapSearchBar(near: () -> LatLng?, onPick: (FoundPlace) -> Unit, mod
         }
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Surface(shape = RoundedCornerShape(28.dp), shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface) {
-            TextField(
-                value = query, onValueChange = { query = it.take(120) },
-                placeholder = { Text(t("Où vas-tu ? Ville, adresse…")) },
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Filled.Search, null) },
-                trailingIcon = {
-                    when {
-                        loading -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        query.isNotEmpty() -> IconButton(onClick = { query = ""; results.clear(); error = null }) { Icon(Icons.Filled.Close, t("Effacer")) }
+        // Barre fine (44 dp) pour laisser la place à la carte
+        Surface(shape = RoundedCornerShape(22.dp), shadowElevation = 3.dp, color = MaterialTheme.colorScheme.surface) {
+            Row(Modifier.fillMaxWidth().height(44.dp).padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Search, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(10.dp))
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) Text(t("Où vas-tu ? Ville, adresse…"), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = query, onValueChange = { query = it.take(120) }, singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { go() }),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                when {
+                    loading -> CircularProgressIndicator(Modifier.padding(horizontal = 10.dp).size(18.dp), strokeWidth = 2.dp)
+                    query.isNotEmpty() -> IconButton(onClick = { query = ""; results.clear(); error = null }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Filled.Close, t("Effacer"), Modifier.size(20.dp))
                     }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { go() }),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
+                }
+            }
         }
         if (results.isNotEmpty() || error != null) Surface(shape = RoundedCornerShape(20.dp), shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).padding(vertical = 4.dp)) {

@@ -1,5 +1,6 @@
 package com.goodlife.app.ui.screens
 
+import com.goodlife.app.ui.FoldableSection
 import com.goodlife.app.i18n.t
 
 import android.content.Context
@@ -99,7 +100,10 @@ fun BackupSection() {
         }
     }
 
-    SectionCard(title = t("Sauvegarde chiffrée"), icon = Icons.Filled.Backup) {
+    FoldableSection(
+        t("Sauvegarde chiffrée"), Icons.Filled.Backup,
+        if (settings.backupUri.isBlank()) t("Désactivée") else t("Automatique, activée")
+    ) {
         if (settings.backupUri.isBlank()) {
             Text(
                 t("Pour ne rien perdre si tu changes de téléphone ou réinstalles l'app. GoodLife écrit une copie chiffrée de tes données dans le fichier de ton choix (Google Drive, Téléchargements…), puis la met à jour toute seule à chaque fois que tu quittes l'app après un changement."),

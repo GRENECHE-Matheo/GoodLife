@@ -93,7 +93,8 @@ data class Settings(
     val notifNoon: Boolean = false,         // repas prévu à midi + petit mot
     val notifEvening: Boolean = false,      // série en danger, le soir
     val notifWeekly: Boolean = false,       // bilan de la semaine, le dimanche
-    val notifAsked: Boolean = false,        // la question a déjà été posée (inscription ou accueil)
+    val notifAsked: Boolean = false,
+    val featuresAsked: Boolean = false,     // l'écran « Tes options » a été proposé (inscription, ou une fois pour les anciens comptes)        // la question a déjà été posée (inscription ou accueil)
     val lastNudgeDay: String = "",          // dernier « tu nous manques », pour ne pas insister
     val coachConsentAt: Long = 0L           // accord pour envoyer au coach le résumé de ses chiffres (0 = pas encore)
 ) {
@@ -161,6 +162,7 @@ data class Settings(
         .put("fridgeAutoRemove", fridgeAutoRemove)
         .put("preferredOuting", preferredOuting)
         .put("routeStyle", routeStyle)
+        .put("featuresAsked", featuresAsked)
         .put("notifMorning", notifMorning)
         .put("notifNoon", notifNoon)
         .put("notifEvening", notifEvening)
@@ -232,6 +234,7 @@ data class Settings(
             fridgeAutoRemove = o.optBoolean("fridgeAutoRemove", false),
             preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" },
             routeStyle = o.optString("routeStyle", "BALANCED").ifBlank { "BALANCED" },
+            featuresAsked = o.optBoolean("featuresAsked", false),
             notifMorning = o.optBoolean("notifMorning", false),
             notifNoon = o.optBoolean("notifNoon", false),
             notifEvening = o.optBoolean("notifEvening", false),

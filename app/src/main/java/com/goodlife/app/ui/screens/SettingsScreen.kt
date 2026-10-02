@@ -77,6 +77,7 @@ import com.goodlife.app.sleep.SleepTracker
 import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.SubScreenHeader
 import com.goodlife.app.ui.SectionCard
+import com.goodlife.app.ui.FoldableSection
 import com.goodlife.app.ui.SlideSwitch
 import com.goodlife.app.ui.theme.THEME_COLORS
 import com.goodlife.app.ui.theme.THEME_MODES
@@ -151,7 +152,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         SubScreenHeader(t("Paramètres"), onBack)
 
         // ---- Apparence ----
-        SectionCard(title = t("Apparence et sons"), icon = Icons.Filled.Palette) {
+        FoldableSection(t("Apparence et sons"), Icons.Filled.Palette, t("Thème, couleur, langue, sons")) {
             Text(t("Thème"), style = MaterialTheme.typography.labelLarge)
             THEME_MODES.forEach { (id, label) ->
                 Row(
@@ -212,7 +213,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Sécurité ----
-        SectionCard(title = t("Coach et notifications"), icon = Icons.Filled.Notifications) {
+        FoldableSection(t("Coach et notifications"), Icons.Filled.Notifications, t("Rappels et petits mots du chef")) {
             Text(
                 t("Messages préparés sur ton téléphone (sans réseau ni IA), jamais plus d'un à la fois. Sur l'écran verrouillé, seul « Un message du chef » s'affiche."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -243,7 +244,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        SectionCard(title = t("Sécurité"), icon = Icons.Filled.Fingerprint) {
+        FoldableSection(t("Sécurité"), Icons.Filled.Fingerprint, t("Verrouillage et captures d'écran")) {
             SettingSwitch(
                 title = t("Verrouiller avec l'empreinte"),
                 subtitle = t("Empreinte, visage ou code du téléphone à l'ouverture et après 1 min en arrière-plan."),
@@ -280,7 +281,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         BackupSection()
 
         // ---- IA ----
-        SectionCard(title = t("Intelligence artificielle"), icon = Icons.Filled.VpnKey) {
+        FoldableSection(t("Intelligence artificielle"), Icons.Filled.VpnKey, if (settings.aiEnabled) t("Activée") else t("Désactivée")) {
             SettingSwitch(
                 title = t("Fonctions IA (Google Gemini)"),
                 subtitle = if (settings.aiEnabled) t("Activées. Pour chaque demande, la photo et les infos nécessaires sont envoyées à Google avec ta clé.")
@@ -374,7 +375,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Mises à jour (version GitHub uniquement ; sur Google Play, c'est le Play Store) ----
-        if (BuildConfig.SELF_UPDATE) SectionCard(title = t("Mises à jour"), icon = Icons.Filled.SystemUpdate) {
+        if (BuildConfig.SELF_UPDATE) FoldableSection(t("Mises à jour"), Icons.Filled.SystemUpdate, t("Version %1\$s", BuildConfig.VERSION_NAME)) {
             SettingSwitch(
                 title = t("Me prévenir des nouvelles versions"),
                 subtitle = t("À chaque ouverture de l'app, vérifie s'il existe une nouvelle version sur GitHub (une seule petite requête, rien en arrière-plan)."),
@@ -404,7 +405,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Confidentialité ----
-        SectionCard(title = t("Ce qui quitte ton téléphone"), icon = Icons.Filled.Lock) {
+        FoldableSection(t("Ce qui quitte ton téléphone"), Icons.Filled.Lock, t("Ta vie privée en clair")) {
             DataFlowSummary()
             Text(
                 if (settings.aiEnabled) t("IA : activée.") else t("IA : désactivée, rien n'est envoyé à Google."),
@@ -424,7 +425,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- À propos ----
-        SectionCard(title = t("À propos"), icon = Icons.Filled.Info) {
+        FoldableSection(t("À propos"), Icons.Filled.Info, t("Version, contact, effacer mes données")) {
             Text(t("GoodLife v%1\$s", BuildConfig.VERSION_NAME), fontWeight = FontWeight.Medium)
             Text(
                 t("Projet développé avec l'assistance d'une IA (Claude, Anthropic). GoodLife est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis d'un professionnel de santé."),

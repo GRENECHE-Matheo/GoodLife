@@ -8,6 +8,30 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.14.0 — 03/10/2026
+
+**Une carte plus grande et plus vivante, des trajets plus longs, et une app plus simple à régler.**
+
+- 🛠️ **Carte plus grande** : le panneau du bas se tire vers le haut ou vers le bas, la barre de recherche est plus fine,
+  et le panneau ne passe plus sur les boutons ronds de droite.
+- ✨ **Un petit bonhomme à ta place** pendant une sortie : à vélo il pédale quand tu avances et pose un pied à terre à
+  l'arrêt ; à pied il marche (ou court) et s'arrête avec toi. Il se tourne dans ton sens de déplacement.
+- 🛠️ Pendant une sortie, la carte est **plus zoomée**, comme un GPS, et suit ta position plus vite (moins de latence
+  quand tu tournes ou avances).
+- ✨ **Trajets bien plus longs** : jusqu'à 150 km à vélo et 60 km à pied vers une destination, 120 km au pinceau.
+- 🛠️ **Recherche de clubs plus rapide**, et « Y aller » calcule l'itinéraire **dans l'app** (plus de Google Maps).
+- 🛠️ **Retirer l'itinéraire** est possible dans tous les modes (Clubs, Parcours…), et le bouton **Retour** du téléphone
+  annule le trajet en restant sur la carte.
+- 🐛 Changer de type de trajet (Plus court, Nature…) s'applique tout de suite, même pendant un calcul en cours.
+- 🐛 **Mini-fenêtre** : le fond de carte ne devient plus tout sombre, et la flèche de position y est plus petite.
+- ✨ Le **chef propose d'ajouter un programme sportif** quand tu lui en demandes un.
+- 🛠️ **Mon frigo** : un seul bouton « Photo » pour un ticket de caisse, ton frigo, tes placards ou tes conserves.
+- 🛠️ **Planning** : l'aperçu de la semaine proposée s'affiche en grand, jour par jour (retire un repas d'une croix
+  avant d'ajouter), et chaque repas prévu peut être **modifié** (plat, calories, jour, moment).
+- 🛠️ **Paramètres regroupés** en sections repliables, avec un résumé de chacune : tout tient sur un écran.
+- ✨ **À la création du compte**, toutes les options désactivées par défaut sont proposées (pas, sommeil, petits mots du
+  chef, rappel d'eau, verrouillage…) ; rien n'est activé sans ton accord.
+
 ## v0.13.0 — 02/10/2026
 
 **La carte comme un vrai GPS.**

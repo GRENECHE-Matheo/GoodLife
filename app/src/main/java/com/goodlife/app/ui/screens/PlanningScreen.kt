@@ -2,6 +2,9 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.heightIn
@@ -265,7 +268,12 @@ fun PlanningScreen() {
 private fun PlannedRow(m: PlannedMeal) {
     var expanded by remember { mutableStateOf(false) }
     var showRecipe by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
     val aiOn = Repo.settings.collectAsState().value.aiEnabled
+    if (editing) AddToPlanDialog(
+        initialName = m.name, initialKcal = m.kcal, initialSlot = m.slot, initialDate = m.date,
+        description = m.description, recipe = m.recipe, editing = m, onDismiss = { editing = false }
+    )
 
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -301,6 +309,11 @@ private fun PlannedRow(m: PlannedMeal) {
                     if (m.recipe != null || aiOn) {
                         AssistChip(onClick = { showRecipe = true }, label = { Text(t("Recette")) })
                     }
+                    if (!m.done) AssistChip(
+                        onClick = { editing = true },
+                        label = { Text(t("Modifier")) },
+                        leadingIcon = { Icon(Icons.Filled.Edit, null, Modifier.size(18.dp)) }
+                    )
                     AssistChip(
                         onClick = { Repo.deletePlanned(m.id) },
                         label = { Text(t("Retirer")) },
@@ -335,6 +348,33 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
     var error by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<Pair<List<PlannedMeal>, String>?>(null) }
     val b = budget.toIntOrNull()
+
+    fun accept(r: Pair<List<PlannedMeal>, String>) {
+        Repo.addPlannedWeek(r.first, r.first.map { it.date }.toSet() + weekDaysFrom(startDate, days), slots)
+        // Liste de courses remplie toute seule à partir de la semaine (en arrière-plan, même si l'écran se ferme)
+        if (withShopping) {
+            val meals = r.first
+            val key = settings.apiKey; val model = settings.model; val n = people
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                val items = runCatching { Gemini(key, model).shoppingList(meals, n) }.getOrNull()
+                if (!items.isNullOrEmpty()) Shopping.add(items)
+            }
+        }
+        onDone(startDate)
+        onDismiss()
+    }
+
+    // Résultat : aperçu en plein écran, repas par repas, avant de valider
+    result?.let { r ->
+        PlanPreview(
+            r, days, people, b ?: 0,
+            onRemove = { id -> result = r.copy(first = r.first.filterNot { it.id == id }) },
+            onRedo = { result = null },
+            onDismiss = onDismiss,
+            onAccept = { accept(r) }
+        )
+        return
+    }
 
     AlertDialog(
         onDismissRequest = { if (!loading) onDismiss() },
@@ -476,4 +516,66 @@ private fun WeekPlanDialog(startDate: String, onDismiss: () -> Unit, onDone: (St
 private fun weekDaysFrom(start: String, days: Int = 7): Set<String> {
     val c = Calendar.getInstance().apply { time = parse(start) ?: time }
     return (0 until days).map { ISO.format(c.time).also { c.add(Calendar.DAY_OF_YEAR, 1) } }.toSet()
+}
+
+/**
+ * Aperçu d'un planning proposé par l'IA, en plein écran : chaque jour en carte, chaque repas avec son moment, ses
+ * calories et son prix, et une croix pour le retirer. Rien n'est ajouté avant « Ajouter au planning ».
+ */
+@Composable
+private fun PlanPreview(
+    r: Pair<List<PlannedMeal>, String>, days: Int, people: Int, budget: Int,
+    onRemove: (Long) -> Unit, onRedo: () -> Unit, onDismiss: () -> Unit, onAccept: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize()) {
+                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, t("Fermer")) }
+                    Text(if (days == 1) t("Ta journée est prête") else t("Ta semaine est prête"), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                }
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val total = r.first.sumOf { it.costEur }
+                    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                            Text(t("≈ %1\$s pour %2\$s repas", euros(total), r.first.size), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(t("Budget : %1\$s € · %2\$s personne(s)", budget, people), style = MaterialTheme.typography.bodySmall)
+                            if (r.second.isNotBlank()) Text(r.second, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
+                        }
+                    }
+                    Text(t("Touche ✕ pour retirer un repas qui ne te plaît pas. Les repas déjà prévus (non mangés) sur ces créneaux seront remplacés."),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    r.first.groupBy { it.date }.toSortedMap().forEach { (d, list) ->
+                        SectionCard(title = fmt(d, "EEEE d MMMM").replaceFirstChar { it.uppercase() }) {
+                            list.sortedBy { it.slot.ordinal }.forEachIndexed { i, m ->
+                                if (i > 0) HorizontalDivider()
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f).padding(vertical = 4.dp)) {
+                                        Text(m.slot.label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                        Text(m.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+                                        Text(listOfNotNull("${m.kcal} kcal", m.costEur.takeIf { it > 0 }?.let { "≈ ${euros(it)}" }).joinToString(" · "),
+                                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        if (m.description.isNotBlank()) Text(m.description, style = MaterialTheme.typography.bodySmall, maxLines = 2,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    }
+                                    IconButton(onClick = { onRemove(m.id) }) { Icon(Icons.Filled.Close, t("Retirer ce repas")) }
+                                }
+                            }
+                        }
+                    }
+                    AiContentFooter(r.first.joinToString("\n") { "${it.date} ${it.slot.label} : ${it.name} (${it.costEur} €)" })
+                    Spacer(Modifier.height(8.dp))
+                }
+                Surface(tonalElevation = 3.dp) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = onRedo, modifier = Modifier.weight(1f)) { Text(t("Refaire")) }
+                        Button(enabled = r.first.isNotEmpty(), onClick = onAccept, modifier = Modifier.weight(1f)) { Text(t("Ajouter au planning")) }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -472,14 +472,20 @@ class Gemini(private val apiKey: String, private val model: String) {
         )
     }
 
-    /** Ticket de caisse ou courses posées sur la table : les aliments achetés, pour remplir « Mon frigo ». */
+    /**
+     * Une photo pour remplir « Mon frigo » : un ticket de caisse (les aliments achetés), ou le frigo, les placards, des
+     * conserves, des courses posées sur la table (les aliments visibles, avec une quantité estimée).
+     */
     suspend fun groceries(jpeg: ByteArray): List<com.goodlife.app.data.FridgeItem> {
         val fridge = com.goodlife.app.data.Fridge
         val prompt = """
-            La photo montre un ticket de caisse de supermarché ou des courses posées. Liste les ALIMENTS et BOISSONS achetés
-            (ignore les produits non alimentaires, les sacs, les remises et les totaux). Sur un ticket, lis chaque ligne :
-            la quantité est le nombre d'articles, ou le poids si l'article est vendu au poids. Noms simples et courts en
-            français, avec une majuscule (ex. « Yaourt nature », pas le code du magasin).
+            La photo montre SOIT un ticket de caisse, SOIT un frigo, des placards, des conserves ou des courses posées.
+            - Ticket de caisse : liste les ALIMENTS et BOISSONS achetés (ignore les produits non alimentaires, les sacs, les
+              remises et les totaux). Lis chaque ligne : la quantité est le nombre d'articles, ou le poids si l'article est
+              vendu au poids.
+            - Frigo, placards, conserves, courses : liste les aliments et boissons CLAIREMENT visibles, avec une quantité
+              estimée prudemment (nombre de pièces, de boîtes, de paquets ou de bouteilles ; poids ou volume si c'est écrit).
+            Noms simples et courts en français, avec une majuscule (ex. « Yaourt nature », pas le code du magasin).
             "unite" parmi : ${fridge.UNITS.joinToString(", ")}. "rayon" parmi : ${fridge.AISLES.joinToString(", ")}.
             Réponds UNIQUEMENT en JSON : {"articles": [{"nom": "...", "quantite": 1, "unite": "pièce", "rayon": "..."}]}
         """.trimIndent()
