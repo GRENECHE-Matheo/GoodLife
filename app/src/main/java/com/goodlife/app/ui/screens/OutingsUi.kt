@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.DownloadForOffline
+import androidx.compose.material.icons.filled.Brush
 import com.goodlife.app.track.OfflineMaps
 import com.goodlife.app.track.PlannedRoute
 import com.goodlife.app.track.Routing
@@ -221,7 +222,9 @@ private fun MapLibreMap.fit(points: List<TrackPoint>) {
     if (points.size < 2) return
     val b = LatLngBounds.Builder()
     points.forEach { b.include(LatLng(it.lat, it.lng)) }
-    runCatching { moveCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 80)) }
+    // Marges : le haut est couvert par le choix du mode et la recherche, la droite par les boutons ronds
+    val d = android.content.res.Resources.getSystem().displayMetrics.density
+    runCatching { moveCamera(CameraUpdateFactory.newLatLngBounds(b.build(), (24 * d).toInt(), (150 * d).toInt(), (64 * d).toInt(), (24 * d).toInt())) }
 }
 
 @SuppressLint("MissingPermission")
@@ -247,13 +250,8 @@ private fun showMe(map: MapLibreMap, style: Style, context: android.content.Cont
 /** Demande de localisation déjà faite pendant cette session (pour ne pas redemander à chaque ouverture). */
 private var mapPermissionAsked = false
 
-/** Vitesse moyenne indicative (m/s) pour estimer une durée. */
-private fun typicalSpeed(t: OutingType) = when (t) { OutingType.RUN -> 2.8; OutingType.WALK -> 1.35; OutingType.BIKE -> 4.5 }
-
-private fun estimate(lengthM: Double, t: OutingType): String {
-    val min = (lengthM / typicalSpeed(t) / 60).toInt().coerceAtLeast(1)
-    return if (min >= 60) "${min / 60} h ${"%02d".format(min % 60)}" else "$min min"
-}
+/** Durée estimée avec ta vitesse moyenne habituelle (tes sorties enregistrées), sinon une vitesse typique. */
+private fun estimate(lengthM: Double, t: OutingType): String = com.goodlife.app.track.etaDuration(lengthM, com.goodlife.app.track.Navigator.personalSpeed(t))
 
 private fun km(m: Double) = "%.1f km".format(m / 1000)
 
@@ -302,6 +300,9 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
     val settings by Repo.settings.collectAsState()
     val type = runCatching { OutingType.valueOf(settings.preferredOuting) }.getOrDefault(OutingType.RUN)
     fun setType(t: OutingType) = Repo.updateSettings { it.copy(preferredOuting = t.name) }
+    val style = com.goodlife.app.track.RouteStyle.of(settings.routeStyle)
+    var drawing by remember { mutableStateOf(false) }
+    var lastStroke by remember { mutableStateOf<List<LatLng>>(emptyList()) }
 
     var mode by rememberSaveable { mutableStateOf("activite") }
     var destination by remember { mutableStateOf<LatLng?>(null) }
@@ -348,14 +349,40 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         handle.map?.locationComponent?.takeIf { it.isLocationComponentActivated }?.lastKnownLocation?.let { LatLng(it.latitude, it.longitude) }
     }.getOrNull()
 
-    fun routeTo(dest: LatLng) {
-        val from = myPosition()
-        if (from == null) { routeError = t("Autorise la localisation pour calculer l'itinéraire depuis ta position."); return }
-        busy = t("Calcul de l'itinéraire…"); routeError = null
+    fun routeTo(dest: LatLng, s: com.goodlife.app.track.RouteStyle = style) {
+        if (!hasAnyLocation(context)) { routeError = t("Autorise la localisation pour calculer l'itinéraire depuis ta position."); return }
+        busy = t("Calcul de l'itinéraire…"); routeError = null; lastStroke = emptyList()
         scope.launch {
-            try { Tracker.setPlanned(Routing.toDestination(from.latitude, from.longitude, dest.latitude, dest.longitude, type)) }
+            // Position de la carte, sinon une position GPS toute fraîche (téléphone qui n'en connaît pas encore)
+            val from = myPosition() ?: freshPosition(context)
+            if (from == null) { routeError = t("Position introuvable pour l'instant. Vérifie que la localisation est activée."); busy = null; return@launch }
+            try { Tracker.setPlanned(Routing.toDestination(from.latitude, from.longitude, dest.latitude, dest.longitude, type, s)) }
             catch (e: Exception) { routeError = e.message; Tracker.setPlanned(null) }
             finally { busy = null }
+        }
+    }
+    /** Trajet qui suit le trait dessiné au pinceau (et finit à la destination si elle est choisie). */
+    fun routeAlong(stroke: List<LatLng>, s: com.goodlife.app.track.RouteStyle = style) {
+        if (stroke.size < 2) return
+        busy = t("Calcul du trajet dessiné…"); routeError = null; lastStroke = stroke
+        val d = destination
+        scope.launch {
+            val from = myPosition() ?: (if (hasAnyLocation(context)) freshPosition(context) else null) ?: stroke.first()
+            try {
+                Tracker.setPlanned(Routing.alongStroke(from.latitude, from.longitude, stroke.map { it.latitude to it.longitude }, type, s,
+                    d?.latitude ?: Double.NaN, d?.longitude ?: Double.NaN))
+            } catch (e: Exception) { routeError = e.message }
+            finally { busy = null }
+        }
+    }
+    /** Nouveau type de trajet : l'itinéraire en cours (destination ou trait) est recalculé avec. */
+    fun setStyle(s: com.goodlife.app.track.RouteStyle) {
+        Repo.updateSettings { it.copy(routeStyle = s.name) }
+        loops = emptyList()
+        val p = Tracker.planned.value
+        when {
+            lastStroke.size >= 2 && p != null -> routeAlong(lastStroke, s)
+            destination != null && p != null && p.hasDestination -> routeTo(destination!!, s)
         }
     }
 
@@ -433,11 +460,31 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         Box(Modifier.weight(1f).fillMaxWidth()) {
             GoodMap(handle, Modifier.fillMaxSize())
 
-            // Sélecteur de mode, en haut
-            if (live == null) Surface(
+            // Boutons ronds à droite (sous la barre de recherche)
+            Column(Modifier.align(Alignment.TopEnd).padding(top = if (live == null && mode == "activite") 136.dp else 64.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallFloatingActionButton(onClick = {
+                    if (!locationGranted) askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                    val m = handle.map; val s = handle.style
+                    if (m != null && s != null) showMe(m, s, context, follow = live != null)
+                }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, t("Ma position")) }
+                if (live == null) SmallFloatingActionButton(
+                    onClick = { onOffline(handle.map?.projection?.visibleRegion?.latLngBounds) },
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) { Icon(Icons.Filled.DownloadForOffline, t("Cartes hors ligne")) }
+                // Pinceau : dessiner son trajet
+                if (live == null && mode != "clubs") SmallFloatingActionButton(
+                    onClick = { drawing = true; mode = "activite"; loops = emptyList(); routeError = null },
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ) { Icon(Icons.Filled.Brush, t("Dessiner un trajet")) }
+            }
+            // Sélecteur de mode, en haut, et la recherche d'un lieu dessous (mode Activité)
+            if (live == null && !drawing) Column(
+                Modifier.align(Alignment.TopCenter).padding(top = 12.dp, start = 12.dp, end = 12.dp).widthIn(max = 480.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+            Surface(
                 shape = RoundedCornerShape(24.dp), shadowElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp)
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Row(Modifier.padding(4.dp)) {
                     listOf("activite" to t("Activité"), "parcours" to t("Parcours"), "clubs" to t("Clubs")).forEach { (id, label) ->
@@ -456,22 +503,22 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     }
                 }
             }
-            // Boutons ronds à droite
-            Column(Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallFloatingActionButton(onClick = {
-                    if (!locationGranted) askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                    val m = handle.map; val s = handle.style
-                    if (m != null && s != null) showMe(m, s, context, follow = live != null)
-                }, containerColor = MaterialTheme.colorScheme.surface) { Icon(Icons.Filled.MyLocation, t("Ma position")) }
-                if (live == null) SmallFloatingActionButton(
-                    onClick = { onOffline(handle.map?.projection?.visibleRegion?.latLngBounds) },
-                    containerColor = MaterialTheme.colorScheme.surface
-                ) { Icon(Icons.Filled.DownloadForOffline, t("Cartes hors ligne")) }
+            if (mode == "activite") MapSearchBar(
+                near = { myPosition() ?: handle.map?.cameraPosition?.target },
+                onPick = { place ->
+                    val d = LatLng(place.lat, place.lng)
+                    destination = d; loops = emptyList()
+                    handle.map?.animateCamera(CameraUpdateFactory.newLatLngZoom(d, 13.0))
+                    routeTo(d)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
             }
+            if (drawing) BrushOverlay(handle.map, onStroke = { stroke -> drawing = false; routeAlong(stroke) }, onCancel = { drawing = false })
             // Localisation refusée : explication
             if (!locationGranted && live == null) Surface(
                 shape = RoundedCornerShape(16.dp), shadowElevation = 3.dp,
-                modifier = Modifier.align(Alignment.TopStart).padding(top = 64.dp, start = 12.dp).widthIn(max = 260.dp)
+                modifier = Modifier.align(Alignment.TopStart).padding(top = if (mode == "activite") 136.dp else 64.dp, start = 12.dp).widthIn(max = 260.dp)
             ) {
                 Column(Modifier.padding(12.dp)) {
                     Text(t("Localisation désactivée"), style = MaterialTheme.typography.titleSmall)
@@ -541,14 +588,14 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                         Routing.warmUp(from.latitude, from.longitude, loopKm * 1000.0, type)
                     }
                     LoopsPanel(
-                        type, ::setType, loopKm, { loopKm = it }, loops, loopIndex, { loopIndex = it },
+                        type, ::setType, style, ::setStyle, loopKm, { loopKm = it }, loops, loopIndex, { loopIndex = it },
                         loading = busy != null,
                         onPropose = {
-                            val from = myPosition() ?: handle.map?.cameraPosition?.target
-                            if (from == null) { routeError = t("Autorise la localisation pour proposer des boucles autour de toi."); return@LoopsPanel }
                             busy = t("Calcul des boucles…"); routeError = null; loopIndex = 0
                             scope.launch {
-                                try { loops = Routing.loops(from.latitude, from.longitude, loopKm * 1000.0, type) }
+                                val from = myPosition() ?: (if (hasAnyLocation(context)) freshPosition(context) else null) ?: handle.map?.cameraPosition?.target
+                                if (from == null) { routeError = t("Autorise la localisation pour proposer des boucles autour de toi."); busy = null; return@launch }
+                                try { loops = Routing.loops(from.latitude, from.longitude, loopKm * 1000.0, type, style) }
                                 catch (e: Exception) { routeError = e.message; loops = emptyList() }
                                 finally { busy = null }
                             }
@@ -560,13 +607,15 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
                     else -> StartPanel(
                         type = type, onType = { t ->
                             setType(t)
-                            destination?.let { if (planned?.label == t("Vers la destination")) routeTo(it) }
+                            if (lastStroke.size >= 2 && planned != null) routeAlong(lastStroke)
+                            else destination?.let { if (planned?.hasDestination == true) routeTo(it) }
                         },
+                        style = style, onStyle = ::setStyle,
                         planned = planned, destination = destination != null, retry = retryRoute != 0L, best = best,
                         activities = outings.size,
                         onStart = { start() },
                         onCancelRoute = {
-                            Tracker.setPlanned(null); destination = null; loops = emptyList(); onClearRetry()
+                            Tracker.setPlanned(null); destination = null; loops = emptyList(); lastStroke = emptyList(); onClearRetry()
                         },
                         onHistory = onHistory
                     )
@@ -584,6 +633,19 @@ private fun OutingsMap(retryRoute: Long, onClearRetry: () -> Unit, onHistory: ()
         dismissButton = { TextButton(onClick = { confirmStop = false }) { Text(t("Continuer")) } }
     )
     finished?.let { f -> FinishedDialog(f, onDismiss = { finished = null }) }
+}
+
+/** Position GPS toute fraîche (10 s au plus), quand la carte n'en connaît pas encore. */
+@SuppressLint("MissingPermission")
+private suspend fun freshPosition(context: android.content.Context): LatLng? = kotlinx.coroutines.withTimeoutOrNull(10_000) {
+    kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        runCatching {
+            com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+                .getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { loc -> if (cont.isActive) cont.resumeWith(Result.success(loc?.let { LatLng(it.latitude, it.longitude) })) }
+                .addOnFailureListener { if (cont.isActive) cont.resumeWith(Result.success(null)) }
+        }.onFailure { if (cont.isActive) cont.resumeWith(Result.success(null)) }
+    }
 }
 
 private fun hasAnyLocation(context: android.content.Context) =
@@ -624,7 +686,9 @@ private fun GoButton(onClick: () -> Unit, enabled: Boolean = true) {
 @Composable
 private fun StartPanel(
     type: OutingType, onType: (OutingType) -> Unit, planned: PlannedRoute?, destination: Boolean, retry: Boolean,
-    best: Outing?, activities: Int, onStart: () -> Unit, onCancelRoute: () -> Unit, onHistory: () -> Unit
+    best: Outing?, activities: Int, onStart: () -> Unit, onCancelRoute: () -> Unit, onHistory: () -> Unit,
+    style: com.goodlife.app.track.RouteStyle = com.goodlife.app.track.RouteStyle.BALANCED,
+    onStyle: (com.goodlife.app.track.RouteStyle) -> Unit = {}
 ) {
     if (planned != null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -640,9 +704,12 @@ private fun StartPanel(
             }
             TextButton(onClick = onCancelRoute) { Text(t("Annuler")) }
         }
+        ElevationProfile(planned)
+        // Le type de trajet ne s'applique qu'aux itinéraires calculés (pas à un parcours à refaire)
+        if (!retry) StylePicker(style, onStyle)
     } else {
         Text(
-            if (destination) t("Destination choisie") else t("Appui long sur la carte pour choisir une destination"),
+            if (destination) t("Destination choisie") else t("Cherche un lieu, fais un appui long sur la carte, ou dessine ton trajet ✏️"),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -662,7 +729,9 @@ private fun StartPanel(
 
 @Composable
 private fun LoopsPanel(
-    type: OutingType, onType: (OutingType) -> Unit, km: Float, onKm: (Float) -> Unit,
+    type: OutingType, onType: (OutingType) -> Unit,
+    style: com.goodlife.app.track.RouteStyle, onStyle: (com.goodlife.app.track.RouteStyle) -> Unit,
+    km: Float, onKm: (Float) -> Unit,
     loops: List<PlannedRoute>, index: Int, onIndex: (Int) -> Unit, loading: Boolean,
     onPropose: () -> Unit, onChoose: () -> Unit, onReset: () -> Unit
 ) {
@@ -688,11 +757,10 @@ private fun LoopsPanel(
     )
     }
     if (loops.isEmpty()) {
+        StylePicker(style, onStyle)
         Button(onClick = onPropose, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.Search, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(t("Proposer des boucles autour de moi"))
         }
-        Text(t("Par les chemins, parcs et rues calmes ; jamais d'autoroute ni de voie rapide."),
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
         loops.forEachIndexed { i, r ->
             val on = i == index
@@ -704,10 +772,11 @@ private fun LoopsPanel(
                     Box(Modifier.size(14.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(LOOP_COLORS[i % LOOP_COLORS.size])))
                     Spacer(Modifier.width(10.dp))
                     Text(r.label, Modifier.weight(1f), fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
-                    Text("${km(r.lengthM)} · ${estimate(r.lengthM, type)}", style = MaterialTheme.typography.labelLarge)
+                    Text("${km(r.lengthM)} · ${estimate(r.lengthM, type)}" + (if (r.hasElevation) " · D+ ${r.gainM.toInt()} m" else ""), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
+        loops.getOrNull(index)?.let { ElevationProfile(it) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onChoose, modifier = Modifier.weight(1f)) { Text(t("Choisir cette boucle")) }
             OutlinedButton(onClick = onPropose, enabled = !loading) { Icon(Icons.Filled.Replay, t("Autres boucles")) }
@@ -720,7 +789,10 @@ private fun LivePanel(
     l: com.goodlife.app.track.LiveOuting, best: Outing?, planned: PlannedRoute?,
     onPause: () -> Unit, onStop: () -> Unit
 ) {
-    val bike = l.type == OutingType.BIKE
+    val nav by com.goodlife.app.track.Navigator.state.collectAsState()
+    // L'heure d'arrivée avance avec le temps, même sans nouvelle position
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { delay(15_000); now = System.currentTimeMillis() } }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             "${l.type.emoji} ${l.type.label}",
@@ -731,42 +803,56 @@ private fun LivePanel(
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-    // Guidage : distance restante et écart au parcours
-    val last = l.points.lastOrNull()
-    if (planned != null && last != null) {
-        val (remaining, off) = remember(l.points.size, planned) { Routing.progress(planned.points, last.lat, last.lng) }
+    // Guidage : reste, heure d'arrivée et temps restant (avec ta vitesse habituelle), recalcul si besoin
+    val n = nav
+    if (planned != null && n != null) {
+        val speed = com.goodlife.app.track.Navigator.etaSpeed(l)
+        val arrived = n.remainingM < 40
+        val justRerouted = n.reroutedAt > 0 && now - n.reroutedAt < 20_000
         Surface(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(18.dp),
             color = when {
-                remaining < 40 -> successColor.copy(alpha = 0.18f)
-                off > 45 -> MaterialTheme.colorScheme.errorContainer
-                else -> androidx.compose.ui.graphics.Color(ROUTE_COLOR).copy(alpha = 0.15f)
+                arrived -> successColor.copy(alpha = 0.18f)
+                n.offM > com.goodlife.app.track.Navigator.OFF_ROUTE_M -> MaterialTheme.colorScheme.errorContainer
+                else -> androidx.compose.ui.graphics.Color(ROUTE_COLOR).copy(alpha = 0.14f)
             }
         ) {
-            Text(
-                when {
-                    remaining < 40 -> t("Arrivé ! Bravo 🎉")
-                    off > 45 -> t("Tu t'éloignes du parcours (%1\$s m) · reste %2\$s", off.toInt(), km(remaining))
-                    else -> t("Reste %1\$s · %2\$s", km(remaining), planned.label)
-                },
-                style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth().padding(10.dp)
-            )
+            Column(Modifier.fillMaxWidth().padding(10.dp)) {
+                if (arrived) Text(t("Arrivé ! Bravo 🎉"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                else Row(Modifier.fillMaxWidth()) {
+                    NavStat(t("restants"), km(n.remainingM), Modifier.weight(1f))
+                    NavStat(t("arrivée"), com.goodlife.app.track.etaClock(n.remainingM, speed), Modifier.weight(1f))
+                    NavStat(t("temps restant"), com.goodlife.app.track.etaDuration(n.remainingM, speed), Modifier.weight(1f))
+                }
+                val info = when {
+                    arrived -> null
+                    n.rerouting -> t("Hors itinéraire : nouveau calcul…")
+                    justRerouted -> t("Itinéraire recalculé depuis ta position")
+                    n.offM > com.goodlife.app.track.Navigator.OFF_ROUTE_M ->
+                        if (planned.hasDestination) t("Tu t'éloignes de l'itinéraire (%1\$s m)", n.offM.toInt())
+                        else t("Tu t'éloignes du parcours (%1\$s m)", n.offM.toInt())
+                    else -> planned.label
+                }
+                if (info != null) Text(info, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp).align(Alignment.CenterHorizontally))
+            }
         }
     }
+    // En direct : vitesse, distance, temps
     Row(Modifier.fillMaxWidth()) {
-        Stat(t("Distance (km)"), "%.2f".format(l.distanceM / 1000), Modifier.weight(1f), big = true)
-        Stat(t("Temps"), formatClock(l.movingMs), Modifier.weight(1f), big = true)
+        NavStat("km/h", formatKmh(l.speed), Modifier.weight(1f))
+        NavStat(t("km"), "%.2f".format(l.distanceM / 1000), Modifier.weight(1f))
+        NavStat(t("temps"), formatClock(l.movingMs), Modifier.weight(1f))
     }
-    Row(Modifier.fillMaxWidth()) {
-        if (bike) {
-            Stat("km/h", formatKmh(l.speed), Modifier.weight(1f))
-            Stat(t("Moy. km/h"), formatKmh(l.avgSpeed), Modifier.weight(1f))
-        } else {
-            Stat(t("Allure /km"), formatPace(l.speed), Modifier.weight(1f))
-            Stat(t("Moy. /km"), formatPace(l.avgSpeed), Modifier.weight(1f))
-        }
-        Stat(t("Dénivelé +"), "%.0f m".format(l.elevGainM), Modifier.weight(1f))
-    }
+    Text(
+        listOfNotNull(
+            t("moy. %1\$s km/h", formatKmh(l.avgSpeed)),
+            if (l.type == OutingType.RUN) t("allure %1\$s /km", formatPace(l.avgSpeed)) else null,
+            t("D+ %1\$s m", "%.0f".format(l.elevGainM))
+        ).joinToString(" · "),
+        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center
+    )
     if (best != null) Text(
         t("Record à battre : %1\$s pour %2\$s km", formatClock(best.movingMs), "%.2f".format(best.distanceM / 1000)),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary
@@ -1081,4 +1167,49 @@ private fun OutingDetail(id: Long, onBack: () -> Unit, onRetry: (Long) -> Unit) 
         confirmButton = { TextButton(onClick = { confirmDelete = false; Repo.deleteOuting(o.id); onBack() }) { Text(t("Supprimer"), color = MaterialTheme.colorScheme.error) } },
         dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(t("Annuler")) } }
     )
+}
+
+/**
+ * Mini-fenêtre (Picture-in-Picture) pendant une sortie : la carte suit ta position avec l'itinéraire, et en bas la
+ * vitesse, les km restants et l'heure d'arrivée. Aucune interaction : toucher la fenêtre rouvre l'app.
+ */
+@Composable
+fun PipNavigation() {
+    val context = LocalContext.current
+    val handle = remember { MapHandle() }
+    val live by Tracker.live.collectAsState()
+    val planned by Tracker.planned.collectAsState()
+    val nav by com.goodlife.app.track.Navigator.state.collectAsState()
+    LaunchedEffect(handle.style) {
+        val map = handle.map ?: return@LaunchedEffect
+        val style = handle.style ?: return@LaunchedEffect
+        showMe(map, style, context, follow = true)
+    }
+    LaunchedEffect(handle.style, live?.points?.size, planned) {
+        val style = handle.style ?: return@LaunchedEffect
+        val route = planned?.points.orEmpty()
+        style.line("planned-casing", route, android.graphics.Color.WHITE, 9f)
+        style.line("planned", route, ROUTE_COLOR, 6f)
+        style.line("track", live?.points.orEmpty(), TRACK_COLOR, 5f)
+    }
+    Box(Modifier.fillMaxSize()) {
+        GoodMap(handle, Modifier.fillMaxSize())
+        val l = live
+        if (l != null) Surface(
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+        ) {
+            Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("${formatKmh(l.speed)} km/h", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                val n = nav
+                Text(
+                    if (planned != null && n != null) {
+                        if (n.remainingM < 40) t("Arrivé !")
+                        else t("%1\$s · %2\$s", km(n.remainingM), com.goodlife.app.track.etaClock(n.remainingM, com.goodlife.app.track.Navigator.etaSpeed(l)))
+                    } else "%.2f km · %s".format(l.distanceM / 1000, formatClock(l.movingMs)),
+                    style = MaterialTheme.typography.labelMedium, maxLines = 1
+                )
+            }
+        }
+    }
 }

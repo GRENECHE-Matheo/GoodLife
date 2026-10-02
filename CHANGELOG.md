@@ -8,6 +8,29 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.13.0 — 02/10/2026
+
+**La carte comme un vrai GPS.**
+
+- ✨ **Types de trajet** : Équilibré, Plus court, Petites routes, Nature, Éviter les côtes, Dénivelé et Grandes routes
+  (aussi à vélo). Changer de type recalcule l'itinéraire sans rien retélécharger.
+- ✨ **Profil de dénivelé** avant de partir : la courbe d'altitude, la montée et la descente (D+ / D−), pour les
+  itinéraires comme pour les boucles.
+- ✨ **Recherche d'un lieu** (ville, adresse) en haut de la carte : l'itinéraire est calculé tout de suite avec le type
+  de trajet choisi.
+- ✨ **Pinceau** : dessine ton trajet au doigt sur la carte, il suit les chemins les plus proches de ton trait (et finit
+  à ta destination si tu en as choisi une).
+- ✨ **Guidage en direct** : la vitesse en km/h, les km restants, l'heure d'arrivée et le temps restant, en grand.
+  L'estimation utilise **ta propre vitesse moyenne** (calculée sur le téléphone à partir de tes sorties).
+- ✨ **Recalcul automatique** comme un GPS : si tu quittes l'itinéraire, il est recalculé depuis ta position (si ton
+  chemin est plus court, c'est lui qui devient l'itinéraire).
+- ✨ **Mini-fenêtre** : en quittant l'app pendant une sortie, la carte reste visible en petit (vitesse, km restants,
+  heure d'arrivée) ; en la touchant, on revient exactement au même endroit.
+- 🛠️ La notification de sortie affiche aussi les km restants et l'heure d'arrivée.
+- 🛠️ Si le téléphone ne connaît pas encore sa position, l'app en demande une toute fraîche avant de calculer.
+- ✨ **Le chef sans clé** : il t'accueille et t'explique en 3 étapes comment créer ta clé Gemini gratuite, à coller
+  directement dans la conversation (18 ans et plus).
+
 ## v0.12.0 — 02/10/2026
 
 **L'app au quotidien : un vrai frigo, un chef qui agit, un score plus juste et des widgets refaits.**

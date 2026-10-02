@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import com.goodlife.app.data.Backup
 import com.goodlife.app.data.Repo
 import com.goodlife.app.net.UpdateInstaller
@@ -79,6 +80,31 @@ class MainActivity : FragmentActivity() {
 
     private val locked = mutableStateOf(false)
     private var backgroundAt = 0L
+    /** Mini-fenêtre (Picture-in-Picture) pendant une sortie : seulement la carte et les chiffres du guidage. */
+    private val pip = mutableStateOf(false)
+    private var pipArmed = false
+
+    private fun pipParams(): android.app.PictureInPictureParams? {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) return null
+        val b = android.app.PictureInPictureParams.Builder().setAspectRatio(android.util.Rational(3, 4))
+        // Android 12+ : la mini-fenêtre s'ouvre toute seule en quittant l'app, seulement pendant une sortie
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) b.setAutoEnterEnabled(com.goodlife.app.track.Tracker.live.value != null)
+        return b.build()
+    }
+
+    /** Quitter l'app (bouton Accueil) pendant une sortie : la carte passe en mini-fenêtre, comme un GPS. */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (android.os.Build.VERSION.SDK_INT in android.os.Build.VERSION_CODES.O until android.os.Build.VERSION_CODES.S &&
+            com.goodlife.app.track.Tracker.live.value != null && !locked.value) {
+            runCatching { pipParams()?.let { enterPictureInPictureMode(it) } }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pip.value = isInPictureInPictureMode
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,6 +132,12 @@ class MainActivity : FragmentActivity() {
                 SystemClock.elapsedRealtime() - savedInstanceState.getLong(KEY_SAVED_AT, 0L) > AppLock.GRACE_MS
             )
         enableEdgeToEdge()
+        // Mini-fenêtre automatique : activée seulement pendant une sortie GPS
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) lifecycleScope.launch {
+            com.goodlife.app.track.Tracker.live.collect { l ->
+                if ((l != null) != pipArmed) { pipArmed = l != null; runCatching { pipParams()?.let { setPictureInPictureParams(it) } } }
+            }
+        }
         handleSharedCard(intent)
         handleOpenRequest(intent)
         // Ouverte par Health Connect pour expliquer l'usage des données : on montre la politique de confidentialité
@@ -122,6 +154,8 @@ class MainActivity : FragmentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             LaunchedEffect(settings.blockScreenshots) { applyScreenshotBlock(settings.blockScreenshots) }
+            // L'état des écrans (onglet ouvert…) est gardé pendant la mini-fenêtre, pour revenir exactement au même endroit
+            val saved = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
             GoodLifeTheme(themeMode = settings.themeMode, themeColor = settings.themeColor) {
                 if (rationale) {
                     androidx.compose.foundation.layout.Box(Modifier.safeDrawingPadding()) {
@@ -129,8 +163,10 @@ class MainActivity : FragmentActivity() {
                     }
                 } else if (locked.value && settings.appLock) {
                     LockScreen(onUnlocked = { locked.value = false })
+                } else if (pip.value) {
+                    com.goodlife.app.ui.screens.PipNavigation()
                 } else {
-                    GoodLifeApp()
+                    saved.SaveableStateProvider("app") { GoodLifeApp() }
                 }
             }
         }
@@ -247,6 +283,8 @@ fun GoodLifeApp() {
 @Composable
 private fun MainTabs() {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    // Sortie GPS en cours (app rouverte depuis la notification ou la mini-fenêtre) : directement sur la carte
+    LaunchedEffect(Unit) { if (com.goodlife.app.track.Tracker.live.value != null) tab = 3 }
     // Demande venue d'une notification (écran Amis, dans l'onglet Profil)
     val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
     LaunchedEffect(navRequest) {

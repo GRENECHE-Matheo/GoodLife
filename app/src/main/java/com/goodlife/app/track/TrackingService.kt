@@ -51,6 +51,9 @@ class TrackingService : Service() {
     private val callback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             result.locations.forEach { Tracker.onLocation(it) }
+            // Guidage : distance restante, écart, recalcul si on quitte l'itinéraire
+            val type = Tracker.live.value?.type
+            result.lastLocation?.let { if (type != null) Navigator.onLocation(it.latitude, it.longitude, type) }
         }
     }
 
@@ -90,6 +93,7 @@ class TrackingService : Service() {
             stopSelf(); return
         }
         Tracker.start(type, routeId)
+        Navigator.reset()
         fused.requestLocationUpdates(
             LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
                 .setMinUpdateIntervalMillis(1000L)
@@ -111,6 +115,7 @@ class TrackingService : Service() {
         sensorManager?.unregisterListener(baro)
         finished = save()
         Tracker.clear()
+        Navigator.reset()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -137,7 +142,9 @@ class TrackingService : Service() {
 
     private fun notifyProgress() {
         val l = Tracker.live.value ?: return
+        val nav = Navigator.state.value
         val text = "${formatClock(l.movingMs)} · ${"%.2f".format(l.distanceM / 1000)} km" +
+            (if (nav != null && Tracker.planned.value != null) t(" · reste %1\$s km · arrivée %2\$s", "%.1f".format(nav.remainingM / 1000), etaClock(nav.remainingM, Navigator.etaSpeed(l))) else "") +
             if (l.paused) t(" · en pause") else if (l.autoPaused) t(" · à l'arrêt") else ""
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification(t("%1\$s %2\$s en cours", l.type.emoji, l.type.label), text))
     }
@@ -213,3 +220,15 @@ fun formatPace(speedMs: Double): String {
 }
 
 fun formatKmh(speedMs: Double): String = "%.1f".format(speedMs * 3.6)
+
+/** Heure d'arrivée estimée (« 18:42 ») pour [remainingM] mètres à [speedMs] m/s. */
+fun etaClock(remainingM: Double, speedMs: Double): String {
+    val sec = if (speedMs > 0.1) (remainingM / speedMs).toLong() else 0L
+    return java.text.SimpleDateFormat("HH:mm", com.goodlife.app.i18n.Lang.locale).format(java.util.Date(System.currentTimeMillis() + sec * 1000))
+}
+
+/** Durée restante lisible : « 12 min », « 1 h 05 ». */
+fun etaDuration(remainingM: Double, speedMs: Double): String {
+    val min = if (speedMs > 0.1) (remainingM / speedMs / 60).toInt().coerceAtLeast(1) else 0
+    return if (min >= 60) "${min / 60} h ${"%02d".format(min % 60)}" else "$min min"
+}

@@ -85,8 +85,10 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
   comme données **partagées, facultatives, à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) »
   et « Activité dans l'appli › Autres actions (niveau, série, aliments découverts) ».
 - **Localisation / tracés GPS** : restent sur le téléphone → pas « collectés ». La carte et les itinéraires (tuiles
-  OpenFreeMap) et la recherche de clubs (Overpass, aussi en secours pour les itinéraires) reçoivent la **zone concernée** :
-  déclarer « Localisation approximative », facultative, fonctionnalité de l'appli, non partagée à des fins publicitaires.
+  OpenFreeMap), le dénivelé (tuiles d'altitude « Terrain Tiles » sur Amazon S3), la recherche de lieu (Nominatim) et la
+  recherche de clubs (Overpass, aussi en secours pour les itinéraires) reçoivent la **zone concernée** (et le texte tapé
+  pour la recherche) : déclarer « Localisation approximative », facultative, fonctionnalité de l'appli, non partagée à
+  des fins publicitaires.
 - **Pas** : lus sur le téléphone (capteur ou Health Connect), jamais transmis → pas « collectés » ; seule la moyenne peut partir
   vers Gemini si l'utilisateur demande un objectif à l'IA (déjà couvert par « Santé et remise en forme »).
 - Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.

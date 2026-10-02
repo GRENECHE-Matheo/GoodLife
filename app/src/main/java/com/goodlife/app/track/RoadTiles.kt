@@ -231,48 +231,40 @@ internal object RoadTiles {
         return v
     }
 
-    private val FORBIDDEN = setOf("motorway", "trunk", "primary", "rail", "transit", "ferry", "busway", "bus_guideway", "raceway", "aerialway", "pier")
+    private val FORBIDDEN = setOf("motorway", "trunk", "rail", "transit", "ferry", "busway", "bus_guideway", "raceway", "aerialway", "pier")
 
-    /** Coefficient de la voie (comme pour Overpass), ou null si elle est interdite pour ce mode. */
+    /**
+     * Type de la voie (code [RoadClass]), ou null si elle n'est jamais utilisée pour ce mode. Le coefficient dépend
+     * ensuite du type de trajet choisi (plus court, petites routes…).
+     */
     private fun weight(cls: String?, sub: String?, access: String?, foot: String?, bicycle: String?, indoor: Boolean, bike: Boolean): Double? {
         if (cls == null || indoor || access == "no" || cls.endsWith("_construction") || cls in FORBIDDEN) return null
-        return if (bike) {
-            if (bicycle == "no" || bicycle == "dismount") return null
-            when (sub) {
-                "cycleway" -> 0.75
-                "steps", "footway", "corridor", "platform" -> null
-                "pedestrian" -> 1.6
-                "living_street", "residential" -> 1.0
-                "unclassified" -> 1.15
-                "path", "bridleway" -> 1.3
-                else -> when (cls) {
-                    "minor" -> 1.0
-                    "service" -> 1.15
-                    "tertiary" -> 1.25
-                    "track", "path" -> 1.3
-                    "secondary" -> 1.7
-                    else -> null
-                }
-            }
-        } else {
-            if (foot == "no") return null
-            when (sub) {
-                "footway", "pedestrian", "path", "living_street", "bridleway" -> 0.85
-                "steps" -> 1.4
-                "cycleway" -> 1.1
-                "corridor", "platform" -> null
-                "residential" -> 1.0
-                "unclassified" -> 1.2
-                else -> when (cls) {
-                    "path", "track" -> 0.85
-                    "minor" -> 1.0
-                    "service" -> 1.1
-                    "tertiary" -> 1.5
-                    "secondary" -> 2.0
-                    else -> null
-                }
+        if (bike && (bicycle == "no" || bicycle == "dismount")) return null
+        if (!bike && foot == "no") return null
+        val code = when (sub) {
+            "footway", "bridleway" -> RoadClass.FOOTWAY
+            "pedestrian" -> RoadClass.PEDESTRIAN
+            "living_street" -> RoadClass.LIVING
+            "path" -> RoadClass.PATH
+            "steps" -> RoadClass.STEPS
+            "cycleway" -> RoadClass.CYCLEWAY
+            "residential" -> RoadClass.RESIDENTIAL
+            "unclassified" -> RoadClass.UNCLASSIFIED
+            "corridor", "platform" -> return null
+            else -> when (cls) {
+                "path" -> RoadClass.PATH
+                "track" -> RoadClass.TRACK
+                "minor" -> RoadClass.RESIDENTIAL
+                "service" -> RoadClass.SERVICE
+                "tertiary" -> RoadClass.TERTIARY
+                "secondary" -> RoadClass.SECONDARY
+                "primary" -> RoadClass.PRIMARY
+                else -> return null
             }
         }
+        // À vélo : ni trottoirs ni escaliers
+        if (bike && (code == RoadClass.FOOTWAY || code == RoadClass.STEPS)) return null
+        return code.toDouble()
     }
 
     /** Segments (coordonnées entières globales : tuile × 4096 + pixel), coefficient et niveau (pont/tunnel/étage). */

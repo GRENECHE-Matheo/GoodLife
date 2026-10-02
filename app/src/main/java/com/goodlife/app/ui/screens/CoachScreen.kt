@@ -39,6 +39,8 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -250,7 +252,8 @@ fun CoachScreen(onBack: () -> Unit) {
                                 if (dailyWord.isNotBlank()) Bubble(false, dailyWord)
                                 Bubble(false,
                                     if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres. Dis-moi aussi ce que tu as dans ton frigo, ou ce que tu veux changer dans ton planning ou ton programme : je te le propose, tu valides d'un bouton.")
-                                    else t("Pour discuter avec moi, active l'IA et ajoute ta clé Gemini dans Profil › Paramètres › Intelligence artificielle (18 ans et plus). En attendant, je te laisse mes petits mots ici et dans tes notifications !")
+                                    else if ((profile?.age ?: 0) < 18) t("Salut l'ami ! 👋 Discuter avec moi utilise l'IA de Google, réservée aux 18 ans et plus. En attendant, je te laisse mes petits mots ici et dans tes notifications !")
+                                    else t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec ton frigo…), il te faut une clé Gemini : elle se crée gratuitement chez Google en deux minutes. Je t'explique juste en dessous !")
                                 )
                             }
                         }
@@ -280,6 +283,7 @@ fun CoachScreen(onBack: () -> Unit) {
                     error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
+                if (!aiReady && (profile?.age ?: 0) >= 18) CoachKeySetup()
                 if (aiReady) {
                     if (entries.isEmpty()) Row(
                         Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
@@ -623,4 +627,47 @@ private fun ProgramProposal(entry: Int, sessions: List<com.goodlife.app.data.Spo
             }
         }
     }
+}
+
+/**
+ * Pas encore de clé : le chef explique comment en créer une (gratuite, chez Google) et permet de l'enregistrer ici.
+ * La personne accepte elle-même les conditions de Google en créant sa clé ; la clé reste chiffrée sur le téléphone.
+ */
+@Composable
+private fun CoachKeySetup() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    val settings by Repo.settings.collectAsState()
+    var key by remember { mutableStateOf("") }
+    var consent by remember { mutableStateOf(false) }
+    Surface(
+        shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(t("Activer le chef en 3 étapes"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            if (!settings.aiEnabled) {
+                Text(t("1. Autorise l'IA : tu choisis ce qui est envoyé à Google (seulement quand tu utilises une fonction IA)."), style = MaterialTheme.typography.bodySmall)
+                FilledTonalButton(onClick = { consent = true }) { Text(t("Activer l'IA")) }
+            } else {
+                Text(t("1. IA activée ✓"), style = MaterialTheme.typography.bodySmall)
+            }
+            Text(t("2. Crée ta clé : connecte-toi avec ton compte Google, appuie sur « Create API key », puis copie la clé."), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text(t("Créer ma clé chez Google")) }
+            Text(t("3. Colle-la ici et enregistre :"), style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(
+                key, { key = it.trim() }, singleLine = true,
+                label = { Text(t("Clé API Gemini")) },
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                keyboardOptions = KEY_KEYBOARD,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(enabled = settings.aiEnabled && key.length >= 20, onClick = { saveApiKey(context, key); key = "" }) { Text(t("Enregistrer la clé")) }
+            Text(
+                t("Gratuit dans la limite offerte par Google ; en créant ta clé, tu acceptes ses conditions. Ta clé reste chiffrée sur ce téléphone et n'est envoyée qu'à Google."),
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    if (consent) AiConsentDialog(onDismiss = { consent = false })
 }

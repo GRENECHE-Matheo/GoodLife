@@ -86,6 +86,7 @@ data class Settings(
     val fridgeAutoRemove: Boolean = false,    // repas photographié : proposer de retirer ses aliments de « Mon frigo »
     val richScoreFrom: String = "",           // à partir de ce jour, score enrichi : calories, protéines, repas (v0.12)
     val foodOnlyFrom: String = "",            // à partir de ce jour, le score du jour ne compte que l'alimentation (v0.9.6)
+    val routeStyle: String = "BALANCED",     // type de trajet choisi sur la carte (plus court, petites routes…)
     val preferredOuting: String = "RUN",    // activité préférée (course / marche / vélo), pré-choisie sur la carte
     // Notifications du coach : toutes coupées tant que la personne ne les a pas acceptées
     val notifMorning: Boolean = false,      // bilan de la veille, le matin
@@ -159,6 +160,7 @@ data class Settings(
         .put("richScoreFrom", richScoreFrom)
         .put("fridgeAutoRemove", fridgeAutoRemove)
         .put("preferredOuting", preferredOuting)
+        .put("routeStyle", routeStyle)
         .put("notifMorning", notifMorning)
         .put("notifNoon", notifNoon)
         .put("notifEvening", notifEvening)
@@ -229,6 +231,7 @@ data class Settings(
             richScoreFrom = o.optString("richScoreFrom"),
             fridgeAutoRemove = o.optBoolean("fridgeAutoRemove", false),
             preferredOuting = o.optString("preferredOuting", "RUN").ifBlank { "RUN" },
+            routeStyle = o.optString("routeStyle", "BALANCED").ifBlank { "BALANCED" },
             notifMorning = o.optBoolean("notifMorning", false),
             notifNoon = o.optBoolean("notifNoon", false),
             notifEvening = o.optBoolean("notifEvening", false),

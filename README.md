@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes donné
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.12.0
+## 🆕 Nouveautés de la v0.13.0
+
+- **La carte comme un GPS** : types de trajet (plus court, petites routes, nature, sans côtes, grandes routes…),
+  **dénivelé** avant de partir, **recherche de lieu**, **pinceau** pour dessiner son trajet.
+- **Guidage en direct** (km/h, km restants, heure d'arrivée avec ta vitesse), **recalcul automatique** et **mini-fenêtre**.
+
+## Nouveautés de la v0.12.0
 
 - **Mon frigo** (à la main, par ticket de caisse ou en le disant au chef) et un **chef qui propose de modifier** ton
   frigo, ton planning et ton programme, avec ta validation.
