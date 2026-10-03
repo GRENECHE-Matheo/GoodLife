@@ -372,11 +372,7 @@ private fun HomeContent(
             }
         }
 
-        TrackCard(onTrack)
-        CoachCard(summary, p, onOpen = onCoach)
-        MissionsCard(summary)
-        if (!settings.notifAsked) NotifOptInCard()
-
+        // Juste sous le niveau : ce qu'on touche le plus dans la journée (repas, puis l'eau)
         SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
             if (today.isEmpty()) {
                 Text(
@@ -391,6 +387,12 @@ private fun HomeContent(
         }
 
         WaterCard()
+
+        TrackCard(onTrack)
+        CoachCard(summary, p, onOpen = onCoach)
+        MissionsCard(summary)
+        if (!settings.notifAsked) NotifOptInCard()
+
         FeelingCard()
 
         SectionCard(title = t("Idées de repas"), icon = Icons.Filled.AutoAwesome) {
@@ -517,7 +519,7 @@ private fun SuggestionRow(
             Text("${s.kcal} kcal", color = MaterialTheme.colorScheme.primary)
             Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
         }
-        AnimatedVisibility(visible = expanded, exit = androidx.compose.animation.shrinkVertically()) {
+        AnimatedVisibility(visible = expanded, enter = androidx.compose.animation.expandVertically(expandFrom = androidx.compose.ui.Alignment.Top) + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(shrinkTowards = androidx.compose.ui.Alignment.Top)) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
                 Text(s.description, style = MaterialTheme.typography.bodyMedium)
                 if (s.why.isNotBlank()) {

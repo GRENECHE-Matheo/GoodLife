@@ -340,7 +340,7 @@ private fun SessionCard(
             if (doneToday) Icon(Icons.Filled.CheckCircle, t("Faite"), tint = successColor)
             Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
         }
-        AnimatedVisibility(open, exit = androidx.compose.animation.shrinkVertically()) {
+        AnimatedVisibility(open, enter = androidx.compose.animation.expandVertically(expandFrom = androidx.compose.ui.Alignment.Top) + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(shrinkTowards = androidx.compose.ui.Alignment.Top)) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (s.warmup.isNotBlank()) Text(t("Échauffement : %1\$s", s.warmup), style = MaterialTheme.typography.bodyMedium)
                 s.exercises.forEachIndexed { i, e ->

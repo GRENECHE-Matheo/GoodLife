@@ -302,7 +302,7 @@ private fun PlannedRow(m: PlannedMeal) {
                 }) { Icon(Icons.Filled.Check, t("Marquer comme mangé")) }
             }
         }
-        AnimatedVisibility(visible = expanded, exit = androidx.compose.animation.shrinkVertically()) {
+        AnimatedVisibility(visible = expanded, enter = androidx.compose.animation.expandVertically(expandFrom = androidx.compose.ui.Alignment.Top) + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(shrinkTowards = androidx.compose.ui.Alignment.Top)) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
                 if (m.description.isNotBlank()) Text(m.description, style = MaterialTheme.typography.bodyMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

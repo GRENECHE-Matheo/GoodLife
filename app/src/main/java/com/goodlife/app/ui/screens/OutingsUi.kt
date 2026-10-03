@@ -756,6 +756,11 @@ private fun OutingsMap(
                     colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface)
                 )
             }
+            // Sans réseau : la carte téléchargée utilisée ici (ou aucune)
+            if (!picking) OfflineBanner(
+                handle.map,
+                Modifier.align(Alignment.TopStart).padding(top = topInset + (if (planned != null && mode != "activite") 56.dp else 8.dp), start = 12.dp, end = 64.dp)
+            )
             if (picking) OfflineFrame(handle.map, top = 72.dp, bottom = peek + 16.dp, onBounds = { offlineBounds = it })
             if (drawing) BrushOverlay(handle.map, onStroke = { stroke -> drawing = false; routeAlong(stroke, dest = destination) }, onCancel = { drawing = false })
             // Localisation refusée : explication

@@ -54,7 +54,9 @@ data class OfflineZone(
     val sizeBytes: Long,
     val progress: Float,     // 0..1, fond de carte
     val mapComplete: Boolean,
-    val region: OfflineRegion
+    val region: OfflineRegion,
+    /** Zone couverte (null pour les zones créées avant la v0.15). */
+    val bounds: LatLngBounds? = null
 )
 
 /** Avancement des rues et de l'altitude d'une zone « Complète ». */
@@ -206,7 +208,8 @@ object OfflineMaps {
             sizeBytes = status?.completedResourceSize ?: 0L,
             progress = status?.let { if (it.requiredResourceCount > 0) it.completedResourceCount.toFloat() / it.requiredResourceCount else 0f } ?: 0f,
             mapComplete = status?.isComplete ?: false,
-            region = r
+            region = r,
+            bounds = boundsOf(m)
         )
     }
 

@@ -156,6 +156,8 @@ object Routing {
         var long = false
         /** Couloir vers une destination : réutilisé pour les recalculs en route vers la même destination. */
         var destLat = Double.NaN; var destLng = Double.NaN
+        /** Couloir le long d'un trait au pinceau : réutilisé pour recalculer ce trait avec un autre type de trajet. */
+        var strokeKey = 0
 
         /** Nœuds du plus grand réseau connecté : on n'y accroche que départs et arrivées (évite les bouts isolés). */
         val main: BooleanArray = run {
@@ -228,38 +230,49 @@ object Routing {
      * Réseau de chemins dans un carré de côté 2 × [radiusM] autour d'un point (déjà en mémoire, sinon tuiles
      * OpenFreeMap, et Overpass en secours). [corridor] = trajet départ–arrivée : seules les tuiles le long du trajet.
      */
-    private suspend fun graph(lat: Double, lng: Double, radiusM: Int, bike: Boolean, corridor: DoubleArray? = null, warmOnly: Boolean = false, long: Boolean = false): Graph =
+    private suspend fun graph(
+        lat: Double, lng: Double, radiusM: Int, bike: Boolean, corridor: DoubleArray? = null, warmOnly: Boolean = false,
+        long: Boolean = false, stroke: List<Pair<Double, Double>>? = null
+    ): Graph =
         // Une seule préparation à la fois : une demande arrivée pendant la préparation anticipée la retrouve en mémoire
-        lock.withLock { graphLocked(lat, lng, radiusM, bike, corridor, warmOnly, long) }
+        lock.withLock { graphLocked(lat, lng, radiusM, bike, corridor, warmOnly, long, stroke) }
 
     private val lock = Mutex()
 
-    private suspend fun graphLocked(lat: Double, lng: Double, radiusM: Int, bike: Boolean, corridor: DoubleArray?, warmOnly: Boolean, long: Boolean): Graph {
+    private suspend fun graphLocked(
+        lat: Double, lng: Double, radiusM: Int, bike: Boolean, corridor: DoubleArray?, warmOnly: Boolean, long: Boolean,
+        stroke: List<Pair<Double, Double>>?
+    ): Graph {
+        val strokeKey = stroke?.hashCode() ?: 0
         // Un carré un peu plus petit que le cercle d'avant couvre la même zone utile, avec à peine plus de données
         val half = radiusM * 0.9
         val dLat = half / 111_320.0
         val dLng = half / (111_320.0 * cos(Math.toRadians(lat)))
         val s = lat - dLat; val n = lat + dLat; val w = lng - dLng; val e = lng + dLng
         synchronized(cache) {
-            cache.firstOrNull { it.bike == bike && it.long == long && it.contains(s, w, n, e) }
+            (if (stroke != null) cache.firstOrNull { it.bike == bike && it.long == long && it.strokeKey == strokeKey } else null)
+                ?: cache.firstOrNull { it.bike == bike && it.long == long && it.contains(s, w, n, e) }
                 ?: if (corridor != null) cache.lastOrNull { it.bike == bike && it.long == long && !it.destLat.isNaN() &&
                        Tracker.haversine(it.destLat, it.destLng, corridor[2], corridor[3]) < 100 } else null
         }?.let { return it }
 
         val z = if (long) RoadTiles.LONG else RoadTiles.DETAIL
-        val tiles = if (corridor != null) {
+        val tiles = if (stroke != null) {
+            // Long trait au pinceau : seulement les tuiles le long du trait (pas tout le rectangle autour)
+            RoadTiles.tilesForPolyline(stroke, 4_000.0, z)
+        } else if (corridor != null) {
             // Long trajet : un couloir plus étroit autour de la ligne droite (12 km de chaque côté au plus)
             val margin = if (long) (Tracker.haversine(corridor[0], corridor[1], corridor[2], corridor[3]) * 0.18 + 4000).coerceAtMost(14_000.0) else half * 0.6
             RoadTiles.tilesForCorridor(corridor[0], corridor[1], corridor[2], corridor[3], margin, z)
         } else RoadTiles.tilesForBox(s, w, n, e, z)
-        val fromTiles = if (tiles.size <= (if (long) 90 else RoadTiles.MAX_TILES)) {
+        val fromTiles = if (tiles.size <= (if (stroke != null) 160 else if (long) 90 else RoadTiles.MAX_TILES)) {
             runCatching { RoadTiles.network(tiles, bike, z) }.getOrNull()?.let { raw ->
                 withContext(Dispatchers.Default) {
                     // Un trajet ne couvre pas tout le carré : ce réseau ne resservira pas pour une autre demande
-                    if (corridor != null) toGraph(raw, lat, lng, Double.NaN, Double.NaN, Double.NaN, Double.NaN, bike)
+                    if (corridor != null || stroke != null) toGraph(raw, lat, lng, Double.NaN, Double.NaN, Double.NaN, Double.NaN, bike)
                     else toGraph(raw, lat, lng, s, w, n, e, bike)
                 }
-            }?.takeIf { g -> g.main.count { it } > 50 }?.also { it.long = long; if (corridor != null) { it.destLat = corridor[2]; it.destLng = corridor[3] } }
+            }?.takeIf { g -> g.main.count { it } > 50 }?.also { it.long = long; it.strokeKey = strokeKey; if (corridor != null) { it.destLat = corridor[2]; it.destLng = corridor[3] } }
         } else null
         if (fromTiles == null && warmOnly) throw IOException("warm")
         // Long trajet : pas de secours Overpass (trop lourd pour le serveur public)
@@ -573,9 +586,13 @@ object Routing {
         val s = pts.minOf { it.first }; val n = pts.maxOf { it.first }; val w = pts.minOf { it.second }; val e = pts.maxOf { it.second }
         val cLat = (s + n) / 2; val cLng = (w + e) / 2
         val halfDiag = Tracker.haversine(s, w, n, e) / 2
-        if (halfDiag > 60_000) throw IOException(t("Trait trop long (plus de 120 km). Dessine un trajet plus court."))
+        var strokeLen = 0.0
+        for (i in 1 until pts.size) strokeLen += Tracker.haversine(pts[i - 1].first, pts[i - 1].second, pts[i].first, pts[i].second)
+        if (strokeLen > 150_000) throw IOException(t("Trait trop long (plus de 150 km). Dessine un trajet plus court."))
         val long = halfDiag > 8_000
-        val g = graph(cLat, cLng, (halfDiag / 0.9 + 800).roundToInt().coerceIn(1000, 70_000), type == OutingType.BIKE, long = long)
+        // Long trait : un couloir le long du trait (points tous les 2 km environ suffisent pour le tracer)
+        val corridorPts = if (long) pts.filterIndexed { i, _ -> i % 8 == 0 || i == pts.lastIndex } else null
+        val g = graph(cLat, cLng, (halfDiag / 0.9 + 800).roundToInt().coerceIn(1000, 70_000), type == OutingType.BIKE, long = long, stroke = corridorPts)
         val search = searchFor(g, style)
         val nodes = withContext(Dispatchers.Default) {
             val ids = pts.map { (la, lo) -> search.nearest(la, lo) }.filter { it >= 0 }

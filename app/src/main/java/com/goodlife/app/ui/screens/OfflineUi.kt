@@ -302,3 +302,45 @@ internal fun OfflineZonesScreen(onBack: () -> Unit, onPick: () -> Unit) {
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+/**
+ * Sans réseau, sur la carte : indique si l'endroit affiché est couvert par une zone téléchargée (et si les
+ * itinéraires y marchent), ou s'il n'y a pas de carte ici.
+ */
+@Composable
+internal fun OfflineBanner(map: MapLibreMap?, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var online by remember { mutableStateOf(true) }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        fun check() = cm?.activeNetwork?.let { cm.getNetworkCapabilities(it) }
+            ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        online = check()
+        val cb = object : android.net.ConnectivityManager.NetworkCallback() {
+            // Réseau par défaut : un nouveau réseau arrive par onAvailable, sa perte par onLost (sans réseau de secours)
+            override fun onAvailable(network: android.net.Network) { online = true }
+            override fun onLost(network: android.net.Network) { online = false }
+        }
+        runCatching { cm?.registerDefaultNetworkCallback(cb) }
+        onDispose { runCatching { cm?.unregisterNetworkCallback(cb) } }
+    }
+    if (online) return
+    val zones by OfflineMaps.zones.collectAsState()
+    LaunchedEffect(Unit) { OfflineMaps.refresh(context) }
+    var here by remember { mutableStateOf<org.maplibre.android.geometry.LatLng?>(null) }
+    LaunchedEffect(map) { while (true) { here = map?.cameraPosition?.target; delay(1000) } }
+    val zone = here?.let { p -> zones.filter { it.bounds?.contains(p) == true }.maxByOrNull { if (it.quality == OfflineQuality.FULL) 1 else 0 } }
+    Surface(
+        shape = RoundedCornerShape(16.dp), shadowElevation = 3.dp, modifier = modifier,
+        color = if (zone != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.errorContainer
+    ) {
+        Text(
+            when {
+                zone == null -> t("Hors ligne · pas de carte téléchargée ici")
+                zone.quality == OfflineQuality.FULL -> t("Hors ligne · carte « %1\$s » (itinéraires disponibles)", zone.name)
+                else -> t("Hors ligne · carte « %1\$s » (sans itinéraires)", zone.name)
+            },
+            style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+    }
+}

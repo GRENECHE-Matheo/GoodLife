@@ -144,7 +144,7 @@ fun FoldableSection(
                 )
             }
             // Le contenu s'ouvre et se ferme avec la carte (pas de décalage entre le texte et le bas de la carte)
-            androidx.compose.animation.AnimatedVisibility(open, exit = androidx.compose.animation.shrinkVertically()) {
+            androidx.compose.animation.AnimatedVisibility(open, enter = androidx.compose.animation.expandVertically(expandFrom = androidx.compose.ui.Alignment.Top) + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(shrinkTowards = androidx.compose.ui.Alignment.Top)) {
                 Column(
                     Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -90,6 +90,17 @@ internal object RoadTiles {
         }
     }
 
+    /** Tuiles le long d'une ligne brisée (trait au pinceau) : l'union des couloirs de chaque morceau. */
+    fun tilesForPolyline(pts: List<Pair<Double, Double>>, marginM: Double, z: Int = DETAIL): List<Pair<Int, Int>> {
+        val out = LinkedHashSet<Pair<Int, Int>>()
+        for (i in 0 until pts.size - 1) {
+            val (a, b) = pts[i] to pts[i + 1]
+            out += tilesForCorridor(a.first, a.second, b.first, b.second, marginM, z)
+        }
+        if (pts.size == 1) out += tilesForCorridor(pts[0].first, pts[0].second, pts[0].first, pts[0].second, marginM, z)
+        return out.toList()
+    }
+
     // ---------- Téléchargement (avec cache) ----------
 
     private fun get(url: String): ByteArray {
@@ -112,6 +123,12 @@ internal object RoadTiles {
         val now = System.currentTimeMillis()
         template?.let { if (now - templateAt < 6 * 3_600_000L) return it }
         val saved = File(cacheDir, "template.txt")
+        // Adresse enregistrée il y a moins de 6 h : pas besoin de redemander au serveur (≈ 1 s de gagnée à l'ouverture)
+        if (saved.exists() && now - saved.lastModified() < 6 * 3_600_000L) {
+            runCatching { saved.readText().trim() }.getOrNull()
+                ?.takeIf { it.startsWith(HOST) && it.endsWith("/{z}/{x}/{y}.pbf") && !it.contains("..") }
+                ?.let { template = it; templateAt = saved.lastModified(); return it }
+        }
         val fresh = runCatching {
             JSONObject(String(get(TILEJSON), Charsets.UTF_8)).getJSONArray("tiles").getString(0)
         }.getOrNull()?.takeIf { it.startsWith(HOST) && it.endsWith("/{z}/{x}/{y}.pbf") && !it.contains("..") }
@@ -452,7 +469,7 @@ internal object RoadTiles {
         fun add(i: Int, x: Double, y: Double) { seg.add(i); pt.add((x.roundToLong() shl 32) or (y.roundToLong() and 0xFFFFFFFFL)) }
     }
 
-    private fun build(data: List<Triple<Int, Int, ByteArray>>, bike: Boolean, z: Int): RawNetwork {
+    private suspend fun build(data: List<Triple<Int, Int, ByteArray>>, bike: Boolean, z: Int): RawNetwork = coroutineScope {
         val segs = Segs(); val levels = HashMap<String, Int>()
         for ((x, y, bytes) in data) readTile(x, y, bytes, bike, segs, levels)
         val n = segs.size
@@ -478,9 +495,21 @@ internal object RoadTiles {
 
         // 2. Coupures : croisements au même niveau, et extrémités posées sur une autre voie.
         //    Chaque événement n'est compté que dans la cellule qui contient son point (pas de doublon).
+        // Paquets de cellules entières répartis sur les cœurs ; chaque paquet a ses propres coupures, réunies ensuite
+        val chunks = (Runtime.getRuntime().availableProcessors() * 4).coerceAtLeast(1)
+        val bounds = ArrayList<Int>().apply {
+            add(0)
+            for (c in 1 until chunks) {
+                var b = (entries.size.toLong() * c / chunks).toInt().coerceAtLeast(last())
+                while (b in 1 until entries.size && entries.a[b] ushr 24 == entries.a[b - 1] ushr 24) b++
+                if (b > last() && b < entries.size) add(b)
+            }
+            add(entries.size)
+        }
+        val partCuts = (0 until bounds.size - 1).map { c -> async(Dispatchers.Default) {
         val cuts = Cuts()
-        var start = 0
-        while (start < entries.size) {
+        var start = bounds[c]
+        while (start < bounds[c + 1]) {
             val cellId = entries.a[start] ushr 24
             var end = start
             while (end < entries.size && entries.a[end] ushr 24 == cellId) end++
@@ -528,6 +557,10 @@ internal object RoadTiles {
             }
             start = end
         }
+        cuts
+        } }.awaitAll()
+        val cuts = Cuts()
+        for (pc in partCuts) for (k in 0 until pc.seg.size) { cuts.seg.add(pc.seg.a[k]); cuts.pt.add(pc.pt.a[k]) }
 
         // 3. Coupures regroupées par segment (tri par comptage)
         val cs = cuts.seg; val cp = cuts.pt
@@ -581,7 +614,7 @@ internal object RoadTiles {
                 prev = v
             }
         }
-        return RawNetwork(lat.copyOf(count), lng.copyOf(count), ea.a, eb.a, ef, ea.size)
+        RawNetwork(lat.copyOf(count), lng.copyOf(count), ea.a, eb.a, ef, ea.size)
     }
 
     /** Extrémité (ex, ey) posée (à moins de SNAP) sur le segment (ox, oy)+(dx, dy) : on coupe les deux là. */
