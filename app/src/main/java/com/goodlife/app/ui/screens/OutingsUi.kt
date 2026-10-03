@@ -151,9 +151,10 @@ class MapHandle {
 }
 
 @Composable
-fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier, alwaysResumed: Boolean = false) {
+fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier, alwaysResumed: Boolean = false, alwaysLight: Boolean = false) {
     val context = LocalContext.current
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    // Carte sombre avec le thème sombre, sauf demande contraire (mini-fenêtre : la carte claire se lit mieux en petit)
+    val dark = !alwaysLight && MaterialTheme.colorScheme.background.luminance() < 0.5f
     val mapView = remember {
         MapLibre.getInstance(context)
         // Rendu un peu plus gros (textes, icônes, traits) pour être lisible en courant
@@ -1288,10 +1289,12 @@ fun PipNavigation() {
         style.line("track", live?.points.orEmpty(), TRACK_COLOR, 5f)
     }
     Box(Modifier.fillMaxSize()) {
-        GoodMap(handle, Modifier.fillMaxSize(), alwaysResumed = true)
+        GoodMap(handle, Modifier.fillMaxSize(), alwaysResumed = true, alwaysLight = true)
         val l = live
         if (l != null) Surface(
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            // Fond semi-transparent : la couleur du texte doit être donnée (sinon noire, illisible en mode sombre)
+            contentColor = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
         ) {
             Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
