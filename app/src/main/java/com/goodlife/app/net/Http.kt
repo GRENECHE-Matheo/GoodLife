@@ -15,7 +15,7 @@ import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
 // Nom, version et contact du développeur (demandé par Open Food Facts et OpenStreetMap ; rien sur l'utilisateur)
-internal val USER_AGENT = "GoodLife-Android/${BuildConfig.VERSION_NAME} (${BuildConfig.CONTACT_EMAIL}; github.com/${BuildConfig.UPDATE_REPO})"
+internal val USER_AGENT = "Lifoody-Android/${BuildConfig.VERSION_NAME} (${BuildConfig.CONTACT_EMAIL}; github.com/${BuildConfig.UPDATE_REPO})"
 
 /** Contexte de l'app, pour savoir si le téléphone a vraiment internet (renseigné au démarrage). */
 @Volatile internal var appContext: Context? = null
@@ -39,11 +39,11 @@ internal fun networkError(host: String, e: IOException): IOException {
     val msg = when {
         // Android répond « aucun réseau » aussi quand l'accès internet de l'app est bloqué dans les réglages
         state == NetState.NONE ->
-            t("Android ne donne pas accès à internet à GoodLife. Si les autres applis marchent, l'accès réseau de GoodLife est sûrement bloqué : Réglages › Applis › GoodLife › Données mobiles et Wi-Fi (ou « Utilisation des données »), économiseur de données, ou pare-feu / contrôle parental.")
+            t("Android ne donne pas accès à internet à Lifoody. Si les autres applis marchent, l'accès réseau de Lifoody est sûrement bloqué : Réglages › Applis › Lifoody › Données mobiles et Wi-Fi (ou « Utilisation des données »), économiseur de données, ou pare-feu / contrôle parental.")
         state == NetState.NOT_VALIDATED ->
             t("Le téléphone est connecté, mais Android indique que ce réseau n'a pas accès à internet : DNS privé mal réglé (Réglages › Réseau › DNS privé), portail de connexion Wi-Fi à valider, ou réseau limité.")
         e is UnknownHostException ->
-            t("Impossible de joindre %1\$s. Internet marche, mais ce site est bloqué ou l'app n'a pas accès au réseau : vérifie le DNS privé / bloqueur de pubs / VPN, les autorisations réseau de GoodLife (Wi-Fi et données mobiles), ou essaie un autre réseau (certains réseaux d'école ou de travail bloquent GitHub).", host)
+            t("Impossible de joindre %1\$s. Internet marche, mais ce site est bloqué ou l'app n'a pas accès au réseau : vérifie le DNS privé / bloqueur de pubs / VPN, les autorisations réseau de Lifoody (Wi-Fi et données mobiles), ou essaie un autre réseau (certains réseaux d'école ou de travail bloquent GitHub).", host)
         e is SSLException ->
             t("Connexion sécurisée refusée avec %1\$s. Vérifie que la date et l'heure du téléphone sont automatiques, et qu'aucun VPN ou antivirus n'intercepte les connexions.", host)
         e is SocketTimeoutException -> t("%1\$s met trop de temps à répondre. Réessaie dans un moment ou sur un autre réseau.", host)

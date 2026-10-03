@@ -105,7 +105,7 @@ internal fun LicensesScreen(onDismiss: () -> Unit) {
                     Text(t("Licences open source"), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 }
                 Text(
-                    t("GoodLife utilise ces bibliothèques ; merci à leurs auteurs. Touche une ligne pour lire sa licence."),
+                    t("Lifoody utilise ces bibliothèques ; merci à leurs auteurs. Touche une ligne pour lire sa licence."),
                     style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 if (libs.isEmpty()) Text(t("Liste indisponible."), modifier = Modifier.padding(16.dp))

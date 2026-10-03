@@ -158,7 +158,7 @@ fun NotifSettingsBlock(settings: Settings) {
     }
     if (settings.anyNotif && !granted) {
         Text(
-            t("Android bloque les notifications de GoodLife : autorise-les pour recevoir les messages du chef."),
+            t("Android bloque les notifications de Lifoody : autorise-les pour recevoir les messages du chef."),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error
         )
         TextButton(onClick = {

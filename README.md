@@ -1,4 +1,4 @@
-# GoodLife
+# Lifoody
 
 [![Dernière version](https://img.shields.io/github/v/release/GRENECHE-Matheo/GoodLife?label=version&color=2e7d32)](https://github.com/GRENECHE-Matheo/GoodLife/releases/latest)
 [![Compilation](https://img.shields.io/github/actions/workflow/status/GRENECHE-Matheo/GoodLife/build.yml?branch=main&label=compilation)](https://github.com/GRENECHE-Matheo/GoodLife/actions)
@@ -7,9 +7,9 @@
 > ⚠️ **Projet assisté par IA** : le code de cette application a été écrit avec l'assistance
 > d'une intelligence artificielle (Claude, par Anthropic), puis relu et piloté par son auteur.
 
-**GoodLife** est une application Android pour mieux manger, bouger et dormir : scan de repas par photo,
+**Lifoody** (anciennement GoodLife) est une application Android pour mieux manger, bouger et dormir : scan de repas par photo,
 objectif calorique, pas, programme sportif, activités GPS, sommeil, séries et XP pour rester motivé.
-Interface Material You, **aucun compte, aucune pub, aucun serveur GoodLife** : tes données restent chiffrées sur ton téléphone (les services utilisés, comme la carte ou l'IA, sont détaillés dans la [politique de confidentialité](PRIVACY.md)).
+Interface Material You, **aucun compte, aucune pub, aucun serveur Lifoody** : tes données restent chiffrées sur ton téléphone (les services utilisés, comme la carte ou l'IA, sont détaillés dans la [politique de confidentialité](PRIVACY.md)).
 
 ---
 
@@ -24,6 +24,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 
 ## 🆕 Nouveautés de la v0.17.0
 
+- **GoodLife devient Lifoody** : nouveau nom, même app (tes données et tes amis sont gardés).
 - **Croisements anonymes** : identifiant qui change toutes les 15 min et carte chiffrée que seuls tes amis ouvrent.
 - **Tap to Sync plus rapide**, mini-fenêtre lisible en mode sombre.
 
@@ -86,7 +87,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 
 ## Nouveautés de la v0.9.5
 
-- **GoodLife en anglais** : l'app suit la langue du téléphone (ou se règle dans Paramètres › Langue).
+- **Lifoody en anglais** : l'app suit la langue du téléphone (ou se règle dans Paramètres › Langue).
 - Le chef et l'IA répondent dans la langue de l'app, et le quiz a ses noms d'aliments en anglais.
 
 ## Nouveautés de la v0.9.4
@@ -155,7 +156,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 ### 👥 Amis, sans serveur
 - Cartes de joueur signées échangées par **Tap to Sync** (NFC, en collant les téléphones), **QR code** ou
   **croisements** (Bluetooth basse consommation, Android 12+ et 18+), avec une notification à chaque nouvelle rencontre.
-- **À distance** aussi : « Partager ma carte » par message (WhatsApp, SMS…), sans serveur GoodLife.
+- **À distance** aussi : « Partager ma carte » par message (WhatsApp, SMS…), sans serveur Lifoody.
 - Classement entre amis, **défi de la semaine**, Nutridex des amis, encouragements tout prêts, blocage. Profil **privé par défaut**.
 
 ### ⚙️ Confort

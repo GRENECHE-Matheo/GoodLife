@@ -46,7 +46,7 @@ fun LockScreen(onUnlocked: () -> Unit) {
         }
         val activity = context.findFragmentActivity() ?: return
         error = null
-        AppLock.authenticate(activity, t("Déverrouiller GoodLife"), onSuccess = onUnlocked, onError = { error = it })
+        AppLock.authenticate(activity, t("Déverrouiller Lifoody"), onSuccess = onUnlocked, onError = { error = it })
     }
 
     LaunchedEffect(Unit) { unlock() }
@@ -63,7 +63,7 @@ fun LockScreen(onUnlocked: () -> Unit) {
                 modifier = Modifier.size(72.dp)
             )
             Spacer(Modifier.height(24.dp))
-            Text(t("GoodLife est verrouillée"), style = MaterialTheme.typography.headlineSmall)
+            Text(t("Lifoody est verrouillée"), style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text(
                 t("Utilise ton empreinte, ton visage ou le code de ton téléphone."),

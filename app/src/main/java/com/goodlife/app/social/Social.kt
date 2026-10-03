@@ -103,13 +103,13 @@ object Social {
      * le navigateur ne l'envoie jamais au serveur, et l'app vérifie sa signature.
      */
     fun inviteLink(code: String): String {
-        val (owner, repo) = com.goodlife.app.BuildConfig.UPDATE_REPO.split("/").let { it[0] to it.getOrElse(1) { "GoodLife" } }
+        val (owner, repo) = com.goodlife.app.BuildConfig.UPDATE_REPO.split("/").let { it[0] to it.getOrElse(1) { "Lifoody" } }
         return "https://${owner.lowercase()}.github.io/$repo/ami/#$code"
     }
 
     /** Message à envoyer pour qu'un ami m'ajoute à distance (sans aucun serveur GoodLife) : un lien cliquable. */
     fun shareText(): String? = mySignedCard()?.let {
-        t("Ajoute-moi en ami sur GoodLife 🍏 Touche ce lien depuis ton téléphone Android :") + "\n" + inviteLink(Identity.toText(it))
+        t("Ajoute-moi en ami sur Lifoody 🍏 Touche ce lien depuis ton téléphone Android :") + "\n" + inviteLink(Identity.toText(it))
     }
 
     private fun record(card: PlayerCard, via: String): SyncEvent {

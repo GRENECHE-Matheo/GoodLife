@@ -195,7 +195,7 @@ class MainActivity : FragmentActivity() {
         val social = com.goodlife.app.social.Social
         val card = social.cardInMessage(text)
         when {
-            card == null -> android.widget.Toast.makeText(this, t("Ce message ne contient pas de carte GoodLife valide."), android.widget.Toast.LENGTH_LONG).show()
+            card == null -> android.widget.Toast.makeText(this, t("Ce message ne contient pas de carte Lifoody valide."), android.widget.Toast.LENGTH_LONG).show()
             // Ami déjà connu : simple mise à jour de sa carte
             social.isFriend(card) -> {
                 social.accept(card)

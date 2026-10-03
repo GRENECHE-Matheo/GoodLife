@@ -1,12 +1,12 @@
 <resources>
     <!-- Textes par défaut en anglais (comme l'app sur un téléphone qui n'est pas en français) ; français dans values-fr -->
-    <string name="app_name">GoodLife</string>
-    <string name="tapsync_desc">GoodLife – card exchange between friends</string>
+    <string name="app_name">Lifoody</string>
+    <string name="tapsync_desc">Lifoody – card exchange between friends</string>
     <string name="widget_small">The chef</string>
     <string name="widget_medium">My day</string>
     <string name="widget_small_desc">The chef, your streak, your calories and your steps</string>
     <string name="widget_medium_desc">The chef, your streak, calories, steps, water, protein, your next meal and shortcuts</string>
-    <string name="widget_chef_desc">The GoodLife chef</string>
+    <string name="widget_chef_desc">The Lifoody chef</string>
 
     <!-- Contenu des widgets -->
     <string name="widget_lbl_kcal">Calories</string>
@@ -28,7 +28,7 @@
     <string name="widget_btn_photo_desc">Photograph a meal</string>
     <string name="widget_btn_water">+ Water</string>
     <string name="widget_btn_water_desc">Add a glass of water (250 ml)</string>
-    <string name="widget_open">Open GoodLife</string>
+    <string name="widget_open">Open Lifoody</string>
 
     <!-- Exemples affichés dans l'aperçu (liste des widgets du téléphone) -->
     <string name="widget_preview_streak">🔥 12 days</string>

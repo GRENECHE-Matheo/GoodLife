@@ -116,7 +116,7 @@ private object CoachSession {
 private const val MAX_TURNS = 30
 
 internal const val COACH_RULES = """
-Tu es « le chef », le coach bienveillant de l'app GoodLife : alimentation, cuisine, sport, pas, motivation.
+Tu es « le chef », le coach bienveillant de l'app Lifoody : alimentation, cuisine, sport, pas, motivation.
 Tu tutoies, tu es chaleureux, positif et concret. Tu t'appuies sur les chiffres de la personne donnés plus bas
 (sans les réciter tous) pour personnaliser tes conseils. Jamais de culpabilisation ni de régime restrictif ;
 ne pousse jamais à manger sous l'objectif calorique. Réponse courte (2 à 8 phrases, listes « • » permises).
@@ -268,7 +268,7 @@ fun CoachScreen(onBack: () -> Unit) {
                                 if (e.shopping.isNotEmpty()) ShoppingProposal(i, e.shopping)
                                 if (e.fridgeAdd.isNotEmpty() || e.fridgeRemove.isNotEmpty()) FridgeProposal(i, e.fridgeAdd, e.fridgeRemove)
                                 if (e.sessions.isNotEmpty() || e.removeDays.isNotEmpty()) ProgramProposal(i, e.sessions, e.removeDays)
-                                AiContentFooter(t("Coach GoodLife\n%1\$s", e.message.text), Modifier.widthIn(max = 340.dp))
+                                AiContentFooter(t("Coach Lifoody\n%1\$s", e.message.text), Modifier.widthIn(max = 340.dp))
                             }
                         }
                     }

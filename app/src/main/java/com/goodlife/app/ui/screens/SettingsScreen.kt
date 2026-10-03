@@ -141,7 +141,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             exportDialog = false
             scope.launch {
                 exportKey = withContext(Dispatchers.Default) { com.goodlife.app.data.Backup.deriveKey(password) }
-                protectedExportLauncher.launch("GoodLife-export.goodlife")
+                protectedExportLauncher.launch("Lifoody-export.goodlife")
             }
         },
         onPlain = { exportDialog = false; exportLauncher.launch("goodlife-export.json") }
@@ -426,9 +426,9 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
 
         // ---- À propos ----
         FoldableSection(t("À propos"), Icons.Filled.Info, t("Version, contact, effacer mes données")) {
-            Text(t("GoodLife v%1\$s", BuildConfig.VERSION_NAME), fontWeight = FontWeight.Medium)
+            Text(t("Lifoody v%1\$s", BuildConfig.VERSION_NAME), fontWeight = FontWeight.Medium)
             Text(
-                t("Projet développé avec l'assistance d'une IA (Claude, Anthropic). GoodLife est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis d'un professionnel de santé."),
+                t("Projet développé avec l'assistance d'une IA (Claude, Anthropic). Lifoody est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis d'un professionnel de santé."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -507,7 +507,7 @@ private fun ExportDialog(onDismiss: () -> Unit, onProtected: (String) -> Unit, o
         title = { Text(t("Exporter mes données")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(t("Le fichier contient tes données de santé (repas, poids, sommeil…). Protège-le par un mot de passe : sans lui, personne ne peut le lire. Tu pourras aussi le restaurer dans GoodLife."),
+                Text(t("Le fichier contient tes données de santé (repas, poids, sommeil…). Protège-le par un mot de passe : sans lui, personne ne peut le lire. Tu pourras aussi le restaurer dans Lifoody."),
                     style = MaterialTheme.typography.bodyMedium)
                 PasswordField(pw, { pw = it }, t("Mot de passe"), show) { show = !show }
                 PasswordField(pw2, { pw2 = it }, t("Confirmer"), show) { show = !show }

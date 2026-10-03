@@ -65,7 +65,7 @@ object SocialNotifier {
         channels(context)
         val public = NotificationCompat.Builder(context, CH_FRIENDS)
             .setSmallIcon(R.drawable.ic_notif_leaf)
-            .setContentTitle("GoodLife")
+            .setContentTitle("Lifoody")
             .setContentText(t("Du nouveau chez tes amis"))
             .build()
         val n = NotificationCompat.Builder(context, CH_FRIENDS)
@@ -101,7 +101,7 @@ object SocialNotifier {
         val id = encounterId(personId)
         val title = if (first) t("Nouvelle rencontre : %1\$s", pseudo) else t("Tu as recroisé %1\$s", pseudo)
         val text = when {
-            first -> t("Tu as croisé un joueur GoodLife. Ajoute-le en ami pour le suivre dans ton classement.")
+            first -> t("Tu as croisé un joueur Lifoody. Ajoute-le en ami pour le suivre dans ton classement.")
             friend -> t("Sa carte est à jour (niveau, série, défi de la semaine).")
             else -> t("Sa carte est à jour. Tu peux l'ajouter en ami.")
         }
@@ -119,7 +119,7 @@ object SocialNotifier {
 
     /** Joueur inconnu croisé : il reste anonyme (identifiant qui change toutes les 15 min). */
     fun stranger(context: Context, level: Int?) {
-        post(context, 3399, t("Tu as croisé un joueur GoodLife"),
+        post(context, 3399, t("Tu as croisé un joueur Lifoody"),
             if (level != null) t("Niveau %1\$s. Les inconnus restent anonymes : ni pseudo, ni suivi possible.", level)
             else t("Les inconnus restent anonymes : ni pseudo, ni suivi possible.")) {}
     }

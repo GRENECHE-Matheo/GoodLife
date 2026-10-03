@@ -57,7 +57,7 @@ fun AiConsentText() {
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
-            t("Ces données ne sont ni vendues ni utilisées pour de la publicité par GoodLife. Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz."),
+            t("Ces données ne sont ni vendues ni utilisées pour de la publicité par Lifoody. Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

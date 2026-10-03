@@ -1,11 +1,11 @@
-# Publier GoodLife sur Google Play — aide-mémoire
+# Publier Lifoody sur Google Play — aide-mémoire
 
 > Préparé avec l'assistance d'une IA, à partir des règles publiées par Google au 1er octobre 2026.
 > Ce n'est pas un avis juridique : relis chaque réponse dans la Play Console, les formulaires évoluent.
 
 ## 1. Le fichier à envoyer
 
-- Format **AAB** (obligatoire) : artefact `GoodLife-play-aab` produit par GitHub Actions
+- Format **AAB** (obligatoire) : artefact `GoodLife-play-aab` (nom technique conservé) produit par GitHub Actions
   (`gradle bundlePlayRelease`). C'est la version **play** : sans mise à jour intégrée ni permission
   `REQUEST_INSTALL_PACKAGES` (interdites sur Play pour se mettre à jour soi-même).
 - Cible **Android 16 (API 36)** : exigé pour toute nouvelle app depuis le 31/08/2026.
@@ -22,7 +22,7 @@
 - Compte personnel créé après novembre 2023 : Google impose un **test fermé avec au moins 12 testeurs
   pendant 14 jours** avant la mise en production.
 - Vérification d'identité demandée par Google.
-- Statut de « professionnel » (DSA, UE) : GoodLife est gratuit, sans pub ni achat → déclarer
+- Statut de « professionnel » (DSA, UE) : Lifoody est gratuit, sans pub ni achat → déclarer
   **non-professionnel** si c'est un projet personnel sans but commercial.
 
 ## 3. Fiche Play Store
@@ -31,7 +31,7 @@
 
 **À mettre dans la description (obligatoire pour les applis santé)** :
 
-> GoodLife est une application de bien-être. Ce n'est pas un dispositif médical : elle ne permet pas de
+> Lifoody est une application de bien-être. Ce n'est pas un dispositif médical : elle ne permet pas de
 > diagnostiquer, traiter, guérir ou prévenir une maladie. Consulte un professionnel de santé pour tout
 > avis médical, diagnostic ou traitement.
 
@@ -78,7 +78,7 @@ car l'envoi est une action de l'utilisateur qui s'y attend). Les autres lignes s
 
 - **Traitement éphémère** : non (Google peut conserver temporairement, voir ses conditions).
 - **Suppression** : les données locales s'effacent dans Paramètres › Effacer toutes mes données ; il n'y a
-  aucun compte ni serveur GoodLife.
+  aucun compte ni serveur Lifoody.
 - **Code-barres → Open Food Facts** : seul le numéro d'un produit est envoyé ; ce n'est pas une donnée
   personnelle (à ne pas déclarer, mais c'est expliqué dans la politique).
 - **Sauvegarde chiffrée** : fichier écrit par l'utilisateur à l'endroit qu'il choisit, chiffré avec son mot de
@@ -96,11 +96,11 @@ car l'envoi est une action de l'utilisateur qui s'y attend). Les autres lignes s
   tapé pour la recherche) : c'est la ligne « Localisation › Approximative » du tableau, non partagée à des fins publicitaires.
 - **Pas** : lus sur le téléphone (capteur ou Health Connect). Ils partent vers Gemini seulement avec l'IA activée (coach,
   objectif d'eau, objectif de pas : ligne « Remise en forme » du tableau) et vers les amis si le profil est public (voir Amis).
-- Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.
+- Sleep API : calculée par les services Google Play sur le téléphone ; Lifoody ne transmet rien.
 - **Notifications du coach** : préparées et programmées sur le téléphone (AlarmManager), sans serveur → rien à déclarer.
 - **Actus du jour** : l'app **lit** des flux RSS publics (franceinfo, Sciences et Avenir, Futura, Anses, Santé publique
   France) ; aucune donnée de l'utilisateur n'est envoyée (seulement l'adresse IP, comme pour tout site) → rien à déclarer.
-- **Déclaration « Applications d'actualités »** (Contenu de l'appli) : répondre **non**, GoodLife n'est pas une appli
+- **Déclaration « Applications d'actualités »** (Contenu de l'appli) : répondre **non**, Lifoody n'est pas une appli
   d'actualités (les actus sont une petite rubrique). Pour la presse, seuls le titre et le lien sont repris (droits voisins).
 
 ## 6. Autorisations sensibles
@@ -128,17 +128,17 @@ Pas de localisation en arrière-plan (`ACCESS_BACKGROUND_LOCATION`), ni de conta
   vitesse, dénivelé) stocké sur le téléphone.
 - **Service de premier plan** (`location`) : suivi GPS d'une activité démarrée par l'utilisateur, notification permanente
   pendant l'activité ; **vidéo** demandée (démarrer une course, écran éteint, notification visible, arrêt).
-- **Service de premier plan** (`connectedDevice`) : croisements, échange Bluetooth entre appareils GoodLife proches, démarré
+- **Service de premier plan** (`connectedDevice`) : croisements, échange Bluetooth entre appareils Lifoody proches, démarré
   par l'utilisateur, notification permanente discrète (canal de faible importance). Google demande une courte **vidéo** montrant l'activation.
 
 ## 7. Avant de publier : vérifier les noms (marques)
 
-Contrôle fait en ligne le 01/10/2026, **sans valeur juridique** : à confirmer sur [TMview](https://www.tmdn.org/tmview/)
+Contrôle fait en ligne les 01/10 et 03/10/2026, **sans valeur juridique** : à confirmer sur [TMview](https://www.tmdn.org/tmview/)
 (marques de l'UE, de la France et du monde) avant la mise en ligne.
 
 | Nom | Ce qui existe | Risque |
 |---|---|---|
-| **GoodLife** | « GoodLife Fitness », chaîne de salles canadienne, a une marque déposée et une appli Android dans la même catégorie (Santé et remise en forme). | **À surveiller** : risque de confusion, surtout si l'app est publiée au Canada. Un nom plus distinctif (ou exclure le Canada de la diffusion) réduit le risque. |
+| **Lifoody** (nom choisi le 03/10/2026, remplace « GoodLife ») | Aucune appli ni marque « Lifoody » trouvée (Google Play : aucun résultat ; web : seulement LYOFOOD, marque polonaise de plats lyophilisés pour la randonnée). L'ancien nom « GoodLife » était en conflit avec « GoodLife Fitness » (marque déposée au Canada, appli Android de la même catégorie). | Faible, à confirmer sur TMview et à l'INPI (classes 9, 41, 44) ; penser à déposer la marque. |
 | **Nutridex** | Une marque « NUTRIDEX » existe pour des produits alimentaires (classe 30), pas pour des logiciels. Le suffixe « -dex » rappelle le Pokédex (marque de Nintendo/The Pokémon Company), mais il est très courant dans les applis. | Faible |
 | **Croisements** | Ancien nom « StreetPass » retiré (marque de Nintendo). | Aucun |
 | **Tap to Sync** | Aucune marque trouvée sous ce nom ; expression descriptive. | Faible |

@@ -826,7 +826,7 @@ object Repo {
     fun backupJson(): String {
         val s = _settings.value
         return JSONObject()
-            .put("app", "GoodLife")
+            .put("app", "Lifoody")
             .put("format", 1)
             .put("createdAt", System.currentTimeMillis())
             .put("profile", _profile.value?.toJson() ?: JSONObject.NULL)
@@ -869,7 +869,7 @@ object Repo {
     @Synchronized
     fun restore(json: String) {
         val o = JSONObject(json)
-        require(o.optString("app") == "GoodLife") { t("Ce fichier n'est pas une sauvegarde GoodLife.") }
+        require(o.optString("app") == "Lifoody") { t("Ce fichier n'est pas une sauvegarde Lifoody.") }
         val profile = o.optJSONObject("profile")?.let { Profile.fromJson(it) }
             ?: throw IllegalArgumentException(t("La sauvegarde ne contient pas de profil."))
         require(profile.age in com.goodlife.app.ai.Nutrition.MIN_AGE..110 && profile.weightKg in 25.0..350.0 && profile.heightCm in 100.0..250.0) {
@@ -1027,7 +1027,7 @@ object Repo {
     fun exportJson(): String {
         val s = _settings.value
         return JSONObject()
-            .put("app", "GoodLife")
+            .put("app", "Lifoody")
             .put("exportedAt", System.currentTimeMillis())
             .put("profile", _profile.value?.toJson() ?: JSONObject.NULL)
             .put("meals", JSONArray().apply { _meals.value.forEach { put(it.toJson()) } })

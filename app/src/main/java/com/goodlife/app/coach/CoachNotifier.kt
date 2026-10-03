@@ -183,7 +183,7 @@ object CoachNotifier {
                     w.validated >= 4 -> t("Belle semaine, continue comme ça !")
                     else -> t("Chaque semaine compte. On vise un jour de plus la semaine prochaine ?")
                 }
-                Note(t("Ta semaine avec GoodLife 📊"), lines.joinToString("\n"), if (w.validated >= 4) ChefMood.BRAVO else ChefMood.CONTENT)
+                Note(t("Ta semaine avec Lifoody 📊"), lines.joinToString("\n"), if (w.validated >= 4) ChefMood.BRAVO else ChefMood.CONTENT)
             }
         }
     }
@@ -205,11 +205,11 @@ object CoachNotifier {
         // App verrouillée par empreinte : le contenu reste discret aussi dans le volet des notifications
         val locked = Repo.settings.value.appLock
         val title = if (locked) t("Un message du chef") else note.title
-        val text = if (locked) t("Ouvre GoodLife pour le lire.") else note.text
+        val text = if (locked) t("Ouvre Lifoody pour le lire.") else note.text
         // Écran verrouillé : seulement « GoodLife », sans les chiffres (données de santé)
         val public = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notif_chef)
-            .setContentTitle("GoodLife")
+            .setContentTitle("Lifoody")
             .setContentText(t("Un message du chef"))
             .build()
         val n = NotificationCompat.Builder(context, channel)

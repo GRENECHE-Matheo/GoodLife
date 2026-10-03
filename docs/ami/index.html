@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>GoodLife – Ajouter un ami</title>
+<title>Lifoody – Ajouter un ami</title>
 <style>
   :root { --bg:#f6f8fc; --card:#fff; --text:#1c1b1f; --sub:#5f6368; --accent:#34a853; --btn:#1a73e8; }
   @media (prefers-color-scheme: dark) { :root { --bg:#121417; --card:#1f2329; --text:#e8eaed; --sub:#9aa0a6; --accent:#81c995; --btn:#8ab4f8; } }
@@ -29,11 +29,11 @@
 <body>
 <main class="card">
   <div class="logo">🍏</div>
-  <h1 id="title">Ajouter un ami sur GoodLife</h1>
-  <p id="intro">Ouvre ce lien sur un téléphone Android où GoodLife est installée.</p>
-  <a class="btn primary" id="open" href="#">Ouvrir dans GoodLife</a>
+  <h1 id="title">Ajouter un ami sur Lifoody</h1>
+  <p id="intro">Ouvre ce lien sur un téléphone Android où Lifoody est installée.</p>
+  <a class="btn primary" id="open" href="#">Ouvrir dans Lifoody</a>
   <button class="secondary" id="copy" type="button">Copier le code</button>
-  <a class="btn secondary" id="get" href="https://github.com/GRENECHE-Matheo/GoodLife/releases/latest">Je n'ai pas encore GoodLife</a>
+  <a class="btn secondary" id="get" href="https://github.com/GRENECHE-Matheo/GoodLife/releases/latest">Je n'ai pas encore Lifoody</a>
   <p class="small" id="privacy">La carte d'ami reste dans ce lien (après le « # ») : elle n'est jamais envoyée à un serveur. Aucune statistique, aucun cookie.</p>
 </main>
 <script>
@@ -42,14 +42,14 @@
   var valid = /^GL1:[A-Za-z0-9_-]{40,1900}$/.test(code);
   var en = !/^fr/i.test(navigator.language || "fr");
   var T = en ? {
-    title: "Add a friend on GoodLife", intro: "Open this link on an Android phone with GoodLife installed.",
-    open: "Open in GoodLife", copy: "Copy the code", copied: "Code copied: paste it in Friends › Paste a code",
-    get: "I don't have GoodLife yet", bad: "This link is incomplete: ask your friend to send it again.",
+    title: "Add a friend on Lifoody", intro: "Open this link on an Android phone with Lifoody installed.",
+    open: "Open in Lifoody", copy: "Copy the code", copied: "Code copied: paste it in Friends › Paste a code",
+    get: "I don't have Lifoody yet", bad: "This link is incomplete: ask your friend to send it again.",
     privacy: "The friend card stays in this link (after the “#”): it is never sent to a server. No analytics, no cookies."
   } : {
-    title: "Ajouter un ami sur GoodLife", intro: "Ouvre ce lien sur un téléphone Android où GoodLife est installée.",
-    open: "Ouvrir dans GoodLife", copy: "Copier le code", copied: "Code copié : colle-le dans Amis › Coller un code",
-    get: "Je n'ai pas encore GoodLife", bad: "Ce lien est incomplet : demande à ton ami de te le renvoyer.",
+    title: "Ajouter un ami sur Lifoody", intro: "Ouvre ce lien sur un téléphone Android où Lifoody est installée.",
+    open: "Ouvrir dans Lifoody", copy: "Copier le code", copied: "Code copié : colle-le dans Amis › Coller un code",
+    get: "Je n'ai pas encore Lifoody", bad: "Ce lien est incomplet : demande à ton ami de te le renvoyer.",
     privacy: "La carte d'ami reste dans ce lien (après le « # ») : elle n'est jamais envoyée à un serveur. Aucune statistique, aucun cookie."
   };
   document.documentElement.lang = en ? "en" : "fr";

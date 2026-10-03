@@ -35,10 +35,10 @@ object Backup {
     private const val IV_SIZE = 12
     const val MIN_PASSWORD = 8
     const val MIME = "application/octet-stream"
-    const val FILE_NAME = "GoodLife-sauvegarde.goodlife"
+    const val FILE_NAME = "Lifoody-sauvegarde.goodlife"
 
     class WrongPassword : Exception(t("Mot de passe incorrect, ou fichier abîmé."))
-    class NotABackup : Exception(t("Ce fichier n'est pas une sauvegarde GoodLife."))
+    class NotABackup : Exception(t("Ce fichier n'est pas une sauvegarde Lifoody."))
 
     /** Clé dérivée + paramètres nécessaires pour que le fichier soit relisible avec le mot de passe. */
     data class DerivedKey(val key: ByteArray, val salt: ByteArray, val iterations: Int) {
@@ -99,7 +99,7 @@ object Backup {
     fun read(context: Context, uri: Uri): ByteArray =
         context.contentResolver.openInputStream(uri)?.use {
             runCatching { it.readCapped(64 * 1024 * 1024) }
-                .getOrElse { throw IllegalStateException(t("Fichier trop volumineux pour être une sauvegarde GoodLife.")) }
+                .getOrElse { throw IllegalStateException(t("Fichier trop volumineux pour être une sauvegarde Lifoody.")) }
         } ?: throw IllegalStateException(t("Fichier illisible."))
 
     fun write(context: Context, uri: Uri, bytes: ByteArray) {

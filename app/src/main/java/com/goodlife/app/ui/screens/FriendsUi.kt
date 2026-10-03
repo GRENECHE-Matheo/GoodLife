@@ -232,7 +232,7 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                 )
                 social.anon.sortedByDescending { it.at }.take(5).forEach { a ->
                     Text(
-                        (a.level?.let { t("Un joueur niveau %1\$s", it) } ?: t("Un joueur GoodLife")) + " · " + ago(a.at),
+                        (a.level?.let { t("Un joueur niveau %1\$s", it) } ?: t("Un joueur Lifoody")) + " · " + ago(a.at),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -313,7 +313,7 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                     Column(Modifier.weight(1f)) {
                         Text(t("Croiser d'autres joueurs"), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            t("À quelques mètres d'un joueur GoodLife, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis. Les inconnus te voient anonyme (identifiant qui change toutes les 15 min) ; seuls tes amis te reconnaissent."),
+                            t("À quelques mètres d'un joueur Lifoody, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis. Les inconnus te voient anonyme (identifiant qui change toutes les 15 min) ; seuls tes amis te reconnaissent."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -492,7 +492,7 @@ private fun PasteCodeDialog(onDismiss: () -> Unit, onDone: (String) -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 val e = Social.receiveFromMessage(text)
-                if (e == null) error = t("Ce message ne contient pas de carte GoodLife valide (ou elle a été modifiée).")
+                if (e == null) error = t("Ce message ne contient pas de carte Lifoody valide (ou elle a été modifiée).")
                 else onDone(resultText(e))
             }) { Text(t("Ajouter")) }
         },
@@ -781,7 +781,7 @@ private fun QrScreen(onBack: () -> Unit) {
                         ).startScan()
                             .addOnSuccessListener { b ->
                                 val e = b.rawValue?.let { Social.receiveText(it, "qr") }
-                                result = e?.let(::resultText) ?: t("Ce QR code n'est pas une carte GoodLife valide.")
+                                result = e?.let(::resultText) ?: t("Ce QR code n'est pas une carte Lifoody valide.")
                                 if (e != null) Sounds.play(Sfx.LEVEL_UP)
                             }
                             .addOnFailureListener { result = t("Scanner indisponible : %1\$s", it.message ?: t("réessaie")) }

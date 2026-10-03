@@ -109,7 +109,7 @@ fun BackupSection() {
     ) {
         if (settings.backupUri.isBlank()) {
             Text(
-                t("Pour ne rien perdre si tu changes de téléphone ou réinstalles l'app. GoodLife écrit une copie chiffrée de tes données dans le fichier de ton choix (Google Drive, Téléchargements…), puis la met à jour toute seule à chaque fois que tu quittes l'app après un changement."),
+                t("Pour ne rien perdre si tu changes de téléphone ou réinstalles l'app. Lifoody écrit une copie chiffrée de tes données dans le fichier de ton choix (Google Drive, Téléchargements…), puis la met à jour toute seule à chaque fois que tu quittes l'app après un changement."),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
@@ -192,7 +192,7 @@ fun BackupSection() {
         AlertDialog(
             onDismissRequest = { confirmOff = false },
             title = { Text(t("Désactiver la sauvegarde ?")) },
-            text = { Text(t("GoodLife arrête de mettre à jour le fichier. Le fichier déjà enregistré n'est pas supprimé : tu peux l'effacer toi-même si tu veux.")) },
+            text = { Text(t("Lifoody arrête de mettre à jour le fichier. Le fichier déjà enregistré n'est pas supprimé : tu peux l'effacer toi-même si tu veux.")) },
             confirmButton = {
                 TextButton(onClick = {
                     Backup.releaseAccess(context, Uri.parse(settings.backupUri))

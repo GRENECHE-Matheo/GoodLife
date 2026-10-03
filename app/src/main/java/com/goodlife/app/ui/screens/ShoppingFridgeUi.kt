@@ -113,7 +113,7 @@ object Shopping {
         meals.flatMap { m -> m.recipe?.ingredients?.map { ShopItem(it, "", t("D'après tes recettes")) } ?: listOf(ShopItem(t("Pour « %1\$s »", m.name), "", t("Repas sans recette"))) }
             .distinctBy { it.name.lowercase() }
 
-    fun text(items: List<ShopItem>): String = t("Liste de courses GoodLife 🛒\n") + items.groupBy { it.aisle }.entries.joinToString("\n") { (aisle, list) ->
+    fun text(items: List<ShopItem>): String = t("Liste de courses Lifoody 🛒\n") + items.groupBy { it.aisle }.entries.joinToString("\n") { (aisle, list) ->
         t("\n%1\$s :\n", aisle) + list.joinToString("\n") { "${if (it.checked) "☑" else "☐"} ${it.name}${if (it.qty.isNotBlank()) " — ${it.qty}" else ""}" }
     }
 }

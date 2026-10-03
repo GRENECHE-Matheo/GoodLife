@@ -338,7 +338,7 @@ fun ScanScreen(onDone: () -> Unit) {
                 ) { Text(t("Enregistrer la clé")) }
             }
             current == null && !hasCamera -> SectionCard(title = t("Accès à la caméra")) {
-                Text(t("GoodLife a besoin de la caméra pour photographier directement dans l'app."))
+                Text(t("Lifoody a besoin de la caméra pour photographier directement dans l'app."))
                 Button(onClick = { askCamera.launch(Manifest.permission.CAMERA) }) { Text(t("Autoriser la caméra")) }
             }
             current != null -> {

@@ -1,4 +1,4 @@
-# Politique de confidentialité — GoodLife
+# Politique de confidentialité — Lifoody
 
 Version 0.17.0 · mise à jour le 3 octobre 2026
 
@@ -6,9 +6,9 @@ Version 0.17.0 · mise à jour le 3 octobre 2026
 
 ## Qui est responsable ?
 
-GoodLife est un projet personnel développé par Mathéo Greneche, avec l'assistance d'une IA. L'app n'a pas de serveur et n'envoie aucune donnée à son développeur. Contact (questions, exercice de tes droits, signalements) : matheo.greneche0@gmail.com.
+Lifoody est un projet personnel développé par Mathéo Greneche, avec l'assistance d'une IA. L'app n'a pas de serveur et n'envoie aucune donnée à son développeur. Contact (questions, exercice de tes droits, signalements) : matheo.greneche0@gmail.com.
 
-## Qui peut utiliser GoodLife ?
+## Qui peut utiliser Lifoody ?
 
 L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on peut consentir seul au traitement de ses données en France). Les fonctions IA sont réservées aux 18 ans et plus. L'objectif « Perdre du poids » n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5. Les croisements (rencontres avec des inconnus) sont réservés aux 18 ans et plus.
 
@@ -37,7 +37,7 @@ Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celles que 
 ## À qui ces données sont envoyées
 
 • Google LLC (API Gemini), directement depuis ton téléphone, avec ta propre clé API et donc sous ton propre compte Google : en créant ta clé, tu acceptes toi-même les conditions de Google, et l'éventuelle facturation se fait entre toi et Google. Google traite ces données selon les conditions de l'API Gemini ; elles peuvent être conservées temporairement par Google (par exemple pour détecter les abus) et traitées hors de l'Union européenne. Selon ces conditions (version du 28 avril 2026), pour les utilisateurs situés dans l'Espace économique européen, Google n'utilise pas les demandes ni les réponses pour améliorer ses produits, même sur son offre sans frais. Google est une entreprise américaine adhérente au cadre de protection des données UE–États-Unis (Data Privacy Framework).
-• GoodLife n'a aucun serveur : le développeur ne reçoit et ne voit aucune de tes données.
+• Lifoody n'a aucun serveur : le développeur ne reçoit et ne voit aucune de tes données.
 
 ## Ta clé API
 
@@ -49,7 +49,7 @@ Le code-barres est lu sur le téléphone avec ML Kit (modèle intégré, aucune 
 
 ## Les pas
 
-Si tu actives le suivi des pas, ils sont comptés sur le téléphone : par le capteur de pas (relevé toutes les 15 minutes, lecture d'un simple compteur) ou, si tu le choisis, en lecture seule dans Health Connect (pas enregistrés par Samsung Health, Google Fit, une montre…). GoodLife ne lit que le nombre de pas, rien d'autre, Ils restent sur le téléphone, sauf : avec l'IA activée, tes pas du jour et de la semaine pour le coach, tes pas d'hier pour l'objectif d'eau et tes pas des 7 derniers jours si tu demandes un objectif à l'IA ; et, si ton profil d'amis est public, le total de tes pas de la semaine pour tes amis. Tu peux couper le suivi dans Paramètres › Pas.
+Si tu actives le suivi des pas, ils sont comptés sur le téléphone : par le capteur de pas (relevé toutes les 15 minutes, lecture d'un simple compteur) ou, si tu le choisis, en lecture seule dans Health Connect (pas enregistrés par Samsung Health, Google Fit, une montre…). Lifoody ne lit que le nombre de pas, rien d'autre, Ils restent sur le téléphone, sauf : avec l'IA activée, tes pas du jour et de la semaine pour le coach, tes pas d'hier pour l'objectif d'eau et tes pas des 7 derniers jours si tu demandes un objectif à l'IA ; et, si ton profil d'amis est public, le total de tes pas de la semaine pour tes amis. Tu peux couper le suivi dans Paramètres › Pas.
 
 ## Activités GPS (course, marche, vélo)
 
@@ -65,12 +65,12 @@ Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Par
 
 ## Actus du jour
 
-Tu choisis tes thèmes (alimentation, sport, santé et bien-être, insolite, anecdote du jour), ou aucun : les actus sont alors désactivées. Une fois par jour (à l'ouverture de l'accueil ou des actus), GoodLife lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur tes thèmes. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
+Tu choisis tes thèmes (alimentation, sport, santé et bien-être, insolite, anecdote du jour), ou aucun : les actus sont alors désactivées. Une fois par jour (à l'ouverture de l'accueil ou des actus), Lifoody lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur tes thèmes. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
 • Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page publique de l'article et envoie son titre et son texte à Google Gemini, avec ta clé, pour le résumer. Aucune donnée te concernant n'est envoyée. Le résumé n'est pas gardé.
 
 ## Widgets
 
-Si tu ajoutes un widget GoodLife sur ton écran d'accueil, il affiche le chef, ta série, tes calories et tes pas ; le grand widget montre aussi l'eau, les protéines et ton prochain repas prévu au planning. Tout est calculé sur le téléphone. Les widgets sont visibles par toute personne qui voit ton écran d'accueil : si le verrouillage par empreinte est activé, ils n'affichent aucun chiffre de santé.
+Si tu ajoutes un widget Lifoody sur ton écran d'accueil, il affiche le chef, ta série, tes calories et tes pas ; le grand widget montre aussi l'eau, les protéines et ton prochain repas prévu au planning. Tout est calculé sur le téléphone. Les widgets sont visibles par toute personne qui voit ton écran d'accueil : si le verrouillage par empreinte est activé, ils n'affichent aucun chiffre de santé.
 
 ## Le Nutridex
 
@@ -78,8 +78,8 @@ Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutride
 
 ## Amis : Tap to Sync, QR code et croisements
 
-Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec les croisements, ou par un message que tu envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), selon ses propres conditions, jamais par un serveur GoodLife. Ce message contient un lien vers une page d'invitation statique hébergée par GitHub Pages : ta carte est dans la partie du lien après « # », que le navigateur n'envoie jamais au serveur ; GitHub voit seulement l'adresse IP de la personne qui ouvre la page (sans statistique ni cookie). La carte que tu donnes par NFC, QR code ou lien contient aussi une clé secrète, qui permet à cette personne de te reconnaître lors des croisements : ne la partage qu'avec des amis. Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.
-• Croisements (désactivés par défaut, 18 ans et plus, Android 12+) : tant qu'ils sont actifs, une notification discrète l'indique (Android l'impose) et les téléphones GoodLife à quelques mètres lisent ta balise en Bluetooth (relue au plus toutes les 15 minutes) ; tes amis y retrouvent ta carte à jour et tes encouragements. Une notification te prévient quand tu croises quelqu'un pour la première fois ou que tu le recroises. L'app ne demande pas la localisation. Ta carte n'est jamais diffusée en clair : ton téléphone diffuse un identifiant aléatoire qui change toutes les 15 minutes, ton niveau (si tu le partages) et ta carte chiffrée, que seuls tes amis peuvent ouvrir. Un inconnu voit seulement « un joueur niveau 12 », sans pseudo, et ne peut pas te reconnaître d'un endroit à l'autre ni te suivre. Tu peux masquer et bloquer une personne.
+Ton profil est privé par défaut. Si tu le rends public, tu choisis un pseudo et ce que tu partages (niveau, série, liste du Nutridex, bilan de la semaine pour le défi entre amis : jours validés, total de pas et XP de la semaine). Ces informations forment une « carte » signée par ton téléphone, transmise directement à l'autre téléphone, sans aucun serveur : en collant les téléphones (NFC), en scannant ton QR code, avec les croisements, ou par un message que tu envoies toi-même (« Partager ma carte ») : la carte passe alors par la messagerie que tu choisis (WhatsApp, SMS…), selon ses propres conditions, jamais par un serveur Lifoody. Ce message contient un lien vers une page d'invitation statique hébergée par GitHub Pages : ta carte est dans la partie du lien après « # », que le navigateur n'envoie jamais au serveur ; GitHub voit seulement l'adresse IP de la personne qui ouvre la page (sans statistique ni cookie). La carte que tu donnes par NFC, QR code ou lien contient aussi une clé secrète, qui permet à cette personne de te reconnaître lors des croisements : ne la partage qu'avec des amis. Ne sont jamais partagés : ton poids, tes repas, ton sommeil, tes photos, ton âge.
+• Croisements (désactivés par défaut, 18 ans et plus, Android 12+) : tant qu'ils sont actifs, une notification discrète l'indique (Android l'impose) et les téléphones Lifoody à quelques mètres lisent ta balise en Bluetooth (relue au plus toutes les 15 minutes) ; tes amis y retrouvent ta carte à jour et tes encouragements. Une notification te prévient quand tu croises quelqu'un pour la première fois ou que tu le recroises. L'app ne demande pas la localisation. Ta carte n'est jamais diffusée en clair : ton téléphone diffuse un identifiant aléatoire qui change toutes les 15 minutes, ton niveau (si tu le partages) et ta carte chiffrée, que seuls tes amis peuvent ouvrir. Un inconnu voit seulement « un joueur niveau 12 », sans pseudo, et ne peut pas te reconnaître d'un endroit à l'autre ni te suivre. Tu peux masquer et bloquer une personne.
 • Les cartes que tu reçois sont gardées chiffrées sur ton téléphone ; retire ou bloque une personne pour effacer la sienne.
 • Les encouragements sont des messages tout prêts, sans texte libre. Quand une carte reçue contient un encouragement pour toi, une notification te prévient (préparée sur ton téléphone, sans serveur).
 Base légale : ton consentement (activation du profil public). Tu peux le retirer à tout moment en le rendant privé.
@@ -90,7 +90,7 @@ Dans la version téléchargée depuis GitHub, et tant que l'option est activée 
 
 ## Sauvegarde chiffrée (si tu l'actives)
 
-Désactivée par défaut. Si tu l'actives (Paramètres › Sauvegarde chiffrée), GoodLife écrit une copie de tes données dans le fichier que tu choisis (par exemple sur Google Drive ou dans Téléchargements), puis la met à jour quand tu quittes l'app après un changement. Le fichier est chiffré (AES-256-GCM) avec une clé tirée de ton mot de passe (PBKDF2, 310 000 itérations) : sans le mot de passe, il est illisible, y compris pour le service qui le stocke et pour le développeur. Le mot de passe n'est jamais enregistré ; seule la clé qui en est tirée est gardée, chiffrée par l'Android Keystore, pour refaire la copie automatiquement. La sauvegarde ne contient ni ta clé API, ni ton consentement IA, ni tes réglages de sécurité. Si tu choisis un service en ligne, c'est lui qui stocke le fichier chiffré, selon ses propres conditions. Mot de passe oublié = sauvegarde perdue.
+Désactivée par défaut. Si tu l'actives (Paramètres › Sauvegarde chiffrée), Lifoody écrit une copie de tes données dans le fichier que tu choisis (par exemple sur Google Drive ou dans Téléchargements), puis la met à jour quand tu quittes l'app après un changement. Le fichier est chiffré (AES-256-GCM) avec une clé tirée de ton mot de passe (PBKDF2, 310 000 itérations) : sans le mot de passe, il est illisible, y compris pour le service qui le stocke et pour le développeur. Le mot de passe n'est jamais enregistré ; seule la clé qui en est tirée est gardée, chiffrée par l'Android Keystore, pour refaire la copie automatiquement. La sauvegarde ne contient ni ta clé API, ni ton consentement IA, ni tes réglages de sécurité. Si tu choisis un service en ligne, c'est lui qui stocke le fichier chiffré, selon ses propres conditions. Mot de passe oublié = sauvegarde perdue.
 
 ## Signaler un contenu de l'IA
 
@@ -102,16 +102,16 @@ Tu peux désactiver l'IA à tout moment dans Paramètres › Intelligence artifi
 
 ## Le sommeil
 
-La détection automatique utilise la Sleep API des services Google Play, calculée sur le téléphone. GoodLife ne reçoit que les heures de coucher et de réveil, stockées localement et jamais envoyées.
+La détection automatique utilise la Sleep API des services Google Play, calculée sur le téléphone. Lifoody ne reçoit que les heures de coucher et de réveil, stockées localement et jamais envoyées.
 
 ## Tes droits (RGPD)
 
-Accès et portabilité : Paramètres › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Comme GoodLife n'a pas de serveur, toutes tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une). Pour toute question : matheo.greneche0@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
+Accès et portabilité : Paramètres › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Comme Lifoody n'a pas de serveur, toutes tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une). Pour toute question : matheo.greneche0@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
 
-## Ce que GoodLife ne fait pas
+## Ce que Lifoody ne fait pas
 
-Aucune donnée n'est vendue, louée ou partagée à des fins publicitaires. Pas de publicité, pas de traceur, pas de profilage marketing. GoodLife n'a pas de serveur : le développeur ne reçoit aucune de tes données.
+Aucune donnée n'est vendue, louée ou partagée à des fins publicitaires. Pas de publicité, pas de traceur, pas de profilage marketing. Lifoody n'a pas de serveur : le développeur ne reçoit aucune de tes données.
 
 ## Important
 
-GoodLife est une application de bien-être. Ce n'est pas un dispositif médical : elle ne permet pas de diagnostiquer, traiter, guérir ou prévenir une maladie. Les calories, objectifs et conseils (calculés ou donnés par l'IA) sont des estimations indicatives. Demande l'avis d'un médecin ou d'un professionnel de santé avant de changer ton alimentation, surtout en cas de maladie, de grossesse ou de troubles du comportement alimentaire.
+Lifoody est une application de bien-être. Ce n'est pas un dispositif médical : elle ne permet pas de diagnostiquer, traiter, guérir ou prévenir une maladie. Les calories, objectifs et conseils (calculés ou donnés par l'IA) sont des estimations indicatives. Demande l'avis d'un médecin ou d'un professionnel de santé avant de changer ton alimentation, surtout en cas de maladie, de grossesse ou de troubles du comportement alimentaire.

@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">GoodLife</string>
-    <string name="tapsync_desc">GoodLife – échange de cartes entre amis</string>
+    <string name="app_name">Lifoody</string>
+    <string name="tapsync_desc">Lifoody – échange de cartes entre amis</string>
     <string name="widget_small">Le chef</string>
     <string name="widget_medium">Ma journée</string>
     <string name="widget_small_desc">Le chef, ta série, tes calories et tes pas</string>
     <string name="widget_medium_desc">Le chef, ta série, tes calories, tes pas, ton eau, tes protéines, ton prochain repas et des raccourcis</string>
-    <string name="widget_chef_desc">Le chef de GoodLife</string>
+    <string name="widget_chef_desc">Le chef de Lifoody</string>
 
     <!-- Contenu des widgets -->
     <string name="widget_lbl_kcal">Calories</string>
@@ -27,7 +27,7 @@
     <string name="widget_btn_photo_desc">Prendre un repas en photo</string>
     <string name="widget_btn_water">+ Eau</string>
     <string name="widget_btn_water_desc">Ajouter un verre d\'eau (250 ml)</string>
-    <string name="widget_open">Ouvrir GoodLife</string>
+    <string name="widget_open">Ouvrir Lifoody</string>
 
     <!-- Exemples affichés dans l'aperçu (liste des widgets du téléphone) -->
     <string name="widget_preview_streak">🔥 12 jours</string>

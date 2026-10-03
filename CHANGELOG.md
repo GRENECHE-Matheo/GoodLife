@@ -1,6 +1,6 @@
 # Journal des versions
 
-Toutes les évolutions de GoodLife, de la plus récente à la plus ancienne.
+Toutes les évolutions de Lifoody (anciennement GoodLife), de la plus récente à la plus ancienne.
 Chaque version se télécharge depuis la page [Releases](https://github.com/GRENECHE-Matheo/GoodLife/releases)
 (l'app propose aussi la mise à jour toute seule, dans la version GitHub).
 
@@ -10,8 +10,10 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ## v0.17.0 — 03/10/2026
 
-**Croisements anonymes et Tap to Sync plus rapide.**
+**GoodLife devient Lifoody, croisements anonymes et Tap to Sync plus rapide.**
 
+- ✨ **Nouveau nom : Lifoody.** L'ancien nom était trop proche d'une marque existante (une chaîne de salles de sport).
+  C'est la même app : la mise à jour garde toutes tes données, tes amis et tes sauvegardes (fichiers `.goodlife`).
 - 🔒 **Croisements anonymes** : ta carte n'est plus diffusée en clair en Bluetooth. Ton téléphone diffuse un identifiant
   qui change toutes les 15 minutes, ton niveau (si tu le partages) et ta carte **chiffrée**, que seuls tes amis peuvent
   ouvrir. Un inconnu voit « un joueur niveau 12 », sans pseudo, et ne peut pas te suivre d'un endroit à l'autre.

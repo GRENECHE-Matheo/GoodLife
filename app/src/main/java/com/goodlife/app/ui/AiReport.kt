@@ -116,11 +116,11 @@ private fun AiReportDialog(content: String, onDismiss: () -> Unit) {
                     appendLine(t("Contenu signalé :"))
                     appendLine(content.take(2000))
                     appendLine()
-                    append("GoodLife ${BuildConfig.VERSION_NAME} (${if (BuildConfig.SELF_UPDATE) "GitHub" else "Google Play"})")
+                    append("Lifoody ${BuildConfig.VERSION_NAME} (${if (BuildConfig.SELF_UPDATE) "GitHub" else "Google Play"})")
                 }
                 val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
                     .putExtra(Intent.EXTRA_EMAIL, arrayOf(BuildConfig.CONTACT_EMAIL))
-                    .putExtra(Intent.EXTRA_SUBJECT, t("GoodLife – signalement d'un contenu IA"))
+                    .putExtra(Intent.EXTRA_SUBJECT, t("Lifoody – signalement d'un contenu IA"))
                     .putExtra(Intent.EXTRA_TEXT, body)
                 try {
                     context.startActivity(intent)

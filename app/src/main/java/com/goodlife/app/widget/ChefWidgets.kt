@@ -134,8 +134,8 @@ object ChefWidgets {
             protein = protein,
             proteinGoal = p?.proteinG ?: 0,
             message = when {
-                !ready -> t("Ouvre GoodLife pour commencer avec le chef !")
-                locked -> t("GoodLife est verrouillé : ouvre l'app pour voir ta journée.")
+                !ready -> t("Ouvre Lifoody pour commencer avec le chef !")
+                locked -> t("Lifoody est verrouillé : ouvre l'app pour voir ta journée.")
                 else -> Coach.homeMessage(s!!, p!!).second
             },
             nextMeal = if (ready && !locked) nextMeal(res, hour) else null

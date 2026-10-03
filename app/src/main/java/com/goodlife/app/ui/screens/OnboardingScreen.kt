@@ -177,7 +177,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
             2 -> ageError(age.toNumber()?.toInt())
             3 -> bodyError(weight.toNumber(), height.toNumber())
             4 -> goalError(goal, profile())
-            6 -> if (!healthOk) t("Coche la case pour que GoodLife puisse enregistrer tes données.") else null
+            6 -> if (!healthOk) t("Coche la case pour que Lifoody puisse enregistrer tes données.") else null
             else -> null
         }
         if (error == null && page < PAGES - 1) page++
@@ -318,7 +318,7 @@ private val ACTIVITY_HELP = mapOf(
 @Composable
 private fun ColumnScope.WelcomePage() {
     ChefMascot(size = 120.dp, mood = ChefMood.BRAVO, modifier = Modifier.align(Alignment.CenterHorizontally))
-    Text(t("Bienvenue sur GoodLife"), style = MaterialTheme.typography.headlineLarge)
+    Text(t("Bienvenue sur Lifoody"), style = MaterialTheme.typography.headlineLarge)
     Text(t("Ton coach pour mieux manger et bouger plus, à ton rythme."), style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
     Feature(Icons.Filled.Restaurant, t("Mange mieux, sans te priver"), t("Photo de ton assiette, idées de repas, planning de la semaine."))
@@ -326,12 +326,12 @@ private fun ColumnScope.WelcomePage() {
     Feature(Icons.Filled.LocalFireDepartment, t("Reste motivé"), t("Séries, niveaux, quiz et les petits mots du chef."))
     Feature(Icons.Filled.Lock, t("Tes données restent chez toi"), t("Aucun compte, aucune pub, tout est chiffré sur ton téléphone."))
     Text(
-        t("Réservé aux %1\$s ans et plus. GoodLife est une app de bien-être, pas un dispositif médical : demande l'avis d'un professionnel de santé avant de changer ton alimentation.", Nutrition.MIN_AGE),
+        t("Réservé aux %1\$s ans et plus. Lifoody est une app de bien-être, pas un dispositif médical : demande l'avis d'un professionnel de santé avant de changer ton alimentation.", Nutrition.MIN_AGE),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     SectionCard(title = t("Tu changes de téléphone ?"), icon = Icons.Filled.Restore) {
         Text(
-            t("Restaure ta sauvegarde GoodLife (fichier .goodlife) avec son mot de passe pour tout retrouver."),
+            t("Restaure ta sauvegarde Lifoody (fichier .goodlife) avec son mot de passe pour tout retrouver."),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         RestoreButton(outlined = true)
@@ -345,7 +345,7 @@ private fun PolicyPage(accepted: Boolean, onAccept: (Boolean) -> Unit, onOpenPol
         DataFlowSummary()
         TextButton(onClick = onOpenPolicy) { Text(t("Lire la politique de confidentialité complète")) }
     }
-    CheckLine(accepted, onAccept, t("J'ai lu et j'accepte la politique de confidentialité de GoodLife."))
+    CheckLine(accepted, onAccept, t("J'ai lu et j'accepte la politique de confidentialité de Lifoody."))
 }
 
 @Composable
@@ -365,7 +365,7 @@ private fun SummaryPage(p: Profile, consent: Boolean, onConsent: (Boolean) -> Un
     }
     CheckLine(
         consent, onConsent,
-        t("J'accepte que GoodLife enregistre sur ce téléphone mes données de santé (poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins. Je peux retirer cet accord en effaçant mes données (Paramètres).")
+        t("J'accepte que Lifoody enregistre sur ce téléphone mes données de santé (poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins. Je peux retirer cet accord en effaçant mes données (Paramètres).")
     )
 }
 

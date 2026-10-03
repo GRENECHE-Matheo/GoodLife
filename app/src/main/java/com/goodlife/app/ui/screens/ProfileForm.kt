@@ -131,7 +131,7 @@ fun ProfileForm(initial: Profile, saveLabel: String, consentText: String? = null
 
 /** Vérifications du profil, partagées avec l'inscription en plusieurs pages. */
 fun ageError(a: Int?): String? = when {
-    a != null && a in 1 until Nutrition.MIN_AGE -> t("GoodLife est réservée aux %1\$s ans et plus.", Nutrition.MIN_AGE)
+    a != null && a in 1 until Nutrition.MIN_AGE -> t("Lifoody est réservée aux %1\$s ans et plus.", Nutrition.MIN_AGE)
     a == null || a !in Nutrition.MIN_AGE..110 -> t("Âge invalide (%1\$s à 110 ans).", Nutrition.MIN_AGE)
     else -> null
 }

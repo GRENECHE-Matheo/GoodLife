@@ -60,7 +60,7 @@ import kotlinx.coroutines.launch
 
 /** Règles communes à toutes les conversations (sécurité et sujet). */
 internal const val CHAT_RULES = """
-Tu es le coach de l'application GoodLife (bien-être, alimentation, sport). Réponds simplement, dans la langue de l'app,
+Tu es le coach de l'application Lifoody (bien-être, alimentation, sport). Réponds simplement, dans la langue de l'app,
 en 2 à 6 phrases, avec des conseils concrets. Tu n'es pas un professionnel de santé : ne donne jamais de diagnostic,
 de traitement ni de dose de médicament ; pour toute question médicale, grossesse, maladie ou trouble du comportement
 alimentaire, conseille de consulter un médecin. Ne propose jamais de régime très restrictif. Reste sur le sujet
