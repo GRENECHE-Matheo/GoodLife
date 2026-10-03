@@ -22,7 +22,12 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur GoodLife** : t
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.16.0
+## 🆕 Nouveautés de la v0.17.0
+
+- **Croisements anonymes** : identifiant qui change toutes les 15 min et carte chiffrée que seuls tes amis ouvrent.
+- **Tap to Sync plus rapide**, mini-fenêtre lisible en mode sombre.
+
+## Nouveautés de la v0.16.0
 
 - **Bandeau hors ligne** sur la carte, **pinceau jusqu'à 150 km**, itinéraires plus rapides, repas du jour plus haut.
 - **Licences et sources** dans À propos, effacement des données plus complet, textes de confidentialité vérifiés.

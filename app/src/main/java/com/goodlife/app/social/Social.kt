@@ -20,8 +20,22 @@ object Social {
         return s.publicProfile && Identity.cleanPseudo(s.pseudo).isNotBlank() && Repo.profile.value != null
     }
 
-    /** Ma carte, avec seulement ce que j'ai choisi de partager. */
-    fun myCard(): PlayerCard? {
+    /** Ma clé de croisement (créée la première fois) : donnée à mes amis avec ma carte, jamais diffusée en Bluetooth. */
+    @Synchronized
+    fun crossSecret(): ByteArray {
+        Repo.settings.value.crossSecret.takeIf { it.isNotBlank() }
+            ?.let { s -> runCatching { android.util.Base64.decode(s, android.util.Base64.NO_WRAP) }.getOrNull()?.takeIf { it.size == 32 } }
+            ?.let { return it }
+        val fresh = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        Repo.updateSettings { it.copy(crossSecret = android.util.Base64.encodeToString(fresh, android.util.Base64.NO_WRAP)) }
+        return fresh
+    }
+
+    /**
+     * Ma carte, avec seulement ce que j'ai choisi de partager. [withSecret] : avec ma clé de croisement (carte donnée
+     * à un ami par QR, NFC ou lien) ; sans (carte chiffrée diffusée en Bluetooth).
+     */
+    fun myCard(withSecret: Boolean = true): PlayerCard? {
         if (!canShare()) return null
         val s = Repo.settings.value
         val p = Repo.profile.value ?: return null
@@ -38,11 +52,15 @@ object Social {
             dex = if (s.shareDex) Repo.dex.value.unlocked.keys else null,
             timestamp = System.currentTimeMillis(),
             cheers = cheers,
-            week = if (s.shareWeek) com.goodlife.app.game.Weekly.myStats() else null
+            week = if (s.shareWeek) com.goodlife.app.game.Weekly.myStats() else null,
+            crossSecret = if (withSecret) crossSecret() else null
         )
     }
 
-    fun mySignedCard(): ByteArray? = runCatching { myCard()?.let { Identity.sign(it) } }.getOrNull()
+    fun mySignedCard(withSecret: Boolean = true): ByteArray? = runCatching { myCard(withSecret)?.let { Identity.sign(it) } }.getOrNull()
+
+    /** Carte d'un ami reconnu lors d'un croisement (déjà déchiffrée et vérifiée). */
+    fun receiveCrossing(card: PlayerCard): SyncEvent = record(card, "street")
 
     /** Carte reçue (octets bruts) : vérifiée, puis enregistrée. */
     fun receive(bytes: ByteArray, via: String): SyncEvent? {

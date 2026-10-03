@@ -48,7 +48,7 @@ import java.util.UUID
  * minimum (canal « min », silencieuse) ; une vraie notification n'arrive que pour une nouvelle rencontre ou un
  * nouveau croisement (SocialNotifier). (« StreetPass » est une marque de Nintendo : le nom n'est pas affiché.)
  * Économie de batterie : émission et recherche en mode « basse consommation », une seule connexion à la fois,
- * et chaque téléphone n'est relu qu'une fois par heure au plus.
+ * et chaque téléphone n'est relu qu'une fois toutes les 15 minutes au plus.
  */
 object StreetPass {
     val SERVICE: UUID = UUID.fromString("7c3a6f1e-5d2b-4c8a-9e41-0a6b8d2f3c11")
@@ -79,6 +79,13 @@ object StreetPass {
         if (want) runCatching { ContextCompat.startForegroundService(context, intent) }
         else context.stopService(intent)
     }
+
+    /** Ma carte a changé (encouragement envoyé…) : la balise est refaite tout de suite, sans attendre le créneau suivant. */
+    fun refresh(context: Context) {
+        if (!Repo.settings.value.streetPass) return
+        runCatching { ContextCompat.startForegroundService(context, Intent(context, StreetPassService::class.java).setAction(ACTION_REFRESH)) }
+    }
+    const val ACTION_REFRESH = "com.goodlife.app.streetpass.REFRESH"
 }
 
 @SuppressLint("MissingPermission") // permissions vérifiées avant le démarrage (StreetPass.sync)
@@ -106,13 +113,16 @@ class StreetPassService : Service() {
         openServer()
         advertise()
         scan()
-        // La carte (niveau, série…) est reconstruite toutes les 15 min
+        // Nouvelle balise à chaque créneau de 15 min (nouvel identifiant, carte à jour), pile au changement
         handler.postDelayed(object : Runnable {
-            override fun run() { refreshCard(); handler.postDelayed(this, 15 * 60_000L) }
-        }, 15 * 60_000L)
+            override fun run() { refreshCard(); handler.postDelayed(this, Crossing.msToNextSlot() + 1_000L) }
+        }, Crossing.msToNextSlot() + 1_000L)
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == StreetPass.ACTION_REFRESH && card.isNotEmpty()) refreshCard()
+        return START_STICKY
+    }
 
     private fun startAsForeground() {
         SocialNotifier.channels(this)
@@ -131,8 +141,9 @@ class StreetPassService : Service() {
         } else startForeground(1, n)
     }
 
+    /** Ce que les autres lisent : la balise (identifiant tournant + carte chiffrée pour mes amis), jamais la carte en clair. */
     private fun refreshCard() {
-        card = Social.mySignedCard() ?: run { stopSelf(); ByteArray(0) }
+        card = Crossing.beacon() ?: run { stopSelf(); ByteArray(0) }
     }
 
     // ---------- Serveur : les autres lisent ma carte ----------
@@ -175,10 +186,11 @@ class StreetPassService : Service() {
             handler.post {
                 val now = System.currentTimeMillis()
                 val addr = result.device.address
-                if (now - (lastRead[addr] ?: 0L) < 3_600_000L) return@post
+                // Chaque téléphone est relu au plus toutes les 15 min (le rythme des balises)
+                if (now - (lastRead[addr] ?: 0L) < 15 * 60_000L) return@post
                 if (queue.any { it.address == addr } || queue.size > 10) return@post
                 lastRead[addr] = now
-                if (lastRead.size > 500) lastRead.entries.removeAll { now - it.value > 3_600_000L }
+                if (lastRead.size > 500) lastRead.entries.removeAll { now - it.value > 15 * 60_000L }
                 queue.addLast(result.device)
                 next()
             }
@@ -219,10 +231,31 @@ class StreetPassService : Service() {
 
     private fun onRead(g: BluetoothGatt, value: ByteArray?, status: Int) = handler.post {
         if (status == BluetoothGatt.GATT_SUCCESS && value != null) {
-            val e = Social.receive(value, "street")
-            if (e != null && e.result != Repo.Received.IGNORED) notifyCrossing(e)
+            if (Crossing.isBeacon(value)) when (val seen = Crossing.read(value)) {
+                // Un ami : sa carte à jour (série, défi de la semaine, encouragements)
+                is Crossing.Seen.Friend -> Social.receiveCrossing(seen.card).let { e -> if (e.result != Repo.Received.IGNORED) notifyCrossing(e) }
+                // Un inconnu : anonyme, compté une fois par créneau
+                is Crossing.Seen.Stranger -> if (Repo.addAnonEncounter(seen.rid, seen.level)) notifyStranger(seen.level)
+                null -> Unit
+            } else {
+                // Ancienne version de l'app (carte en clair)
+                val e = Social.receive(value, "street")
+                if (e != null && e.result != Repo.Received.IGNORED) notifyCrossing(e)
+            }
         }
         finish(g)
+    }
+
+    private var lastStrangerNotif = 0L
+
+    /** Joueur inconnu croisé : une notification toutes les 30 min au plus (sinon, il est juste compté). */
+    private fun notifyStranger(level: Int?) {
+        val now = System.currentTimeMillis()
+        if (now - lastStrangerNotif < 30 * 60_000L) return
+        recentNotifs.removeAll { now - it > 3_600_000L }
+        if (recentNotifs.size >= 4) return
+        recentNotifs.add(now); lastStrangerNotif = now
+        SocialNotifier.stranger(this, level)
     }
 
     private val recentNotifs = ArrayList<Long>()

@@ -49,7 +49,9 @@ data class PlayerCard(
     val dex: Set<String>?,    // ids du Nutridex débloqués, null = non partagé
     val timestamp: Long,
     val cheers: List<Cheer> = emptyList(),
-    val week: WeekStats? = null   // null = non partagé (v2)
+    val week: WeekStats? = null,  // null = non partagé (v2)
+    /** v3 : clé de croisement, seulement dans la carte donnée à un ami (QR, NFC, lien), jamais en Bluetooth. */
+    val crossSecret: ByteArray? = null
 ) {
     val id: String get() = idOf(publicKey)
 
@@ -62,8 +64,8 @@ data class PlayerCard(
 object Identity {
     private const val KEYSTORE = "AndroidKeyStore"
     private const val ALIAS = "goodlife_identity"
-    /** v2 : ajoute le bilan de la semaine (défi entre amis). Les cartes v1 restent lisibles. */
-    private const val VERSION = 2
+    /** v2 : bilan de la semaine (défi entre amis) ; v3 : clé de croisement. Les cartes v1 et v2 restent lisibles. */
+    private const val VERSION = 3
     const val PREFIX = "GL1:"
     const val MAX_PSEUDO = 20
 
@@ -105,6 +107,7 @@ object Identity {
             if (c.streak != null) flags = flags or 2
             if (c.dex != null) flags = flags or 4
             if (c.week != null) flags = flags or 8
+            if (c.crossSecret != null) flags = flags or 16
             writeByte(flags)
             writeShort(c.publicKey.size); write(c.publicKey)
             val p = cleanPseudo(c.pseudo).toByteArray(Charsets.UTF_8).take(60).toByteArray()
@@ -123,6 +126,7 @@ object Identity {
             c.week?.let { w ->
                 writeShort(w.week); writeByte(w.days.coerceIn(0, 7)); writeInt(w.steps.coerceIn(0, 1_000_000)); writeShort(w.xp.coerceIn(0, 9999))
             }
+            c.crossSecret?.let { writeByte(it.size); write(it) }
         }
         return out.toByteArray()
     }
@@ -147,7 +151,7 @@ object Identity {
         if (bytes.size > 1024) return null
         val input = DataInputStream(bytes.inputStream())
         val version = input.readUnsignedByte()
-        if (version != 1 && version != 2) return null
+        if (version !in 1..3) return null
         val flags = input.readUnsignedByte()
         val pk = ByteArray(input.readUnsignedShort().also { require(it in 50..200) }).also { input.readFully(it) }
         val pseudo = ByteArray(input.readUnsignedByte().also { require(it <= 60) }).also { input.readFully(it) }
@@ -161,6 +165,9 @@ object Identity {
         }
         val week = if (version >= 2 && flags and 8 != 0)
             WeekStats(input.readUnsignedShort(), input.readUnsignedByte().coerceIn(0, 7), input.readInt().coerceIn(0, 1_000_000), input.readUnsignedShort())
+        else null
+        val crossSecret = if (version >= 3 && flags and 16 != 0)
+            ByteArray(input.readUnsignedByte().also { require(it == 32) }).also { input.readFully(it) }
         else null
         val bodyLen = bytes.size - input.available()
         val sig = ByteArray(input.readUnsignedByte()).also { input.readFully(it) }
@@ -181,7 +188,8 @@ object Identity {
             }.map { it.id }.toSet() else null,
             timestamp = ts,
             cheers = cheers.filter { it.message in CHEERS.indices },
-            week = week
+            week = week,
+            crossSecret = crossSecret
         )
     }.getOrNull()
 }

@@ -330,10 +330,11 @@ data class Person(
     val weekId: Int = -1,           // semaine du dernier bilan reçu (-1 = aucun)
     val weekDays: Int = 0,
     val weekSteps: Int = 0,
-    val weekXp: Int = 0
+    val weekXp: Int = 0,
+    val crossSecret: String = ""    // base64 : sa clé de croisement (reçue avec sa carte), pour le reconnaître
 ) {
     fun toJson(): JSONObject = JSONObject()
-        .put("id", id).put("pk", publicKey).put("pseudo", pseudo)
+        .put("id", id).put("pk", publicKey).put("pseudo", pseudo).put("cs", crossSecret)
         .put("level", level ?: -1).put("streak", streak ?: -1).put("best", bestStreak ?: -1)
         .put("dex", dex?.let { JSONArray(it.toList()) } ?: JSONObject.NULL)
         .put("cardTime", cardTime).put("seenAt", seenAt).put("via", via)
@@ -357,7 +358,8 @@ data class Person(
             weekId = o.optInt("weekId", -1),
             weekDays = o.optInt("weekDays", 0),
             weekSteps = o.optInt("weekSteps", 0),
-            weekXp = o.optInt("weekXp", 0)
+            weekXp = o.optInt("weekXp", 0),
+            crossSecret = o.optString("cs")
         )
     }
 }
@@ -373,13 +375,24 @@ data class CheerRecord(val from: String, val to: String, val message: Int, val d
     }
 }
 
+/** Joueur inconnu croisé : seulement un identifiant de 15 min, son niveau (s'il le partage) et l'heure. */
+data class AnonEncounter(val rid: String, val level: Int?, val at: Long) {
+    fun toJson(): JSONObject = JSONObject().put("rid", rid).put("level", level ?: -1).put("at", at)
+
+    companion object {
+        fun fromJson(o: JSONObject) = AnonEncounter(o.optString("rid"), o.optInt("level", -1).takeIf { it > 0 }, o.optLong("at"))
+    }
+}
+
 data class SocialState(
     val people: List<Person> = emptyList(),
     val blocked: Set<String> = emptySet(),
     val cheersOut: List<CheerRecord> = emptyList(),
-    val cheersIn: List<CheerRecord> = emptyList()
+    val cheersIn: List<CheerRecord> = emptyList(),
+    val anon: List<AnonEncounter> = emptyList()
 ) {
     fun toJson(): JSONObject = JSONObject()
+        .put("anon", JSONArray().apply { anon.forEach { put(it.toJson()) } })
         .put("people", JSONArray().apply { people.forEach { put(it.toJson()) } })
         .put("blocked", JSONArray(blocked.toList()))
         .put("cheersOut", JSONArray().apply { cheersOut.forEach { put(it.toJson()) } })
@@ -390,7 +403,8 @@ data class SocialState(
             people = o.optJSONArray("people")?.mapObjects { Person.fromJson(it) } ?: emptyList(),
             blocked = o.optJSONArray("blocked")?.strings()?.toSet() ?: emptySet(),
             cheersOut = o.optJSONArray("cheersOut")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList(),
-            cheersIn = o.optJSONArray("cheersIn")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList()
+            cheersIn = o.optJSONArray("cheersIn")?.mapObjects { CheerRecord.fromJson(it) } ?: emptyList(),
+            anon = o.optJSONArray("anon")?.mapObjects { AnonEncounter.fromJson(it) } ?: emptyList()
         )
     }
 }

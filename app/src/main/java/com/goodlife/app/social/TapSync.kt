@@ -18,13 +18,19 @@ import java.io.ByteArrayOutputStream
 object TapSync {
     /** AID propriétaire de GoodLife : F0 + « GOODLIFE » en ASCII. */
     val AID: ByteArray = byteArrayOf(0xF0.toByte()) + "GOODLIFE".toByteArray(Charsets.US_ASCII)
-    private const val CHUNK = 200
+    // Morceaux de 240 octets (un APDU court en porte 255) : 2 échanges au lieu de 3 pour une carte
+    private const val CHUNK = 240
     val OK = byteArrayOf(0x90.toByte(), 0x00)
     val NOT_READY = byteArrayOf(0x69.toByte(), 0x85.toByte())
     val NOTHING = byteArrayOf(0x6A.toByte(), 0x82.toByte())
 
     /** L'écran d'ajout d'ami est ouvert (sinon le téléphone ne répond pas aux lecteurs NFC). */
     @Volatile var active = false
+
+    /** Ma carte signée, préparée à l'ouverture de l'écran (pas de signature pendant le contact, qui doit être bref). */
+    @Volatile var prepared: ByteArray? = null
+    fun prepare() { prepared = Social.mySignedCard() }
+    private fun myCard(): ByteArray? = prepared ?: Social.mySignedCard()
 
     fun available(activity: Activity): Boolean = NfcAdapter.getDefaultAdapter(activity) != null
     fun enabled(activity: Activity): Boolean = NfcAdapter.getDefaultAdapter(activity)?.isEnabled == true
@@ -58,7 +64,7 @@ object TapSync {
             val select = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, AID.size.toByte()) + AID + byteArrayOf(0x00)
             if (!iso.transceive(select).endsWith(OK)) return
             // 1. J'envoie ma carte (seulement si mon profil est public)
-            Social.mySignedCard()?.let { mine ->
+            myCard()?.let { mine ->
                 val parts = chunks(mine)
                 parts.forEachIndexed { i, part ->
                     val cmd = byteArrayOf(0x80.toByte(), 0x10, i.toByte(), parts.size.toByte(), part.size.toByte()) + part
@@ -105,7 +111,7 @@ class TapSyncService : HostApduService() {
             // SELECT de notre AID
             apdu[0] == 0x00.toByte() && ins == 0xA4 -> {
                 incoming.reset()
-                outgoing = Social.mySignedCard()
+                outgoing = TapSync.prepared ?: Social.mySignedCard()
                 TapSync.OK
             }
             // Réception d'un morceau de sa carte

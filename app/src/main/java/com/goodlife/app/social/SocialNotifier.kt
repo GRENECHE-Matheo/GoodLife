@@ -117,6 +117,13 @@ object SocialNotifier {
         }
     }
 
+    /** Joueur inconnu croisé : il reste anonyme (identifiant qui change toutes les 15 min). */
+    fun stranger(context: Context, level: Int?) {
+        post(context, 3399, t("Tu as croisé un joueur GoodLife"),
+            if (level != null) t("Niveau %1\$s. Les inconnus restent anonymes : ni pseudo, ni suivi possible.", level)
+            else t("Les inconnus restent anonymes : ni pseudo, ni suivi possible.")) {}
+    }
+
     internal fun handleAdd(context: Context, intent: Intent) {
         if (intent.action != ACTION_ADD) return
         val id = intent.getStringExtra(EXTRA_ID) ?: return

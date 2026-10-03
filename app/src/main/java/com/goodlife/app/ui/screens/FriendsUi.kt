@@ -222,6 +222,26 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                 }
             }
 
+            // ---- Joueurs inconnus croisés (anonymes) ----
+            if (social.anon.isNotEmpty()) SectionCard(title = t("Joueurs croisés"), icon = Icons.Filled.Sensors) {
+                val now = System.currentTimeMillis()
+                val dayStart = Repo.dayBounds().first
+                Text(
+                    t("Aujourd'hui : %1\$s · 7 derniers jours : %2\$s", social.anon.count { it.at >= dayStart }, social.anon.count { now - it.at < 7 * 86_400_000L }),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                social.anon.sortedByDescending { it.at }.take(5).forEach { a ->
+                    Text(
+                        (a.level?.let { t("Un joueur niveau %1\$s", it) } ?: t("Un joueur GoodLife")) + " · " + ago(a.at),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Text(
+                    t("Les inconnus restent anonymes : leur identifiant change toutes les 15 minutes, personne ne peut être suivi. Tes amis, eux, te reconnaissent."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // ---- Rencontres à accepter (croisements) ----
             if (met.isNotEmpty()) SectionCard(title = t("Personnes croisées · %1\$s", met.size), icon = Icons.Filled.Sensors) {
                 Text(
@@ -293,7 +313,7 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                     Column(Modifier.weight(1f)) {
                         Text(t("Croiser d'autres joueurs"), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            t("À quelques mètres d'un joueur GoodLife, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis. Toute personne à proximité peut lire ta carte (pseudo, niveau…) et la reconnaître plus tard."),
+                            t("À quelques mètres d'un joueur GoodLife, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis. Les inconnus te voient anonyme (identifiant qui change toutes les 15 min) ; seuls tes amis te reconnaissent."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -664,18 +684,21 @@ private fun TapSyncScreen(onBack: () -> Unit) {
 
     DisposableEffect(Unit) {
         TapSync.active = true
+        Thread { TapSync.prepare() }.start()
         onDispose {
             TapSync.active = false
+            TapSync.prepared = null
             activity?.let { TapSync.stopReader(it) }
         }
     }
     LaunchedEffect(nfcOn) {
         if (!nfcOn || activity == null) return@LaunchedEffect
         while (isActive) {
+            // Rôles alternés au hasard (lecteur / carte) : des créneaux plus courts font se trouver les téléphones plus vite
             TapSync.startReader(activity) {}
-            delay(Random.nextLong(450, 900))
+            delay(Random.nextLong(300, 600))
             if (!TapSync.busy) TapSync.stopReader(activity)
-            delay(Random.nextLong(450, 900))
+            delay(Random.nextLong(300, 600))
         }
     }
     LaunchedEffect(Unit) {

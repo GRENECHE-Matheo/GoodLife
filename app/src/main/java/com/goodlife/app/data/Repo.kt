@@ -82,6 +82,8 @@ data class Settings(
     val shareDex: Boolean = true,
     val shareWeek: Boolean = true,      // bilan de la semaine (jours validés, pas, XP) pour le défi entre amis
     val streetPass: Boolean = false,
+    // Croisements : clé secrète (base64) donnée seulement aux amis, pour qu'eux seuls te reconnaissent en Bluetooth
+    val crossSecret: String = "",
     // Jour d'arrivée des règles de score v0.7 (les jours d'avant gardent les anciennes règles)
     val scoreRulesFrom: String = "",
     val fridgeAutoRemove: Boolean = false,    // repas photographié : proposer de retirer ses aliments de « Mon frigo »
@@ -157,6 +159,7 @@ data class Settings(
         .put("shareDex", shareDex)
         .put("shareWeek", shareWeek)
         .put("streetPass", streetPass)
+        .put("crossSecret", crossSecret)
         .put("scoreRulesFrom", scoreRulesFrom)
         .put("foodOnlyFrom", foodOnlyFrom)
         .put("richScoreFrom", richScoreFrom)
@@ -229,6 +232,7 @@ data class Settings(
             shareDex = o.optBoolean("shareDex", true),
             shareWeek = o.optBoolean("shareWeek", true),
             streetPass = o.optBoolean("streetPass", false),
+            crossSecret = o.optString("crossSecret"),
             scoreRulesFrom = o.optString("scoreRulesFrom"),
             foodOnlyFrom = o.optString("foodOnlyFrom"),
             richScoreFrom = o.optString("richScoreFrom"),
@@ -607,11 +611,12 @@ object Repo {
             encounters = if (old != null && via == "street" && now - old.seenAt > 3_600_000L) old.encounters + 1 else base.encounters,
             via = if (old == null) via else base.via
         )
+        val withSecret = card.crossSecret?.let { updated.copy(crossSecret = android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP)) } ?: updated
         // Encouragements qui me sont adressés (dédoublonnés)
         val newCheers = card.cheers.filter { it.target == myId }.map { CheerRecord(id, myId, it.message, it.day, now) }
             .filter { c -> _social.value.cheersIn.none { it.from == c.from && it.message == c.message && it.day == c.day } }
         saveSocial { st ->
-            st.copy(people = st.people.filterNot { it.id == id } + updated, cheersIn = st.cheersIn + newCheers)
+            st.copy(people = st.people.filterNot { it.id == id } + withSecret, cheersIn = st.cheersIn + newCheers)
         }
         return when {
             old == null && via == "street" -> Received.NEW_ENCOUNTER
@@ -619,6 +624,17 @@ object Repo {
             via == "street" && !fresh -> Received.SEEN_AGAIN
             else -> Received.UPDATED
         }
+    }
+
+    /**
+     * Joueur inconnu croisé (anonyme : identifiant qui change toutes les 15 min). false s'il a déjà été compté sur
+     * ce créneau. Les 200 dernières rencontres sont gardées.
+     */
+    @Synchronized
+    fun addAnonEncounter(rid: String, level: Int?): Boolean {
+        if (_social.value.anon.any { it.rid == rid }) return false
+        saveSocial { st -> st.copy(anon = (st.anon + AnonEncounter(rid, level, System.currentTimeMillis())).takeLast(200)) }
+        return true
     }
 
     fun setFriend(id: String, friend: Boolean) = saveSocial { st ->
@@ -640,6 +656,8 @@ object Repo {
         val day = (System.currentTimeMillis() / 86_400_000L).toInt()
         if (_social.value.cheersOut.any { it.to == to && it.day == day }) return false
         saveSocial { it.copy(cheersOut = it.cheersOut + CheerRecord(myId, to, message, day, System.currentTimeMillis())) }
+        // Croisements actifs : l'encouragement part dès qu'on croise cet ami (balise refaite tout de suite)
+        appContext?.let { com.goodlife.app.social.StreetPass.refresh(it) }
         return true
     }
 

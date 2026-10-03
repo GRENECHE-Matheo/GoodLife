@@ -8,6 +8,24 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.17.0 — 03/10/2026
+
+**Croisements anonymes et Tap to Sync plus rapide.**
+
+- 🔒 **Croisements anonymes** : ta carte n'est plus diffusée en clair en Bluetooth. Ton téléphone diffuse un identifiant
+  qui change toutes les 15 minutes, ton niveau (si tu le partages) et ta carte **chiffrée**, que seuls tes amis peuvent
+  ouvrir. Un inconnu voit « un joueur niveau 12 », sans pseudo, et ne peut pas te suivre d'un endroit à l'autre.
+- ✨ **Joueurs croisés** : les inconnus croisés sont comptés (aujourd'hui, 7 derniers jours) et restent anonymes ; tes
+  amis croisés sont reconnus et leur carte se met à jour (série, défi de la semaine, encouragements).
+- ✨ **Encouragements livrés au croisement** : un encouragement envoyé part dès que tu croises cet ami (ta balise est
+  refaite tout de suite), et il reçoit une notification.
+- ℹ️ Pour que tes amis actuels te reconnaissent en croisement, échangez vos cartes une fois de plus (NFC, QR ou lien) :
+  la nouvelle carte contient la clé qui le permet.
+- 🛠️ **Tap to Sync plus rapide** : ta carte est préparée dès l'ouverture de l'écran, les téléphones se trouvent plus vite
+  et la carte passe en moins d'échanges.
+- 🐛 **Mini-fenêtre en mode sombre** : la carte s'affiche en clair (lisible en petit) et la vitesse n'est plus écrite en
+  noir sur fond sombre.
+
 ## v0.16.0 — 03/10/2026
 
 **Une app plus juste, plus sûre et prête pour le Play Store.**
