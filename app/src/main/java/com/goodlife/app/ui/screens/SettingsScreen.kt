@@ -408,7 +408,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         FoldableSection(t("Ce qui quitte ton téléphone"), Icons.Filled.Lock, t("Ta vie privée en clair")) {
             DataFlowSummary()
             Text(
-                if (settings.aiEnabled) t("IA : activée.") else t("IA : désactivée, rien n'est envoyé à Google."),
+                if (settings.aiEnabled) t("IA : activée.") else t("IA : désactivée, rien n'est envoyé à Gemini."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -440,6 +440,12 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             TextButton(onClick = { uri.openUri("mailto:${BuildConfig.CONTACT_EMAIL}") }) {
                 Text(t("Contact : %1\$s", BuildConfig.CONTACT_EMAIL))
             }
+            var licenses by remember { mutableStateOf(false) }
+            var mapCredits by remember { mutableStateOf(false) }
+            TextButton(onClick = { licenses = true }) { Text(t("Licences open source")) }
+            TextButton(onClick = { mapCredits = true }) { Text(t("Données de la carte et de l'altitude")) }
+            if (licenses) LicensesScreen(onDismiss = { licenses = false })
+            if (mapCredits) MapCreditsDialog(onDismiss = { mapCredits = false })
         }
     }
 

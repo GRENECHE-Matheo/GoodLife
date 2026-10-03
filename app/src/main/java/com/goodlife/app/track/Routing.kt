@@ -1,5 +1,6 @@
 package com.goodlife.app.track
 
+import com.goodlife.app.net.capped
 import com.goodlife.app.i18n.t
 
 import com.goodlife.app.data.OutingType
@@ -304,7 +305,7 @@ object Routing {
                     lastError = IOException(t("Le service de chemins OpenStreetMap est surchargé. Réessaie dans une minute.")); continue
                 }
                 if (code !in 200..299) throw IOException(t("Service OpenStreetMap indisponible (%1\$s).", code))
-                g = conn.inputStream.use { parse(it) }.let { toGraph(it, lat, lng, s, w, n, e, bike) }
+                g = conn.inputStream.capped(80_000_000).use { parse(it) }.let { toGraph(it, lat, lng, s, w, n, e, bike) }
                 break
             } catch (ex: IOException) {
                 lastError = if (ex.message?.contains("OpenStreetMap") == true || ex.message == t("Pas de chemins trouvés ici.")) ex

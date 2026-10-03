@@ -61,16 +61,20 @@
 « Collecte » = données qui quittent le téléphone. Tout le reste (profil, repas, sommeil, progression)
 reste **sur le téléphone** et n'est pas à déclarer comme collecté.
 
-**Données collectées** (toutes **facultatives**, uniquement si l'utilisateur active l'IA avec sa propre clé,
-envoyées directement à Google Gemini, **chiffrées en transit** (HTTPS), **pas partagées** au sens de Google
-Play car l'envoi est une action de l'utilisateur qui s'y attend) :
+**Données collectées** (chiffrées en transit, HTTPS). Les lignes « IA » sont **facultatives** et ne partent que si
+l'utilisateur active l'IA avec sa propre clé, directement vers Google Gemini (**pas partagées** au sens de Google Play,
+car l'envoi est une action de l'utilisateur qui s'y attend). Les autres lignes sont précisées dans la colonne Détail :
 
 | Type Play | Détail | Finalité |
 |---|---|---|
 | Photos et vidéos › Photos | Photo du repas à analyser | Fonctionnalité de l'appli |
 | Santé et remise en forme › Santé | Poids, taille, allergies, repas du jour, objectif, évolution du poids (coach) | Fonctionnalité de l'appli |
-| Santé et remise en forme › Remise en forme | Pas, séances de sport, nombre et distance des sorties (résumés envoyés au coach) | Fonctionnalité de l'appli |
-| Informations personnelles › Autres | Âge, sexe | Fonctionnalité de l'appli |
+| Santé et remise en forme › Remise en forme | Pas (du jour, de la semaine, d'hier pour l'objectif d'eau, des 7 derniers jours pour l'objectif de pas), séances de sport, limites ou douleurs écrites dans le programme, nombre et distance des sorties (IA) | Fonctionnalité de l'appli |
+| Informations personnelles › Autres | Âge, sexe (IA) | Fonctionnalité de l'appli |
+| Activité dans l'appli › Autres contenus générés par l'utilisateur | Questions écrites au coach et à l'IA (IA) | Fonctionnalité de l'appli |
+| Localisation › Approximative | Zone de la carte affichée ou choisie (carte, itinéraires, altitude, recherche de lieu, clubs, cartes hors ligne) — **sans IA**, facultatif (seulement en utilisant la carte) | Fonctionnalité de l'appli |
+| Infos et performances de l'appli › Diagnostics | ML Kit (lecteur de code-barres et de QR de Google) : modèle et système du téléphone, version de l'appli, mesures de performance — collecté par le SDK de Google, **sans IA** | Analyse (par Google, pour ML Kit) |
+| Appareil ou autres identifiants | Identifiant d'installation envoyé par ML Kit à Google (diagnostics) — **sans IA** | Analyse (par Google, pour ML Kit) |
 
 - **Traitement éphémère** : non (Google peut conserver temporairement, voir ses conditions).
 - **Suppression** : les données locales s'effacent dans Paramètres › Effacer toutes mes données ; il n'y a
@@ -81,16 +85,17 @@ Play car l'envoi est une action de l'utilisateur qui s'y attend) :
   passe ; le développeur n'y a pas accès.
 - **Signalement IA** : e-mail rédigé et envoyé par l'utilisateur lui-même depuis sa messagerie.
 - **Amis (Tap to Sync, QR, croisements)** : si le profil est public, le pseudo et ce que l'utilisateur coche (niveau, série,
-  liste du Nutridex) partent **directement vers le téléphone d'un autre utilisateur**, sans serveur. Par prudence, déclarer
-  comme données **partagées, facultatives, à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) »
-  et « Activité dans l'appli › Autres actions (niveau, série, aliments découverts) ».
-- **Localisation / tracés GPS** : restent sur le téléphone → pas « collectés ». La carte et les itinéraires (tuiles
-  OpenFreeMap), le dénivelé (tuiles d'altitude « Terrain Tiles » sur Amazon S3), la recherche de lieu (Nominatim) et la
-  recherche de clubs (Overpass, aussi en secours pour les itinéraires) reçoivent la **zone concernée** (et le texte tapé
-  pour la recherche) : déclarer « Localisation approximative », facultative, fonctionnalité de l'appli, non partagée à
-  des fins publicitaires.
-- **Pas** : lus sur le téléphone (capteur ou Health Connect), jamais transmis → pas « collectés » ; seule la moyenne peut partir
-  vers Gemini si l'utilisateur demande un objectif à l'IA (déjà couvert par « Santé et remise en forme »).
+  liste du Nutridex, bilan de la semaine : jours validés, total de pas, XP) et les encouragements partent **directement
+  vers le téléphone d'un autre utilisateur**, sans serveur. Par prudence, déclarer comme données **partagées, facultatives,
+  à l'initiative de l'utilisateur** : « Infos personnelles › Autres infos (pseudo) », « Activité dans l'appli › Autres
+  actions (niveau, série, aliments découverts, encouragements) » et « Santé et remise en forme › Remise en forme (pas de
+  la semaine) ».
+- **Localisation / tracés GPS** : la position exacte et les tracés restent sur le téléphone. La carte et les itinéraires
+  (tuiles OpenFreeMap), le dénivelé (tuiles d'altitude « Terrain Tiles » sur Amazon S3), la recherche de lieu (Nominatim)
+  et la recherche de clubs (Overpass, aussi en secours pour les itinéraires) reçoivent la **zone concernée** (et le texte
+  tapé pour la recherche) : c'est la ligne « Localisation › Approximative » du tableau, non partagée à des fins publicitaires.
+- **Pas** : lus sur le téléphone (capteur ou Health Connect). Ils partent vers Gemini seulement avec l'IA activée (coach,
+  objectif d'eau, objectif de pas : ligne « Remise en forme » du tableau) et vers les amis si le profil est public (voir Amis).
 - Sleep API : calculée par les services Google Play sur le téléphone ; GoodLife ne transmet rien.
 - **Notifications du coach** : préparées et programmées sur le téléphone (AlarmManager), sans serveur → rien à déclarer.
 - **Actus du jour** : l'app **lit** des flux RSS publics (franceinfo, Sciences et Avenir, Futura, Anses, Santé publique

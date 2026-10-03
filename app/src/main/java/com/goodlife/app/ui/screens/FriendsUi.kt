@@ -293,7 +293,7 @@ private fun FriendsHome(onBack: () -> Unit, onTap: () -> Unit, onQr: () -> Unit,
                     Column(Modifier.weight(1f)) {
                         Text(t("Croiser d'autres joueurs"), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            t("À quelques mètres d'un joueur GoodLife, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis."),
+                            t("À quelques mètres d'un joueur GoodLife, vos téléphones échangent vos cartes en Bluetooth. Une notification à chaque nouvelle rencontre. Profil public requis. Toute personne à proximité peut lire ta carte (pseudo, niveau…) et la reconnaître plus tard."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

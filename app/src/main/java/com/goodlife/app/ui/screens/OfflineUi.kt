@@ -298,8 +298,9 @@ internal fun OfflineZonesScreen(onBack: () -> Unit, onPick: () -> Unit) {
                 }
             }
         }
-        Text(t("Carte : OpenFreeMap © OpenMapTiles, données © contributeurs OpenStreetMap ; altitude : Terrain Tiles (Amazon)."),
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        var credits by remember { mutableStateOf(false) }
+        TextButton(onClick = { credits = true }) { Text(t("Données de la carte et de l'altitude (sources et licences)")) }
+        if (credits) MapCreditsDialog(onDismiss = { credits = false })
     }
 }
 

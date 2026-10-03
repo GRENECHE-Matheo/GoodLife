@@ -1,5 +1,6 @@
 package com.goodlife.app.news
 
+import com.goodlife.app.net.capped
 import com.goodlife.app.net.readCapped
 import com.goodlife.app.i18n.t
 
@@ -254,7 +255,7 @@ object NewsFeed {
         try {
             if (conn.responseCode !in 200..299) return emptyList()
             // L'encodage est lu dans l'en-tête XML (certains flux sont en ISO-8859-1)
-            return conn.inputStream.use { parse(it, s) }
+            return conn.inputStream.capped(4_000_000).use { parse(it, s) }
         } catch (e: IOException) {
             throw networkError(u.host, e)
         } finally {

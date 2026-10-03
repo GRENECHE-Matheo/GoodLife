@@ -46,7 +46,7 @@ private fun FlowLine(icon: ImageVector, title: String, body: String) {
 fun DataFlowSummary(showAi: Boolean = true) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
-            t("Par défaut, rien ne quitte ton téléphone. Seules ces fonctions envoient des données, et uniquement quand tu les utilises :"),
+            t("Seules ces fonctions contactent internet. Les actus et la vérification des mises à jour sont actives par défaut (tu peux les couper) ; tout le reste, uniquement quand tu l'utilises :"),
             style = MaterialTheme.typography.bodyMedium
         )
         if (showAi) {

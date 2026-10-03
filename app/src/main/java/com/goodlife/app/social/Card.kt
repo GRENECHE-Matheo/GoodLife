@@ -91,7 +91,8 @@ object Identity {
     }
 
     fun cleanPseudo(s: String): String =
-        s.filter { !it.isISOControl() }.trim().replace(Regex("\\s+"), " ").take(MAX_PSEUDO)
+        // Ni caractères de contrôle, ni caractères invisibles de mise en forme (inversion du sens d'écriture…)
+        s.filter { !it.isISOControl() && Character.getType(it) != Character.FORMAT.toInt() }.trim().replace(Regex("\\s+"), " ").take(MAX_PSEUDO)
 
     // ---------- Format binaire compact (tient dans un QR code et une caractéristique Bluetooth) ----------
 

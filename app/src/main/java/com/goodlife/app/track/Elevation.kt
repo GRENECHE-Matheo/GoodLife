@@ -82,6 +82,10 @@ object Elevation {
 
     /** Terrarium : altitude = R × 256 + G + B / 256 − 32 768. */
     private fun decode(png: ByteArray): Tile? {
+        // Dimensions lues d'abord : une image géante ne sera jamais décodée en mémoire
+        val size = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(png, 0, png.size, size)
+        if (size.outWidth != 256 || size.outHeight != 256) return null
         val bmp = BitmapFactory.decodeByteArray(png, 0, png.size, BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }) ?: return null
         if (bmp.width != 256 || bmp.height != 256) { bmp.recycle(); return null }
         val px = IntArray(256 * 256)

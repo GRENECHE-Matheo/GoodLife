@@ -244,7 +244,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                                 Row(Modifier.fillMaxWidth().toggleable(stepsOn, role = Role.Switch) { stepsOn = it }, verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text(t("Compter mes pas"), style = MaterialTheme.typography.bodyLarge)
-                                        Text(t("Comptés sur le téléphone, jamais envoyés (sauf ta moyenne à l'IA si tu choisis son conseil)."),
+                                        Text(t("Comptés sur le téléphone. Envoyés seulement à l'IA si tu l'actives, et le total de la semaine à tes amis si ton profil est public."),
                                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     androidx.compose.material3.Switch(checked = stepsOn, onCheckedChange = null)

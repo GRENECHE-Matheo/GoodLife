@@ -285,7 +285,7 @@ object OfflineMaps {
                 if (!dir.exists()) return@launch          // zone supprimée entre-temps
                 coroutineScope {
                     chunk.map { task ->
-                        async { gate.withPermit { try { task() } catch (e: IOException) { failed.incrementAndGet() }; done.incrementAndGet() } }
+                        async { gate.withPermit { try { task() } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e; failed.incrementAndGet() }; done.incrementAndGet() } }
                     }.awaitAll()
                 }
                 publish(true)
@@ -307,8 +307,15 @@ object OfflineMaps {
         jobs.values.forEach { it.cancel() }; jobs.clear()
         OfflineData.deleteAll()
         _extras.value = emptyMap()
-        // MapLibre se pilote depuis le fil principal
-        android.os.Handler(android.os.Looper.getMainLooper()).post { deleteRegions(context) }
+        // MapLibre se pilote depuis le fil principal : zones et cache des endroits déjà affichés, tout est effacé
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            runCatching {
+                manager(context).resetDatabase(object : OfflineManager.FileSourceCallback {
+                    override fun onSuccess() { _zones.value = emptyList() }
+                    override fun onError(message: String) { deleteRegions(context) }
+                })
+            }.onFailure { deleteRegions(context) }
+        }
     }
 
     private fun deleteRegions(context: Context) {

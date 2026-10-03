@@ -776,15 +776,19 @@ private fun OutingsMap(
                     }) { Text(t("Autoriser")) }
                 }
             }
-            // Mentions des données, juste au-dessus du tiroir
+            // Mentions des données, juste au-dessus du tiroir (en les touchant : sources, licences et liens)
+            var credits by remember { mutableStateOf(false) }
             Text(
-                t("© OpenMapTiles · © OpenStreetMap"),
+                t("OpenFreeMap © OpenMapTiles © OpenStreetMap"),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.align(Alignment.BottomStart).padding(start = 6.dp, bottom = peek + 4.dp)
                     .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 4.dp),
-                color = androidx.compose.ui.graphics.Color.DarkGray
+                    .clickable { credits = true }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                color = androidx.compose.ui.graphics.Color.DarkGray,
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
             )
+            if (credits) MapCreditsDialog(onDismiss = { credits = false })
         }
     }
 

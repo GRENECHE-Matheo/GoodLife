@@ -78,7 +78,7 @@ fun OptionsOnboardingScreen() {
                 modifier = Modifier.widthIn(max = 520.dp)
             )
             Column(Modifier.widthIn(max = 520.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OptionRow("👣", t("Compter mes pas"), t("Avec le capteur du téléphone (ou Health Connect). Les pas restent sur ton téléphone."),
+                OptionRow("👣", t("Compter mes pas"), t("Avec le capteur du téléphone (ou Health Connect). Envoyés seulement à l'IA si tu l'actives, et le total de la semaine à tes amis si ton profil est public."),
                     settings.stepsEnabled) { on -> if (on) enableSteps() else Repo.updateSettings { it.copy(stepsEnabled = false) } }
                 OptionRow("😴", t("Détecter mon sommeil"), t("Estimé par ton téléphone pendant la nuit (Google Play Services), sans rien envoyer."),
                     settings.sleepAuto) { on ->

@@ -224,9 +224,12 @@ internal object RoadTiles {
 
     private class Reader(val b: ByteArray, var i: Int, val end: Int) {
         fun more() = i < end
+        // Tuile abîmée ou tronquée : erreur propre (IOException) au lieu de lire hors du tableau
+        private fun need(n: Int) { if (n < 0 || i + n > end || i + n < i) throw IOException("tile") }
         fun varint(): Long {
             var r = 0L; var s = 0
             while (true) {
+                if (i >= end || s > 63) throw IOException("tile")
                 val c = b[i++].toInt() and 0xFF
                 r = r or ((c and 0x7F).toLong() shl s); s += 7
                 if (c < 0x80) return r
@@ -234,17 +237,17 @@ internal object RoadTiles {
         }
         /** Lit l'en-tête d'un champ : numéro shl 3 | type. */
         fun key() = varint().toInt()
-        fun sub(): Reader { val len = varint().toInt(); val r = Reader(b, i, i + len); i += len; return r }
+        fun sub(): Reader { val len = varint().toInt(); need(len); val r = Reader(b, i, i + len); i += len; return r }
         fun skip(wire: Int) {
             when (wire) {
                 0 -> varint()
-                1 -> i += 8
-                2 -> { val len = varint().toInt(); i += len }
-                5 -> i += 4
+                1 -> { need(8); i += 8 }
+                2 -> { val len = varint().toInt(); need(len); i += len }
+                5 -> { need(4); i += 4 }
                 else -> throw IOException("wire $wire")
             }
         }
-        fun string(): String { val len = varint().toInt(); val s = String(b, i, len, Charsets.UTF_8); i += len; return s }
+        fun string(): String { val len = varint().toInt(); need(len); val s = String(b, i, len, Charsets.UTF_8); i += len; return s }
     }
 
     private fun zz(n: Long): Int = ((n ushr 1) xor -(n and 1)).toInt()

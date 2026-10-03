@@ -164,7 +164,7 @@ fun StepsSettingsSection() {
             androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
                 Text(t("Suivre mes pas"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    t("Compté sur le téléphone, jamais envoyé. +%1\$s XP les jours où tu atteins ton objectif.", com.goodlife.app.game.Game.STEP_GOAL_XP),
+                    t("Compté sur le téléphone (envoyé seulement à l'IA si tu l'actives, et à tes amis si ton profil est public). +%1\$s XP les jours où tu atteins ton objectif.", com.goodlife.app.game.Game.STEP_GOAL_XP),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

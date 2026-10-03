@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.mikepenz.aboutlibraries.plugin")
 }
 
 val keystorePath: String? = System.getenv("GOODLIFE_KEYSTORE")
@@ -14,8 +15,8 @@ android {
         applicationId = "com.goodlife.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 29
-        versionName = "0.15.0"
+        versionCode = 30
+        versionName = "0.16.0"
 
         // Dépôt GitHub utilisé pour vérifier les nouvelles versions (releases publiques)
         buildConfigField("String", "UPDATE_REPO", "\"GRENECHE-Matheo/GoodLife\"")
@@ -138,4 +139,7 @@ dependencies {
 
     // Carte : MapLibre (libre, sans clé) avec les fonds OpenFreeMap (données OpenStreetMap)
     implementation("org.maplibre.gl:android-sdk:13.6.1")
+
+    // Lecture de la liste des licences générée par le plugin (affichée dans À propos)
+    implementation("com.mikepenz:aboutlibraries-core:11.6.3")
 }

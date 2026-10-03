@@ -14,7 +14,8 @@ import java.net.URL
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
-internal val USER_AGENT = t("GoodLife-Android/%1\$s (github.com/%2\$s)", BuildConfig.VERSION_NAME, BuildConfig.UPDATE_REPO)
+// Nom, version et contact du développeur (demandé par Open Food Facts et OpenStreetMap ; rien sur l'utilisateur)
+internal val USER_AGENT = "GoodLife-Android/${BuildConfig.VERSION_NAME} (${BuildConfig.CONTACT_EMAIL}; github.com/${BuildConfig.UPDATE_REPO})"
 
 /** Contexte de l'app, pour savoir si le téléphone a vraiment internet (renseigné au démarrage). */
 @Volatile internal var appContext: Context? = null
@@ -68,6 +69,14 @@ internal fun java.io.InputStream.readCapped(max: Int): ByteArray {
         out.write(buf, 0, n)
     }
     return out.toByteArray()
+}
+
+/** Flux plafonné pour une lecture au fil de l'eau : au-delà de [max] octets, la lecture s'arrête avec une erreur. */
+internal fun java.io.InputStream.capped(max: Long): java.io.InputStream = object : java.io.FilterInputStream(this) {
+    private var total = 0L
+    private fun count(n: Int): Int { if (n > 0) { total += n; if (total > max) throw IOException(t("Réponse trop volumineuse.")) }; return n }
+    override fun read(): Int { val c = super.read(); if (c >= 0) count(1); return c }
+    override fun read(b: ByteArray, off: Int, len: Int): Int = count(super.read(b, off, len))
 }
 
 /** GET simple en HTTPS. Renvoie (code, corps). */

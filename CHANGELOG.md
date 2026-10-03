@@ -8,6 +8,29 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.16.0 — 03/10/2026
+
+**Une app plus juste, plus sûre et prête pour le Play Store.**
+
+- 🛠️ **Accueil** : le repas du jour et l'eau sont juste sous ton niveau.
+- ✨ **Carte hors ligne** : sans réseau, un bandeau indique si l'endroit affiché est couvert par une zone téléchargée
+  (et si les itinéraires y marchent).
+- 🛠️ **Pinceau jusqu'à 150 km**, en ne chargeant que les rues le long du trait.
+- 🛠️ **Itinéraires plus rapides** à l'ouverture de l'app (≈ 1 s de gagnée), carrefours calculés sur plusieurs cœurs.
+- 🛠️ **Coach** : dans une longue conversation, le début est résumé en quelques lignes ; chaque question coûte moins
+  cher et le chef garde l'essentiel en mémoire.
+- 🐛 Les sections des paramètres se déplient verticalement (le texte n'arrive plus en diagonale).
+- ✨ **Licences open source** et **données de la carte et de l'altitude** (sources et liens) dans À propos ; la mention
+  de la carte se touche pour les voir.
+- 🔒 « Effacer mes données » efface aussi tout le cache (tuiles d'itinéraire et d'altitude), le cache de la carte,
+  arrête les croisements et retire l'accès à Health Connect.
+- 🔒 Lecture plus robuste des données reçues (tuiles abîmées, images trop grandes, flux trop longs), pseudos sans
+  caractères invisibles, et une carte d'ami ne peut plus remplacer celle d'une autre personne.
+- 🔒 Recherche de lieux : résultats gardés un jour en mémoire, et le service peut être suspendu à distance si
+  OpenStreetMap le demande.
+- 🔒 Textes de confidentialité corrigés pour être exacts (pas envoyés à l'IA et aux amis, diagnostics de ML Kit,
+  actus et mises à jour actives par défaut, croisements visibles des personnes à proximité).
+
 ## v0.15.0 — 03/10/2026
 
 **Cartes hors ligne refaites, et une app plus propre sur tous les téléphones.**
@@ -46,7 +69,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 - 🛠️ **Planning** : l'aperçu de la semaine proposée s'affiche en grand, jour par jour (retire un repas d'une croix
   avant d'ajouter), et chaque repas prévu peut être **modifié** (plat, calories, jour, moment).
 - 🛠️ **Paramètres regroupés** en sections repliables, avec un résumé de chacune : tout tient sur un écran.
-- ✨ **À la création du compte**, toutes les options désactivées par défaut sont proposées (pas, sommeil, petits mots du
+- ✨ **À la création du compte**, les principales options désactivées par défaut sont proposées (pas, sommeil, petits mots du
   chef, rappel d'eau, verrouillage…) ; rien n'est activé sans ton accord.
 
 ## v0.13.0 — 02/10/2026

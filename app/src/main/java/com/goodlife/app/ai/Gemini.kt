@@ -135,9 +135,22 @@ class Gemini(private val apiKey: String, private val model: String) {
     suspend fun coach(system: String, history: List<ChatMessage>): CoachReply = withContext(Dispatchers.IO) {
         guard()
         val contents = JSONArray()
+        // Longue conversation : seuls les 12 derniers messages partent en entier ; le début est résumé en quelques lignes
+        // (1 ligne courte par message, 3 000 caractères au plus). Le chef garde l'essentiel en mémoire, et chaque
+        // nouvelle question ne coûte pas plus cher que la précédente.
+        var cut = (history.size - 12).coerceAtLeast(0)
+        while (cut in 1 until history.size && !history[cut].fromUser) cut++   // la partie gardée commence par une question
+        val older = history.take(cut); val kept = history.drop(cut)
+        if (older.isNotEmpty()) {
+            val memo = older.joinToString("\n") { m ->
+                (if (m.fromUser) "Moi : " else "Chef : ") + m.text.replace('\n', ' ').take(160) + if (m.image != null) " [photo]" else ""
+            }.takeLast(3000)
+            contents.put(JSONObject().put("role", "user").put("parts", parts("Rappel du début de notre conversation (résumé) :\n$memo", null)))
+            contents.put(JSONObject().put("role", "model").put("parts", parts("D'accord, je m'en souviens.", null)))
+        }
         // Les photos ne sont renvoyées que pour les 4 derniers messages (au-delà, une simple mention), pour limiter les envois
-        history.forEachIndexed { i, m ->
-            val recent = i >= history.size - 4
+        kept.forEachIndexed { i, m ->
+            val recent = i >= kept.size - 4
             val text = if (m.image != null && !recent) m.text + " [photo envoyée plus tôt]" else m.text
             contents.put(JSONObject().put("role", if (m.fromUser) "user" else "model").put("parts", parts(text, if (recent) m.image else null)))
         }

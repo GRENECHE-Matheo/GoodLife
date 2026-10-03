@@ -3,6 +3,7 @@ package com.goodlife.app.data
 import com.goodlife.app.i18n.t
 
 import android.content.Context
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONArray
@@ -591,6 +592,9 @@ object Repo {
         if (id == myId || id in _social.value.blocked) return Received.IGNORED
         val now = System.currentTimeMillis()
         val old = _social.value.people.firstOrNull { it.id == id }
+        // Même identifiant mais autre clé : ce n'est pas la même personne (on garde la carte qu'on connaît)
+        if (old != null && old.publicKey.isNotBlank() &&
+            old.publicKey != android.util.Base64.encodeToString(card.publicKey, android.util.Base64.NO_WRAP)) return Received.IGNORED
         val fresh = old == null || card.timestamp > old.cardTime
         val base = old ?: Person(id, android.util.Base64.encodeToString(card.publicKey, android.util.Base64.NO_WRAP), card.pseudo, via = via)
         val updated = (if (fresh) base.copy(
@@ -937,11 +941,22 @@ object Repo {
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
         Fridge.reload()
-        // Cache des tuiles d'itinéraires : rien de personnel, mais on repart de zéro
-        appContext?.let { runCatching { java.io.File(it.cacheDir, "route_tiles").deleteRecursively() } }
-        // Zones hors ligne (leur nom peut être personnel : « Chez moi »…)
-        appContext?.let { runCatching { com.goodlife.app.track.OfflineMaps.deleteAll(it) } }
-        appContext?.let { com.goodlife.app.coach.CoachNotifier.schedule(it) }
+        appContext?.let { ctx ->
+            // Tout le cache : tuiles d'itinéraires et d'altitude (elles trahissent les zones parcourues), photos, mises à jour
+            runCatching { ctx.cacheDir.listFiles()?.forEach { it.deleteRecursively() } }
+            // Zones hors ligne et cache de la carte (leur nom peut être personnel : « Chez moi »…)
+            runCatching { com.goodlife.app.track.OfflineMaps.deleteAll(ctx) }
+            // Croisements : le service s'arrête tout de suite (il ne diffuse plus l'ancienne carte)
+            runCatching { com.goodlife.app.social.StreetPass.sync(ctx) }
+            // Health Connect : l'accès aux pas accordé à l'app est retiré
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                runCatching {
+                    if (androidx.health.connect.client.HealthConnectClient.getSdkStatus(ctx) == androidx.health.connect.client.HealthConnectClient.SDK_AVAILABLE)
+                        androidx.health.connect.client.HealthConnectClient.getOrCreate(ctx).permissionController.revokeAllPermissions()
+                }
+            }
+            com.goodlife.app.coach.CoachNotifier.schedule(ctx)
+        }
     }
 
     fun dayBounds(dayOffset: Int = 0): Pair<Long, Long> {

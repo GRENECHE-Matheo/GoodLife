@@ -9,20 +9,25 @@
 
 **GoodLife** est une application Android pour mieux manger, bouger et dormir : scan de repas par photo,
 objectif calorique, pas, programme sportif, activités GPS, sommeil, séries et XP pour rester motivé.
-Interface Material You, **aucun compte, aucune pub, aucun serveur** : tes données restent chiffrées sur ton téléphone.
+Interface Material You, **aucun compte, aucune pub, aucun serveur GoodLife** : tes données restent chiffrées sur ton téléphone (les services utilisés, comme la carte ou l'IA, sont détaillés dans la [politique de confidentialité](PRIVACY.md)).
 
 ---
 
 ## 📥 Télécharger
 
 1. Ouvre la [dernière version](https://github.com/GRENECHE-Matheo/GoodLife/releases/latest) depuis ton téléphone.
-2. Télécharge le fichier `GoodLife-vX.Y.apk` et ouvre-le.
+2. Télécharge le fichier `GoodLife-vX.Y.Z.apk` et ouvre-le.
 3. Si Android le demande, autorise l'installation depuis ton navigateur.
 
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.15.0
+## 🆕 Nouveautés de la v0.16.0
+
+- **Bandeau hors ligne** sur la carte, **pinceau jusqu'à 150 km**, itinéraires plus rapides, repas du jour plus haut.
+- **Licences et sources** dans À propos, effacement des données plus complet, textes de confidentialité vérifiés.
+
+## Nouveautés de la v0.15.0
 
 - **Cartes hors ligne** : zone choisie dans un cadre, taille en direct, plus de limite, et en qualité Complète les
   **itinéraires et le dénivelé marchent sans réseau**.
@@ -133,7 +138,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
   notifications motivantes si tu les acceptes (bilan du matin, midi, soir si la série est en danger, dimanche).
 - **Score du jour** = ton alimentation ; **série** validée dès 80/100, avec des **gels ❄️** pour sauver un jour raté.
   Les pas rapportent de l'XP (+10 XP les jours où l'objectif est atteint).
-- **Widgets du chef** pour l'écran d'accueil (série, score du jour, petit mot), qui change de pose selon ta journée.
+- **Widgets du chef** pour l'écran d'accueil (série, calories et pas ; le grand montre aussi l'eau, les protéines et le prochain repas), qui change de pose selon ta journée.
 - **XP et niveaux**, de « Commis » à « Légende de la cuisine », courbes de score, calories et poids.
 - **Quiz du chef** : 5 questions par jour, jamais les mêmes pendant des années (questions fabriquées à partir de la
   table Ciqual de l'Anses), qui peuvent sauver une série cassée ; sons et barre d'XP animée.
@@ -199,7 +204,7 @@ Publication sur Google Play : voir [`PLAY_STORE.md`](PLAY_STORE.md).
 
 ## 📱 Compatibilité
 
-Android 8.0 (API 26) et plus, jusqu'aux dernières versions (Android 16 / 17), sur toutes les surcouches
+Android 8.0 (API 26) et plus, jusqu'à Android 16 (dernière version visée par l'app), sur toutes les surcouches
 (One UI, HyperOS, OxygenOS/ColorOS, Pixel…). La détection automatique du sommeil nécessite les services Google Play.
 
 **Stack** : Kotlin · Jetpack Compose · Material 3 · CameraX · ML Kit · Health Connect · MapLibre · Gemini REST API.
