@@ -1,0 +1,4 @@
+# Copie ce fichier en « .dev.vars » pour tester en local (wrangler dev). Jamais de vraie clé ici.
+ENVIRONMENT=dev
+DEV_FAKE_GOOGLE=1
+MOCK_GEMINI=1

@@ -1,0 +1,18 @@
+{
+  "name": "lifoody-relay",
+  "private": true,
+  "description": "Serveur relais IA de Lifoody (Cloudflare Workers) : garde la clé Gemini, vérifie l'abonnement Google Play et limite l'usage.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261008.1",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.149.0"
+  }
+}

@@ -1,0 +1,37 @@
+// Configuration du relais IA. AUCUN secret ici : la clé Gemini, le compte de service Google et le sel des IP
+// se mettent avec « npx wrangler secret put NOM » (ou sur dash.cloudflare.com › le Worker › Paramètres › Secrets).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lifoody-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Pas de journaux de requêtes : aucun contenu (photo, message) ne doit être conservé
+  "observability": { "enabled": false },
+  "durable_objects": {
+    "bindings": [
+      { "name": "USERS", "class_name": "UserLimiter" },
+      { "name": "BUDGET", "class_name": "GlobalBudget" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["UserLimiter", "GlobalBudget"] }
+  ],
+  "vars": {
+    "ENVIRONMENT": "production",
+    "PACKAGE_NAME": "com.goodlife.app",
+    "PRODUCT_IDS": "lifoody_premium",
+    "MODELS": "gemini-3.5-flash-lite,gemini-2.5-flash-lite",
+    "THINKING_LEVEL": "minimal",
+    "MEDIA_RESOLUTION": "MEDIA_RESOLUTION_MEDIUM",
+    "ALLOW_BASIC_INTEGRITY": "false",
+    "PREMIUM_PHOTOS_PER_DAY": "15",
+    "PREMIUM_MESSAGES_PER_DAY": "40",
+    "PREMIUM_AUTO_PER_DAY": "6",
+    "PER_MINUTE": "8",
+    "FREE_TRIALS": "3",
+    "TRIALS_PER_IP_PER_DAY": "12",
+    "TRIALS_PER_DAY": "600",
+    "MONTHLY_BUDGET_USD": "30",
+    "DAILY_BUDGET_USD": "3"
+  }
+}
