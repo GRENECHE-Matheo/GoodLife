@@ -2,6 +2,13 @@ package com.goodlife.app.ui.screens
 
 import com.goodlife.app.i18n.t
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.goodlife.app.ui.Motion
 import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.ScreenTitle
 
@@ -31,22 +39,38 @@ fun FormeScreen() {
     val active = com.goodlife.app.track.Tracker.live.collectAsState().value != null
     androidx.compose.runtime.LaunchedEffect(active) { if (active) tab = 1 }
     Column(Modifier.fillMaxSize()) {
-        // Sur la carte, on garde toute la place pour elle : pas de grand titre
-        if (!active && tab != 1) Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
-                ScreenTitle(t("Forme"), t("Bouger, s'amuser, bien dormir"))
+        // Sur la carte, on garde toute la place pour elle : le grand titre se replie en douceur (au lieu de disparaître d'un coup)
+        AnimatedVisibility(
+            visible = !active && tab != 1,
+            enter = expandVertically(tween(Motion.DURATION)) + fadeIn(tween(Motion.DURATION)),
+            exit = shrinkVertically(tween(Motion.DURATION)) + fadeOut(tween(Motion.DURATION / 2))
+        ) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+                    ScreenTitle(t("Forme"), t("Bouger, s'amuser, bien dormir"))
+                }
             }
         }
-        if (!active) PrimaryTabRow(selectedTabIndex = tab) {
-            listOf(t("Programme"), t("Carte"), t("Sommeil")).forEachIndexed { i, label ->
-                Tab(selected = tab == i, onClick = { tab = i }, text = { com.goodlife.app.ui.FitText(label) })
+        AnimatedVisibility(visible = !active, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            PrimaryTabRow(selectedTabIndex = tab) {
+                listOf(t("Programme"), t("Carte"), t("Sommeil")).forEachIndexed { i, label ->
+                    Tab(selected = tab == i, onClick = { tab = i }, text = { com.goodlife.app.ui.FitText(label) })
+                }
             }
         }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            when (tab) {
-                0 -> ScreenColumn { ProgramTab() }
-                1 -> OutingsTab()
-                else -> SleepScreen(showTitle = false)
+        // Glissement latéral dans le sens des onglets (Programme → Carte → Sommeil)
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = { Motion.sharedAxisX(forward = targetState > initialState) },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            label = "forme"
+        ) { current ->
+            Box(Modifier.fillMaxSize()) {
+                when (current) {
+                    0 -> ScreenColumn { ProgramTab() }
+                    1 -> OutingsTab()
+                    else -> SleepScreen(showTitle = false)
+                }
             }
         }
     }

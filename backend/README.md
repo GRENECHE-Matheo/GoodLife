@@ -23,7 +23,7 @@ Aucune photo, aucun message, aucune réponse, aucun journal de requêtes (`obser
 seulement, pour un identifiant pseudonyme (empreinte du jeton d'achat ou de l'identifiant d'installation) : des
 compteurs du jour, le nombre d'essais gratuits utilisés et le statut d'abonnement. Tout est **effacé
 automatiquement après 120 jours sans utilisation**. Pour limiter les essais gratuits par réseau, une empreinte salée
-de l'adresse IP est gardée **24 h** au plus.
+de l'adresse IP (mélangée au jour) est effacée **dès le lendemain**.
 
 ### La clé Gemini ne peut pas fuiter par l'app
 

@@ -65,6 +65,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -151,7 +152,7 @@ class MapHandle {
 }
 
 @Composable
-fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier, alwaysResumed: Boolean = false, alwaysLight: Boolean = false) {
+fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier, alwaysResumed: Boolean = false, alwaysLight: Boolean = false, nativeCompass: Boolean = true) {
     val context = LocalContext.current
     // Carte sombre avec le thème sombre, sauf demande contraire (mini-fenêtre : la carte claire se lit mieux en petit)
     val dark = !alwaysLight && MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -190,7 +191,10 @@ fun GoodMap(handle: MapHandle, modifier: Modifier = Modifier, alwaysResumed: Boo
             }
             map.uiSettings.isLogoEnabled = false
             map.uiSettings.isAttributionEnabled = false
-            map.uiSettings.setCompassMargins(0, 260, 36, 0)
+            // Carte principale : boussole maison, rangée avec les autres boutons (la boussole de MapLibre les chevauchait)
+            map.uiSettings.isCompassEnabled = nativeCompass
+            val px = context.resources.displayMetrics.density
+            map.uiSettings.setCompassMargins(0, (72 * px).toInt(), (16 * px).toInt(), 0)
             map.setStyle(if (dark) STYLE_DARK else STYLE_LIGHT) { style ->
                 handle.map = map
                 handle.style = style
@@ -306,11 +310,13 @@ fun OutingsTab() {
     // Choix d'une zone hors ligne sur la carte (le cadre)
     var offlinePicking by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = screen.isNotEmpty()) { screen = if (screen.startsWith("detail:")) "history" else "" }
+    // Glissement entre la carte, l'historique et le détail d'une sortie (au lieu d'un changement sec)
+    com.goodlife.app.ui.SlideSwitch(screen, depth = { when { it.isEmpty() -> 0; it.startsWith("detail:") -> 2; else -> 1 } }) { shown ->
     when {
-        screen == "history" -> OutingHistory(onBack = { screen = "" }, onOpen = { screen = "detail:$it" })
-        screen == "offline" -> OfflineZonesScreen(onBack = { screen = "" }, onPick = { offlinePicking = true; screen = "" })
-        screen.startsWith("detail:") -> OutingDetail(
-            id = screen.removePrefix("detail:").toLong(),
+        shown == "history" -> OutingHistory(onBack = { screen = "" }, onOpen = { screen = "detail:$it" })
+        shown == "offline" -> OfflineZonesScreen(onBack = { screen = "" }, onPick = { offlinePicking = true; screen = "" })
+        shown.startsWith("detail:") -> OutingDetail(
+            id = shown.removePrefix("detail:").toLong(),
             onBack = { screen = "history" },
             onRetry = { routeId ->
                 val track = Repo.routeTrack(routeId)
@@ -326,6 +332,7 @@ fun OutingsTab() {
             onOfflinePicking = { offlinePicking = it },
             onOfflineZones = { offlinePicking = false; screen = "offline" }
         )
+    }
     }
 }
 
@@ -654,7 +661,7 @@ private fun OutingsMap(
         }
     ) { _ ->
         Box(Modifier.fillMaxSize()) {
-            GoodMap(handle, Modifier.fillMaxSize())
+            GoodMap(handle, Modifier.fillMaxSize(), nativeCompass = false)
 
             // Petit bonhomme animé à ta position pendant une sortie
             val l = live
@@ -701,6 +708,7 @@ private fun OutingsMap(
 
             // Boutons ronds à droite (sous la barre de recherche)
             Column(Modifier.align(Alignment.TopEnd).padding(top = topInset + 8.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                CompassButton(handle)
                 SmallFloatingActionButton(onClick = {
                     if (!locationGranted) askMapLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
                     val m = handle.map; val s = handle.style
@@ -1308,6 +1316,47 @@ fun PipNavigation() {
                     style = MaterialTheme.typography.labelMedium, maxLines = 1
                 )
             }
+        }
+    }
+}
+
+/**
+ * Boussole : apparaît dès que la carte n'a plus le nord en haut (rotation à deux doigts, suivi à pied),
+ * avec une aiguille qui suit l'orientation. Un appui remet le nord en haut.
+ */
+@Composable
+private fun CompassButton(handle: MapHandle) {
+    val map = handle.map ?: return
+    var bearing by remember(map) { androidx.compose.runtime.mutableFloatStateOf(map.cameraPosition.bearing.toFloat()) }
+    DisposableEffect(map) {
+        val move = MapLibreMap.OnCameraMoveListener { bearing = map.cameraPosition.bearing.toFloat() }
+        val idle = MapLibreMap.OnCameraIdleListener { bearing = map.cameraPosition.bearing.toFloat() }
+        map.addOnCameraMoveListener(move)
+        map.addOnCameraIdleListener(idle)
+        onDispose { map.removeOnCameraMoveListener(move); map.removeOnCameraIdleListener(idle) }
+    }
+    val offNorth = kotlin.math.abs(((bearing % 360f) + 540f) % 360f - 180f) > 1f   // orientation ramenée entre -180° et 180°
+    androidx.compose.animation.AnimatedVisibility(
+        visible = offNorth,
+        enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(),
+        exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()
+    ) {
+        SmallFloatingActionButton(
+            onClick = {
+                // En suivi « boussole » (à pied), on repasse en suivi simple pour que le nord reste en haut
+                runCatching {
+                    val lc = map.locationComponent
+                    if (lc.isLocationComponentActivated && lc.cameraMode == CameraMode.TRACKING_COMPASS) lc.cameraMode = CameraMode.TRACKING
+                }
+                map.animateCamera(CameraUpdateFactory.bearingTo(0.0), 400)
+            },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Icon(
+                androidx.compose.material.icons.Icons.Filled.Navigation, t("Remettre le nord en haut"),
+                Modifier.graphicsLayer { rotationZ = -bearing },
+                tint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

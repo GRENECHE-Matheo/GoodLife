@@ -93,4 +93,35 @@ object Nutridex {
 
     /** Liste compacte envoyée à l'IA pour qu'elle choisisse les entrées visibles sur la photo. */
     fun promptList(): String = ENTRIES.joinToString(", ") { "${it.id}=${it.name}" }
+
+    // Motif de chaque entrée, des noms les plus longs aux plus courts (« pomme de terre » avant « pomme »)
+    private val PATTERNS: List<Pair<String, Regex>> = RAW.map { it.first }.map { name ->
+        val words = slug(name).split('-')
+        // Pluriel toléré (« tomates », « noix »), mais un nom au pluriel exige son pluriel (« pâtes » ≠ « pâte de cacao »)
+        val body = words.joinToString("\\s+") { w -> if (w.endsWith("s") || w.endsWith("x")) w else "${w}[sx]?" }
+        slug(name) to Regex("(?<![a-z0-9])$body(?![a-z0-9])")
+    }.sortedByDescending { it.first.length }
+
+    /**
+     * Entrées du Nutridex présentes dans un produit emballé (code-barres) : d'après son nom et ses premiers
+     * ingrédients (les principaux), sans les traces éventuelles. Au plus 4, calculé sur le téléphone, sans IA.
+     */
+    fun fromProduct(productName: String, ingredients: String): List<String> {
+        val main = ingredients.lowercase()
+            .substringBefore("peut contenir").substringBefore("traces")
+            .split(',', ';', '(', ')', '[', ']').map { it.trim() }.filter { it.isNotBlank() }.take(6)
+            .joinToString(" , ")
+        var text = " " + java.text.Normalizer.normalize("$productName , $main".lowercase(), java.text.Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}+"), "").replace("œ", "oe").replace(Regex("[^a-z0-9]+"), " ") + " "
+        val found = mutableListOf<String>()
+        for ((id, re) in PATTERNS) {
+            if (found.size >= 4) break
+            val m = re.find(text) ?: continue
+            found += id
+            // Le passage trouvé est effacé : « pomme de terre » ne débloque pas aussi « pomme »
+            text = text.replace(re, " ")
+            if (m.value.isEmpty()) break
+        }
+        return found.filter { byId(it) != null }
+    }
 }

@@ -20,7 +20,7 @@ Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies
 ## Ce qui est envoyé si tu actives l'IA
 
 L'IA est désactivée par défaut et demande un consentement séparé (réservé aux 18 ans et plus). Dans la version Google Play, elle passe par le service IA de Lifoody (3 essais gratuits, puis l'abonnement Lifoody Premium) ; dans la version GitHub, par ta propre clé API Gemini, que tu crées toi-même chez Google. Si tu l'actives, seules les données nécessaires à chaque demande sont envoyées :
-• Analyse de photo : la photo du repas et tes allergies ; si tu as activé « Retirer du frigo après une photo de repas », aussi la liste de « Mon frigo » (noms et quantités).
+• Analyse de photo : la photo du repas et tes allergies ; si tu as activé « Retirer du frigo après une photo de repas », aussi la liste de « Mon frigo » (noms et quantités). Si tu corriges l'analyse (« 400 g de merguez », « sans frites ») ou que tu renommes le plat, ce que tu écris et l'analyse précédente (aliments, poids, calories, sans la photo) sont envoyés pour la recalculer.
 • Objectif calorique : âge, sexe, poids, taille, activité, objectif, habitudes, allergies.
 • Idées de repas : ton objectif, les repas du jour, tes habitudes et allergies.
 • Recette : le nom du plat, tes habitudes et allergies.
@@ -86,7 +86,7 @@ Si tu ajoutes un widget Lifoody sur ton écran d'accueil, il affiche le chef, ta
 
 ## Le Nutridex
 
-Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, que la liste des aliments découverts.
+Quand l'IA reconnaît un aliment sur une photo, il se débloque dans ton Nutridex avec une petite vignette de ta photo. Un produit scanné par code-barres débloque aussi les aliments de son nom et de ses premiers ingrédients (liste d'Open Food Facts, comparée sur ton téléphone, sans IA), avec une vignette de la photo de l'emballage. Ces vignettes sont chiffrées sur ton téléphone et ne sont jamais partagées : tes amis ne voient, si tu l'autorises, que la liste des aliments découverts.
 
 ## Amis : Tap to Sync, QR code et croisements
 

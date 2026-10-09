@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -281,7 +282,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         BackupSection()
 
         // ---- IA ----
-        FoldableSection(t("Intelligence artificielle"), Icons.Filled.VpnKey, if (settings.aiEnabled) t("Activée") else t("Désactivée")) {
+        FoldableSection(t("Intelligence artificielle"), if (com.goodlife.app.ai.AiAccess.viaRelay) Icons.Filled.AutoAwesome else Icons.Filled.VpnKey,
+            if (settings.aiEnabled) t("Activée") else t("Désactivée")) {
             SettingSwitch(
                 title = t("Fonctions IA (Google Gemini)"),
                 subtitle = if (settings.aiEnabled && com.goodlife.app.ai.AiAccess.viaRelay) t("Activées. Pour chaque demande, la photo et les infos nécessaires passent par le serveur de Lifoody, qui les transmet à Google sans les enregistrer.")

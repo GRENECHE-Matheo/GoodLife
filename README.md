@@ -27,6 +27,8 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 - **Version Google Play : Lifoody Premium** — l'IA sans clé à créer, via le service IA de Lifoody (3 essais gratuits,
   puis 2,99 €/mois ou 19,99 €/an avec 7 jours d'essai). Le serveur n'enregistre ni photo ni message.
 - **Version GitHub : toujours 100 % gratuite**, avec ta propre clé Gemini, directement chez Google.
+- **Scan corrigeable** (« 400 g de merguez ») et **planning qui suit tes repas** photographiés.
+- **Code-barres → Nutridex**, clavier qui ne cache plus le champ, onglet Forme et boussole plus fluides.
 - Politique de confidentialité, conditions et documents de publication mis à jour.
 
 ## Nouveautés de la v0.17.0

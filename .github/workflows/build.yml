@@ -46,6 +46,9 @@ jobs:
           GOODLIFE_KEYSTORE_PASSWORD: ${{ secrets.GOODLIFE_KEYSTORE_PASSWORD }}
           GOODLIFE_KEY_ALIAS: ${{ secrets.GOODLIFE_KEY_ALIAS }}
           GOODLIFE_KEY_PASSWORD: ${{ secrets.GOODLIFE_KEY_PASSWORD }}
+          # Version Play : adresse du relais IA et numéro du projet Google Cloud (pas des secrets : variables du dépôt)
+          LIFOODY_RELAY_URL: ${{ vars.LIFOODY_RELAY_URL }}
+          LIFOODY_CLOUD_PROJECT: ${{ vars.LIFOODY_CLOUD_PROJECT }}
         run: gradle assembleGithubRelease bundlePlayRelease --stacktrace --no-daemon
 
       # La clé de signature ne reste pas sur la machine pour les étapes suivantes (actions tierces)

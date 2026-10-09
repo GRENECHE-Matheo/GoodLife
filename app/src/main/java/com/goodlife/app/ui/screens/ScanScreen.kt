@@ -50,6 +50,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -142,8 +147,34 @@ fun ScanScreen(onDone: () -> Unit) {
     var chat by remember { mutableStateOf(false) }
     var showDex by remember { mutableStateOf(false) }
     var fridgeAsk by remember { mutableStateOf<List<Pair<String, Double>>?>(null) }
+    var correcting by remember { mutableStateOf(false) }
+    var correctError by remember { mutableStateOf<String?>(null) }
+    // Repas prévu au planning à ce créneau, différent de celui photographié : on demande s'il faut le remplacer
+    var replaceAsk by remember { mutableStateOf<Pair<com.goodlife.app.data.PlannedMeal, Meal>?>(null) }
 
-    fun reset() { photo = null; result = null; product = null; error = null; loading = null; newDex = emptyList() }
+    fun reset() { photo = null; result = null; product = null; error = null; loading = null; newDex = emptyList(); correctError = null }
+
+    /** Corrige l'analyse d'après une précision écrite, ou d'après le nouveau nom du plat ([newName]). */
+    fun correct(text: String, newName: String? = null) {
+        val prev = result ?: return
+        if (correcting) return
+        correcting = true; correctError = null
+        scope.launch {
+            try {
+                result = Gemini(settings.apiKey, settings.model).correctFood(prev, text, profile, newName)
+            } catch (e: Exception) {
+                correctError = e.message ?: t("Correction impossible.")
+            } finally {
+                correcting = false
+            }
+        }
+    }
+
+    /** Après l'ajout : frigo à mettre à jour, sinon retour à l'accueil. */
+    fun finish(res: FoodAnalysis) {
+        if (res.fridgeUsed.isNotEmpty() && settings.fridgeAutoRemove) fridgeAsk = res.fridgeUsed
+        else { reset(); onDone() }
+    }
 
     fun analyze(bmp: Bitmap) {
         photo = bmp; result = null; product = null; error = null
@@ -169,7 +200,15 @@ fun ScanScreen(onDone: () -> Unit) {
                     } else {
                         loading = t("Recherche du produit…")
                         product = OpenFoodFacts.product(code)
-                        if (product == null) error = t("Produit %1\$s introuvable dans Open Food Facts. Tu peux le saisir à la main depuis l'accueil.", code)
+                        // Nutridex : les aliments du produit (nom et premiers ingrédients) se débloquent, avec la photo de l'emballage
+                        product?.let { p ->
+                            val ids = com.goodlife.app.dex.Nutridex.fromProduct(p.name, p.ingredients)
+                            if (ids.isNotEmpty()) {
+                                val thumb = withContext(Dispatchers.Default) { bmp.dexThumbnail() }
+                                newDex = Repo.unlockDex(ids, thumb)
+                            }
+                        }
+                        if (product == null) error =t("Produit %1\$s introuvable dans Open Food Facts. Tu peux le saisir à la main depuis l'accueil.", code)
                     }
                 }
             } catch (e: Exception) {
@@ -373,18 +412,27 @@ fun ScanScreen(onDone: () -> Unit) {
                             // Boisson seule sans calories (eau, thé, café nature) : seulement l'eau du jour
                             if (meal != null) Repo.addMeal(meal)
                             if (res.waterMl > 0) Repo.addWater(res.waterMl)
-                            if (res.fridgeUsed.isNotEmpty() && settings.fridgeAutoRemove) fridgeAsk = res.fridgeUsed
-                            else { reset(); onDone() }
+                            // Planning du jour : ajouté s'il n'y avait rien de prévu, coché s'il était prévu, sinon on demande
+                            val planned = if (meal != null && !res.drinkOnly) com.goodlife.app.data.PlanLink.afterMeal(meal) else null
+                            if (planned != null && meal != null) replaceAsk = planned to meal else finish(res)
                         },
                         onRetake = { reset() },
-                        onAsk = { chat = true }
+                        onAsk = { chat = true },
+                        correcting = correcting,
+                        correctError = correctError,
+                        autoRename = !com.goodlife.app.ai.AiAccess.viaRelay || com.goodlife.app.store.Store.premium.value ||
+                            com.goodlife.app.ai.Relay.status.value?.premium == true,
+                        onCorrect = { text, newName -> correct(text, newName) }
                     )
                     }
-                    product != null -> ProductCard(
-                        p = product!!,
-                        onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
-                        onRetake = { reset() }
-                    )
+                    product != null -> {
+                        DexUnlockedBanner(newDex, onOpen = { showDex = true })
+                        ProductCard(
+                            p = product!!,
+                            onAdd = { meal -> Repo.addMeal(meal); reset(); onDone() },
+                            onRetake = { reset() }
+                        )
+                    }
                 }
             }
         }
@@ -397,6 +445,17 @@ fun ScanScreen(onDone: () -> Unit) {
         }
     }
     if (askConsent) AiConsentDialog(onDismiss = { askConsent = false })
+    replaceAsk?.let { (planned, meal) ->
+        val done = { replaceAsk = null; result?.let { finish(it) } ?: run { reset(); onDone() } }
+        AlertDialog(
+            onDismissRequest = done,
+            icon = { Icon(Icons.Filled.CalendarMonth, null) },
+            title = { Text(t("Remplacer le repas prévu ?")) },
+            text = { Text(t("Au planning, tu avais prévu « %1\$s » (%2\$s). Le remplacer par « %3\$s » ?", planned.name, planned.slot.label.lowercase(), meal.name)) },
+            confirmButton = { TextButton(onClick = { com.goodlife.app.data.PlanLink.replace(planned, meal); done() }) { Text(t("Remplacer")) } },
+            dismissButton = { TextButton(onClick = done) { Text(t("Garder le planning")) } }
+        )
+    }
     fridgeAsk?.let { used ->
         FridgeRemoveDialog(used,
             onRemove = { chosen -> com.goodlife.app.data.Fridge.removeWithUndo(chosen); fridgeAsk = null; reset(); onDone() },
@@ -458,9 +517,19 @@ private fun ProductCard(p: FoodProduct, onAdd: (Meal) -> Unit, onRetake: () -> U
 }
 
 @Composable
-private fun ResultCard(r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> Unit, onAsk: () -> Unit) {
+private fun ResultCard(
+    r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> Unit, onAsk: () -> Unit,
+    correcting: Boolean, correctError: String?, autoRename: Boolean, onCorrect: (text: String, newName: String?) -> Unit
+) {
     val waterOnly = r.drinkOnly && r.kcal == 0 && r.waterMl > 0
     var name by remember(r) { mutableStateOf(r.dish) }
+    var fix by remember(r) { mutableStateOf("") }
+    // Nouveau nom : les calories sont recalculées pour ce plat dès qu'on arrête d'écrire
+    // (sauf pendant les essais gratuits, où l'on propose un bouton pour ne pas consommer d'essai sans le vouloir)
+    val renamed = !waterOnly && name.trim().length >= 3 && name.trim() != r.dish
+    if (autoRename) LaunchedEffect(name, r) {
+        if (renamed) { kotlinx.coroutines.delay(1600); onCorrect("", name.trim()) }
+    }
     var kcal by remember(r) { mutableStateOf(r.kcal.toString()) }
     // On corrige le POIDS de chaque aliment ; ses calories suivent (même densité que l'estimation de l'IA)
     val grams = remember(r) { androidx.compose.runtime.mutableStateListOf(*r.foods.map { it.grams.toString() }.toTypedArray()) }
@@ -483,10 +552,14 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> 
         }
     }
 
+    // Macros au prorata des calories corrigées
+    val ratio = if (r.kcal > 0) totalKcal.toDouble() / r.kcal else 1.0
     SectionCard {
-        Text("$totalKcal kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
+        androidx.compose.animation.AnimatedContent(totalKcal, label = "kcal") { k ->
+            Text("$k kcal", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
+        }
         Text(
-            t("Protéines %1\$s g · Glucides %2\$s g · Lipides %3\$s g", r.proteinG.toInt(), r.carbsG.toInt(), r.fatG.toInt()),
+            t("Protéines %1\$s g · Glucides %2\$s g · Lipides %3\$s g", (r.proteinG * ratio).toInt(), (r.carbsG * ratio).toInt(), (r.fatG * ratio).toInt()),
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
@@ -510,6 +583,31 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> 
                 }
             }
         } else r.items.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+        // Correction en une phrase : l'IA recalcule les aliments, les poids et les calories
+        if (!waterOnly) {
+            val send = { if (fix.isNotBlank() && !correcting) { onCorrect(fix.trim(), null) } }
+            OutlinedTextField(
+                value = fix, onValueChange = { fix = it.take(200) },
+                label = { Text(t("Corriger l'analyse")) },
+                placeholder = { Text(t("ex. 400 g de merguez, sans frites")) },
+                enabled = !correcting,
+                keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSend = { send() }),
+                trailingIcon = {
+                    IconButton(onClick = send, enabled = fix.isNotBlank() && !correcting) {
+                        Icon(Icons.AutoMirrored.Filled.Send, t("Recalculer"))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        androidx.compose.animation.AnimatedVisibility(correcting) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                Text(t("L'IA recalcule ton repas…"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (correctError != null) Text(correctError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         if (r.waterMl > 0) Text(
             t("💧 %1\$s ml d'eau seront ajoutés à ton suivi de l'eau.", r.waterMl),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary
@@ -526,8 +624,14 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> 
             Text(t("Poser une question sur ce repas"))
         }
         if (!waterOnly) OutlinedTextField(
-            value = name, onValueChange = { name = it },
-            label = { Text(t("Nom du repas")) }, singleLine = true, modifier = Modifier.fillMaxWidth()
+            value = name, onValueChange = { name = it.take(80) },
+            label = { Text(t("Nom du repas")) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+            supportingText = if (renamed && autoRename) { { Text(t("Les calories seront recalculées pour ce plat.")) } } else null
+        )
+        if (renamed && !autoRename) androidx.compose.material3.AssistChip(
+            onClick = { onCorrect("", name.trim()) }, enabled = !correcting,
+            label = { Text(t("Recalculer les calories pour ce nom")) },
+            leadingIcon = { Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp)) }
         )
         // Sans détail par aliment (rare), on garde la correction directe des calories
         if (!waterOnly && !editable) OutlinedTextField(
@@ -539,11 +643,9 @@ private fun ResultCard(r: FoodAnalysis, onAdd: (Meal?) -> Unit, onRetake: () -> 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (waterOnly) Button(onClick = { onAdd(null) }) { Text(t("Ajouter %1\$s ml d'eau", r.waterMl)) }
             else Button(
-                enabled = totalKcal > 0,
+                enabled = totalKcal > 0 && !correcting,
                 onClick = {
                     val finalKcal = totalKcal
-                    // Si l'utilisateur corrige les kcal, on ajuste les macros au prorata
-                    val ratio = if (r.kcal > 0) finalKcal.toDouble() / r.kcal else 1.0
                     onAdd(
                         Meal(
                             name = name.ifBlank { r.dish },

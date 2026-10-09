@@ -14,7 +14,8 @@ data class FoodProduct(
     val protein100: Double,
     val carbs100: Double,
     val fat100: Double,
-    val servingGrams: Double?
+    val servingGrams: Double?,
+    val ingredients: String = ""   // liste d'ingrédients de l'emballage (pour le Nutridex), vide si inconnue
 )
 
 /**
@@ -27,7 +28,7 @@ object OpenFoodFacts {
     suspend fun product(barcode: String): FoodProduct? = withContext(Dispatchers.IO) {
         if (!BARCODE.matches(barcode)) return@withContext null
         val (code, body) = httpGet(
-            "https://world.openfoodfacts.org/api/v2/product/$barcode?fields=product_name,product_name_fr,brands,nutriments,serving_quantity"
+            "https://world.openfoodfacts.org/api/v2/product/$barcode?fields=product_name,product_name_fr,brands,nutriments,serving_quantity,ingredients_text_fr,ingredients_text"
         )
         if (code == 404) return@withContext null
         if (code !in 200..299) throw java.io.IOException(t("Open Food Facts indisponible (%1\$s).", code))
@@ -46,7 +47,8 @@ object OpenFoodFacts {
             protein100 = n.optDouble("proteins_100g", 0.0).takeUnless { it.isNaN() } ?: 0.0,
             carbs100 = n.optDouble("carbohydrates_100g", 0.0).takeUnless { it.isNaN() } ?: 0.0,
             fat100 = n.optDouble("fat_100g", 0.0).takeUnless { it.isNaN() } ?: 0.0,
-            servingGrams = p.optDouble("serving_quantity", Double.NaN).takeUnless { it.isNaN() || it <= 0 }
+            servingGrams = p.optDouble("serving_quantity", Double.NaN).takeUnless { it.isNaN() || it <= 0 },
+            ingredients = p.optString("ingredients_text_fr").ifBlank { p.optString("ingredients_text") }.take(2000)
         )
     }
 }

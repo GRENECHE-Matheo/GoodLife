@@ -19,6 +19,7 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -235,10 +236,13 @@ fun MacroBar(label: String, value: Double, target: Int, color: Color) {
     }
 }
 
-/** Colonne défilante commune à tous les écrans : largeur max 640 dp et centrée (tablettes, paysage). */
+/**
+ * Colonne défilante commune à tous les écrans : largeur max 640 dp et centrée (tablettes, paysage).
+ * Elle se raccourcit au-dessus du clavier : le champ en cours de saisie défile alors pour rester visible.
+ */
 @Composable
 fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier.widthIn(max = 640.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),

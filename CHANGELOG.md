@@ -8,6 +8,35 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.18.0 — en préparation (09/10/2026)
+
+**Lifoody Premium sur Google Play, scan corrigeable et planning qui suit tes repas.**
+
+- ✨ **Version Google Play : Lifoody Premium.** L'IA sans clé à créer : 3 essais gratuits, puis 2,99 €/mois ou
+  19,99 €/an avec 7 jours d'essai (achat, restauration et résiliation par Google Play). Écran Premium clair, carte
+  « Lifoody Premium » dans Paramètres avec ce qu'il reste aujourd'hui.
+- 🔒 **Service IA de Lifoody** (serveur Cloudflare de Fanix Studio) : la clé Gemini reste sur le serveur, l'app est
+  vérifiée (Play Integrity) et l'abonnement aussi ; limites par personne et plafond de dépense ; ni photo, ni message,
+  ni réponse enregistrés. Il ne garde que des compteurs, effacés après 120 jours sans utilisation.
+- ✨ **Version GitHub : toujours 100 % gratuite**, avec ta propre clé Gemini, directement chez Google (rien ne change).
+- ✨ **Corriger un scan avant de valider** : écris « 400 g de merguez » ou « sans frites », l'IA recalcule les aliments,
+  les poids et les calories (sans renvoyer la photo). Renommer le plat recalcule aussi les calories pour ce plat
+  (avec Premium ou ta clé ; pendant les essais gratuits, un bouton le propose pour ne pas consommer d'essai sans le
+  vouloir). Les macros suivent les calories corrigées.
+- ✨ **Le planning suit tes repas photographiés** : rien de prévu → le repas s'ajoute au planning, déjà coché ; le repas
+  prévu ressemble → il est coché « mangé » ; un autre repas était prévu → « Remplacer le repas prévu ? ».
+- ✨ **Code-barres → Nutridex** : les aliments du nom et des premiers ingrédients d'un produit se débloquent (sans IA,
+  sans les traces), avec la photo de l'emballage.
+- 🛠️ **Clavier** : sur tous les écrans, le champ que tu remplis reste visible au-dessus du clavier.
+- 🛠️ **Onglet Forme** : passage en douceur entre Programme, Carte et Sommeil (le titre se replie au lieu de disparaître
+  d'un coup) ; glissement entre la carte, l'historique et le détail d'une sortie.
+- 🛠️ **Boussole** de la carte rangée avec les autres boutons : elle apparaît quand la carte est tournée, l'aiguille suit
+  l'orientation, un appui remet le nord en haut.
+- 🔒 **Confidentialité** : politique réécrite pour les deux versions (service IA, abonnement, Play Integrity), écran
+  Confidentialité de l'app généré à partir de PRIVACY.md, nouveau contact contact.fanixstudio@gmail.com.
+
+---
+
 ## v0.17.0 — 03/10/2026
 
 **GoodLife devient Lifoody, croisements anonymes et Tap to Sync plus rapide.**

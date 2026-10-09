@@ -458,7 +458,50 @@ class Gemini(private val apiKey: String, private val model: String) {
              "eau_ml": 0, "boisson_seule": false,
              "frigo_utilise": [{"nom": "...", "quantite": 0}]}
         """.trimIndent()
-        val o = call(prompt, jpeg)
+        return parseFood(call(prompt, jpeg), fridge)
+    }
+
+    /**
+     * Corrige une analyse de repas d'après ce que la personne précise (« 400 g de merguez », « sans frites »,
+     * « c'était du poulet ») ou d'après le nouveau nom qu'elle donne au plat ([newName]). La photo n'est pas
+     * renvoyée : seulement l'analyse précédente (aliments, poids, calories) et la précision écrite.
+     */
+    suspend fun correctFood(prev: FoodAnalysis, correction: String, profile: Profile?, newName: String? = null): FoodAnalysis {
+        val allergies = profile?.allergies?.takeIf { it.isNotBlank() } ?: t("aucune connue")
+        val before = JSONObject()
+            .put("plat", prev.dish)
+            .put("aliments", org.json.JSONArray(prev.foods.map { JSONObject().put("nom", it.name).put("quantite_g", it.grams).put("kcal", it.kcal) }))
+            .put("kcal", prev.kcal).put("proteines_g", prev.proteinG.roundToInt()).put("glucides_g", prev.carbsG.roundToInt()).put("lipides_g", prev.fatG.roundToInt())
+        val ask = if (newName != null) "Le plat s'appelle en réalité : « ${newName.take(80)} ». Adapte les aliments, poids et calories à ce plat (portion comparable)."
+                  else "Précision de l'utilisateur : « ${correction.take(200)} »."
+        val prompt = """
+            Tu aides à estimer les calories d'un repas (usage bien-être, pas d'avis médical). Une photo a déjà été analysée :
+            ${before}
+            $ask
+            La précision de l'utilisateur décrit la réalité : elle est prioritaire sur l'analyse. Corrige les aliments concernés
+            (nom, quantité en grammes, calories), ajoute ou retire ce qu'elle indique, garde les autres tels quels, puis recalcule
+            le total et les macros. Si la précision n'a rien à voir avec ce repas, renvoie l'analyse inchangée.
+            Allergies de l'utilisateur : $allergies. Signale tout aliment qui pourrait en contenir.
+            Réponds UNIQUEMENT en JSON, en français, avec exactement ce format :
+            {"plat": "nom court du plat",
+             "aliments": [{"nom": "...", "quantite_g": 0, "kcal": 0}],
+             "kcal": 0, "proteines_g": 0, "glucides_g": 0, "lipides_g": 0,
+             "allergenes_detectes": ["..."], "confiance": 0.0,
+             "conseil": "une phrase courte et bienveillante",
+             "portions": [{"nom": "...", "nombre": 1}],
+             "eau_ml": 0, "boisson_seule": false}
+        """.trimIndent()
+        val r = parseFood(call(prompt, null, task = "json"), "")
+        // Le Nutridex et le frigo restent ceux de la photo ; le nom choisi par la personne est gardé tel quel
+        return r.copy(
+            dish = newName?.trim()?.take(80)?.ifBlank { null } ?: r.dish,
+            dexIds = prev.dexIds,
+            fridgeUsed = prev.fridgeUsed,
+            waterMl = if (newName != null) prev.waterMl else r.waterMl
+        )
+    }
+
+    private fun parseFood(o: JSONObject, fridge: String): FoodAnalysis {
         val fridgeNames = com.goodlife.app.data.Fridge.items.value.map { it.name.lowercase() }.toSet()
         val foods = o.optJSONArray("aliments")?.mapObjects { a ->
             com.goodlife.app.data.FoodPart(
