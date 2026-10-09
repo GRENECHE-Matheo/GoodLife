@@ -172,16 +172,6 @@ private fun HomeContent(
     val eaten = today.sumOf { it.kcal }
     val remaining = p.targetKcal - eaten
 
-    var showAdd by remember { mutableStateOf(false) }
-    var suggestions by remember { mutableStateOf<List<MealSuggestion>>(emptyList()) }
-    var sugLoading by remember { mutableStateOf(false) }
-    var sugError by remember { mutableStateOf<String?>(null) }
-    var expandedIdx by remember { mutableIntStateOf(-1) }
-    var sugSlot by remember { mutableStateOf<MealSlot?>(null) }
-    var planFor by remember { mutableStateOf<MealSuggestion?>(null) }
-    var recipeFor by remember { mutableStateOf<MealSuggestion?>(null) }
-    var fridgeOpen by remember { mutableStateOf(false) }
-    val recipes = remember { mutableStateMapOf<String, Recipe>() }
 
     val uri = LocalUriHandler.current
     val game by Repo.game.collectAsState()
@@ -225,6 +215,7 @@ private fun HomeContent(
                         1f, if (summary.streak > 0) 1.15f else 1f,
                         infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "flameScale"
                     )
+                    Text(t("Niv. %1\$s · ", summary.level.level), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Icon(
                         Icons.Filled.LocalFireDepartment, t("Série"), tint = FLAME,
                         modifier = Modifier.size(20.dp).graphicsLayer { scaleX = scale; scaleY = scale }
@@ -232,16 +223,6 @@ private fun HomeContent(
                     Text("${summary.streak}", fontWeight = FontWeight.Bold, color = FLAME)
                     if (game.freezes > 0) Text("  ❄️${game.freezes}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
-            }
-            Spacer(Modifier.width(4.dp))
-            // Quiz du jour : en un appui depuis l'en-tête (un point tant qu'il n'est pas fait aujourd'hui)
-            Box {
-                Surface(onClick = onQuiz, shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Text("🧠", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
-                }
-                if (!summary.quizDoneToday) Box(
-                    Modifier.align(Alignment.TopEnd).size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error)
-                )
             }
             Spacer(Modifier.width(4.dp))
             // Le chef en haut ouvre la conversation avec le coach
@@ -292,24 +273,31 @@ private fun HomeContent(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onScan, modifier = Modifier.weight(1f).height(52.dp)) {
-                Icon(Icons.Filled.PhotoCamera, null)
-                Spacer(Modifier.width(8.dp))
-                Text(t("Scanner"))
-            }
-            FilledTonalButton(onClick = { showAdd = true }, modifier = Modifier.weight(1f).height(52.dp)) {
-                Icon(Icons.Filled.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text(t("Saisir"))
-            }
+        // Un seul bouton pour ajouter un repas : tout se fait dans l'onglet Ajouter (photo, code-barres, à la main, refaire)
+        Button(onClick = onScan, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Icon(Icons.Filled.Add, null)
+            Spacer(Modifier.width(8.dp))
+            Text(t("Ajouter un repas"), style = MaterialTheme.typography.titleMedium)
         }
-        QuickMeals()
-        // Actus : tout en haut, faciles à trouver
-        NewsTeaser(onOpen = onNews)
         FridgeUndoCard()
 
-        // Mise à jour disponible : bien visible, en haut (vérifiée à chaque ouverture de l'app)
+        // Toujours à la même place : les repas du jour, puis l'eau
+        SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
+            if (today.isEmpty()) {
+                Text(
+                    t("Aucun repas enregistré. Appuie sur « Ajouter un repas » pour commencer."),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            today.forEachIndexed { i, m ->
+                if (i > 0) HorizontalDivider()
+                MealRow(m, favorite = favs.any { it.name.trim().equals(m.name.trim(), ignoreCase = true) }, onFavorite = { Repo.toggleFavorite(m) }) { Repo.deleteMeal(m.id) }
+            }
+        }
+
+        WaterCard()
+
+        // Ensuite, ce qui dépend du jour : quiz, série à sauver, humeur, missions, badge, nouvelle version…
         val update = if (settings.checkUpdates) Updater.availableUpdate() else null
         if (update != null && update.tag != settings.dismissedTag) {
             SectionCard(
@@ -320,9 +308,6 @@ private fun HomeContent(
                 UpdatePanel(update, showDismiss = true)
             }
         }
-
-        CareCard(summary)
-        NewBadgeCard(summary, onOpen = onProgress)
 
         // Série cassée hier : le cuisto propose de la sauver
         if (summary.recoverableStreak > 0) {
@@ -346,204 +331,33 @@ private fun HomeContent(
                     }
                 } else Button(onClick = onQuiz) { Text(t("Sauver ma série")) }
             }
-        }
-
-        // Niveau et XP
-        Surface(onClick = onProgress, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        t("Niveau %1\$s · %2\$s", summary.level.level, summary.level.title),
-                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(t("Score du jour : %1\$s", summary.today.score), style = MaterialTheme.typography.labelLarge)
+        } else if (!summary.quizDoneToday) {
+            // Quiz du jour : une carte claire (avant, c'était un 🧠 sans nom dans l'en-tête)
+            Surface(onClick = onQuiz, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("🧠", style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(t("Quiz du jour"), style = MaterialTheme.typography.titleMedium)
+                        Text(t("%1\$s questions du chef pour gagner de l'XP et garder ta série", QuizBank.PER_DAY), style = MaterialTheme.typography.bodySmall)
+                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                 }
-                val xp by animateFloatAsState(summary.level.progress, tween(900, easing = FastOutSlowInEasing), label = "xp")
-                LinearProgressIndicator(
-                    progress = { xp },
-                    modifier = Modifier.fillMaxWidth().height(10.dp),
-                    strokeCap = StrokeCap.Round
-                )
-                Text(
-                    t("%1\$s XP avant le niveau %2\$s · voir mes progrès", summary.level.xpForNext - summary.level.xpInLevel, summary.level.level + 1),
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
-
-        // Juste sous le niveau : ce qu'on touche le plus dans la journée (repas, puis l'eau)
-        SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
-            if (today.isEmpty()) {
-                Text(
-                    t("Aucun repas enregistré. Prends ton assiette en photo pour commencer."),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            today.forEachIndexed { i, m ->
-                if (i > 0) HorizontalDivider()
-                MealRow(m, favorite = favs.any { it.name.trim().equals(m.name.trim(), ignoreCase = true) }, onFavorite = { Repo.toggleFavorite(m) }) { Repo.deleteMeal(m.id) }
-            }
-        }
-
-        WaterCard()
-
-        TrackCard(onTrack)
-        CoachCard(summary, p, onOpen = onCoach)
-        MissionsCard(summary)
-        if (!settings.notifAsked) NotifOptInCard()
 
         FeelingCard()
+        MissionsCard(summary, onQuiz = onQuiz)
+        NewBadgeCard(summary, onOpen = onProgress)
+        CareCard(summary)
+        if (!settings.notifAsked) NotifOptInCard()
 
-        SectionCard(title = t("Idées de repas"), icon = Icons.Filled.AutoAwesome) {
-            if (!settings.aiEnabled) {
-                Text(
-                    t("Les idées de repas utilisent l'IA (désactivée). Tu peux l'activer dans Paramètres."),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Text(
-                    t("Selon ce qu'il te reste, tes habitudes et tes allergies. Touche une idée pour les détails."),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                // Pour quel repas ?
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(selected = sugSlot == null, onClick = { sugSlot = null }, label = { Text(t("Toute la journée")) })
-                    MealSlot.entries.forEach { slot ->
-                        FilterChip(selected = sugSlot == slot, onClick = { sugSlot = slot }, label = { Text(slot.label) })
-                    }
-                }
-                suggestions.forEachIndexed { i, s ->
-                    if (i > 0) HorizontalDivider()
-                    SuggestionRow(
-                        s = s,
-                        expanded = expandedIdx == i,
-                        onToggle = { expandedIdx = if (expandedIdx == i) -1 else i },
-                        onPlan = { planFor = s },
-                        onRecipe = { recipeFor = s }
-                    )
-                }
-                if (sugError != null) Text(sugError!!, color = MaterialTheme.colorScheme.error)
-                // « Régénérer » remplace la liste ; « Plus d'idées » en ajoute d'autres, différentes
-                fun ask(append: Boolean) {
-                    sugLoading = true; sugError = null
-                    scope.launch {
-                        try {
-                            val fresh = Gemini(settings.apiKey, settings.model)
-                                .suggestMeals(p, today, sugSlot, avoid = suggestions.map { it.name })
-                            suggestions = if (append) suggestions + fresh else fresh
-                            if (!append) { expandedIdx = -1; recipes.clear() }
-                        } catch (e: Exception) {
-                            sugError = e.message
-                        } finally {
-                            sugLoading = false
-                        }
-                    }
-                }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FilledTonalButton(enabled = !sugLoading, onClick = { ask(append = false) }) {
-                        if (sugLoading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        else Icon(if (suggestions.isEmpty()) Icons.Filled.AutoAwesome else Icons.Filled.Refresh, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (suggestions.isEmpty()) t("Proposer des repas") else t("Régénérer"))
-                    }
-                    TextButton(onClick = { fridgeOpen = true }) { Text(t("🧊 Mon frigo")) }
-                    if (suggestions.isNotEmpty()) {
-                        TextButton(enabled = !sugLoading, onClick = { ask(append = true) }) {
-                            Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(t("Plus d'idées"))
-                        }
-                    }
-                }
-            }
-        }
-
-        SectionCard(title = t("7 derniers jours"), icon = Icons.Filled.BarChart) {
-            val days = (-6..0).toList()
-            val values = days.map { d -> Repo.mealsOfDay(meals, d).sumOf { it.kcal }.toFloat() }
-            val labels = days.map { d ->
-                formatDay(Repo.dayBounds(d).first).take(3).replaceFirstChar { it.uppercase() }
-            }
-            WeekBars(values, p.targetKcal.toFloat(), labels, MaterialTheme.colorScheme.primary, format = { "%.0f kcal".format(it) })
-            Text(
-                t("Moyenne : %1\$s kcal/jour · la ligne jaune = ton objectif", values.average().toInt()),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        CoachCard(summary, p, onOpen = onCoach)
+        // Actus : en bas, et aussi dans Moi › Actus du jour (accessibles même sans thème choisi)
+        NewsTeaser(onOpen = onNews)
         Spacer(Modifier.height(8.dp))
     }
 
-    planFor?.let { s ->
-        AddToPlanDialog(
-            initialName = s.name, initialKcal = s.kcal, initialSlot = MealSlot.guess(s.moment),
-            description = s.description, recipe = recipes[s.name], editableName = false,
-            onDismiss = { planFor = null }
-        )
-    }
-    recipeFor?.let { s ->
-        RecipeDialog(
-            name = s.name, description = s.description, kcal = s.kcal, cached = recipes[s.name],
-            onLoaded = { recipes[s.name] = it }, onDismiss = { recipeFor = null }
-        )
-    }
-
-    if (fridgeOpen) FridgeDialog(onDismiss = { fridgeOpen = false })
-    if (showAdd) AddMealDialog(onDismiss = { showAdd = false }) { Repo.addMeal(it); showAdd = false }
-}
-
-@Composable
-private fun SuggestionRow(
-    s: MealSuggestion,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    onPlan: () -> Unit,
-    onRecipe: () -> Unit
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(s.name, fontWeight = FontWeight.Medium)
-                Text(
-                    listOf(s.moment.replaceFirstChar { it.uppercase() }, s.summary).filter { it.isNotBlank() }.joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text("${s.kcal} kcal", color = MaterialTheme.colorScheme.primary)
-            Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
-        }
-        AnimatedVisibility(visible = expanded, enter = androidx.compose.animation.expandVertically(expandFrom = androidx.compose.ui.Alignment.Top) + androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.shrinkVertically(shrinkTowards = androidx.compose.ui.Alignment.Top)) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
-                Text(s.description, style = MaterialTheme.typography.bodyMedium)
-                if (s.why.isNotBlank()) {
-                    Text(
-                        s.why, style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                AiContentFooter(t("Idée de repas : %1\$s (%2\$s kcal)\n%3\$s\n%4\$s", s.name, s.kcal, s.description, s.why))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FilledTonalButton(onClick = onPlan) {
-                        Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(t("Planifier"))
-                    }
-                    OutlinedButton(onClick = onRecipe) {
-                        Icon(Icons.Filled.Restaurant, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(t("Recette"))
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -563,48 +377,6 @@ private fun MealRow(m: Meal, favorite: Boolean, onFavorite: () -> Unit, onDelete
                 tint = if (favorite) GoogleYellow else MaterialTheme.colorScheme.onSurfaceVariant)
         }
         IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, t("Supprimer")) }
-    }
-}
-
-/**
- * « Mon suivi » : calories, pas et poids en un coup d'œil. Chaque case ouvre directement son graphique ;
- * « Me peser » ouvre la pesée sans chercher.
- */
-@Composable
-private fun TrackCard(onTrack: (String) -> Unit) {
-    val meals by Repo.meals.collectAsState()
-    val steps by Repo.steps.collectAsState()
-    val game by Repo.game.collectAsState()
-    val profile by Repo.profile.collectAsState()
-    val settings by Repo.settings.collectAsState()
-    val p = profile ?: return
-    val avgKcal = remember(meals) {
-        (-7..-1).map { d -> Repo.mealsOfDay(meals, d).sumOf { it.kcal } }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.average()?.toInt()
-    }
-    val todaySteps = steps.days[com.goodlife.app.data.localDay(0)]?.steps
-    val weight = game.weights.lastOrNull()?.second ?: p.weightKg
-    SectionCard(title = t("Mon suivi"), icon = Icons.Filled.BarChart) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Max)) {
-            TrackTile("🔥", avgKcal?.let { t("%1\$s kcal", it) } ?: "—", t("moyenne 7 j"), Modifier.weight(1f)) { onTrack("kcal") }
-            TrackTile("👣", if (settings.stepsEnabled && todaySteps != null) formatSteps(todaySteps) else "—", t("pas aujourd'hui"), Modifier.weight(1f)) { onTrack("steps") }
-            TrackTile("⚖️", "%.1f kg".format(weight), t("dernier poids"), Modifier.weight(1f)) { onTrack("weight") }
-        }
-        FilledTonalButton(onClick = { onTrack("weighin") }, modifier = Modifier.fillMaxWidth()) {
-            Text(t("⚖️ Me peser"))
-        }
-    }
-}
-
-@Composable
-private fun TrackTile(emoji: String, value: String, label: String, modifier: Modifier, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxHeight()) {
-        Column(Modifier.padding(horizontal = 8.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(emoji, style = MaterialTheme.typography.titleMedium)
-            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 2)
-        }
     }
 }
 

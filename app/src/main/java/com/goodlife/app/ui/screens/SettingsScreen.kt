@@ -30,6 +30,9 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -152,69 +155,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
     ScreenColumn {
         SubScreenHeader(t("Paramètres"), onBack)
 
-        // ---- Apparence ----
-        FoldableSection(t("Apparence et sons"), Icons.Filled.Palette, t("Thème, couleur, langue, sons")) {
-            Text(t("Thème"), style = MaterialTheme.typography.labelLarge)
-            THEME_MODES.forEach { (id, label) ->
-                Row(
-                    Modifier.fillMaxWidth().selectable(
-                        selected = settings.themeMode == id,
-                        onClick = { Repo.updateSettings { it.copy(themeMode = id) } },
-                        role = Role.RadioButton
-                    ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(selected = settings.themeMode == id, onClick = null)
-                    Spacer(Modifier.width(12.dp))
-                    Text(label)
-                }
-            }
-            Text(t("Couleur"), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                THEME_COLORS.filter { it.first != "auto" || dynamicColorSupported }.forEach { (id, label) ->
-                    FilterChip(
-                        selected = settings.themeColor == id ||
-                            (settings.themeColor == "auto" && !dynamicColorSupported && id == "blue"),
-                        onClick = { Repo.updateSettings { it.copy(themeColor = id) } },
-                        label = { Text(label) }
-                    )
-                }
-            }
-            if (dynamicColorSupported) {
-                Text(
-                    t("« Couleurs du téléphone » reprend les couleurs de ton fond d'écran (Material You)."),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(t("Langue"), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("system" to t("Langue du téléphone"), "fr" to "Français", "en" to "English").forEach { (id, label) ->
-                    FilterChip(
-                        selected = settings.language == id,
-                        onClick = {
-                            if (settings.language != id) {
-                                Repo.updateSettings { it.copy(language = id) }
-                                restartApp(context)
-                            }
-                        },
-                        label = { Text(label) }
-                    )
-                }
-            }
-            SettingSwitch(
-                title = t("Sons"),
-                subtitle = t("Petits sons pendant le quiz et quand l'XP monte. Suivent le volume multimédia."),
-                checked = settings.sounds,
-                onChange = { v ->
-                    Repo.updateSettings { it.copy(sounds = v) }
-                    if (v) Sounds.play(Sfx.CORRECT)
-                }
-            )
-        }
-
-        // ---- Sécurité ----
-        FoldableSection(t("Coach et notifications"), Icons.Filled.Notifications, t("Rappels et petits mots du chef")) {
+        // ---- Notifications ----
+        FoldableSection(t("Notifications"), Icons.Filled.Notifications, t("Petits mots du chef, rappel d'eau")) {
             Text(
                 t("Messages préparés sur ton téléphone (sans réseau ni IA), jamais plus d'un à la fois. Sur l'écran verrouillé, seul « Un message du chef » s'affiche."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -225,6 +167,10 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 t("Vers 15 h 30, seulement si tu as bu moins de la moitié de ton objectif d'eau."),
                 settings.notifWater
             ) { on -> Repo.updateSettings { it.copy(notifWater = on) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
+        }
+
+        // ---- Objectifs du jour : eau, puis pas ----
+        FoldableSection(t("Objectif d'eau"), Icons.Filled.WaterDrop, if (settings.waterGoalMode == "ia") t("Conseil de l'IA") else t("%1\$s L par jour", String.format(com.goodlife.app.i18n.Lang.locale, "%.1f", settings.waterGoalMl / 1000.0).removeSuffix(",0").removeSuffix(".0"))) {
             Text(t("Objectif d'eau par jour"), style = MaterialTheme.typography.labelLarge)
             val aiWater = Repo.aiAllowed() && com.goodlife.app.ai.AiAccess.ready(settings)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -245,6 +191,26 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        // ---- Pas ----
+        StepsSettingsSection()
+
+        // ---- Sommeil et actus : leurs réglages sont dans leurs écrans, on y mène directement ----
+        FoldableSection(t("Sommeil"), Icons.Filled.Bedtime, if (settings.sleepAuto) t("Détection automatique activée") else t("Détection automatique désactivée")) {
+            Text(
+                t("La détection automatique du sommeil et le mode manuel se règlent dans Forme › Sommeil."),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(onClick = { com.goodlife.app.social.AppNav.request.value = "forme:sommeil" }) { Text(t("Ouvrir le sommeil")) }
+        }
+        FoldableSection(t("Actus du jour"), Icons.Filled.Newspaper, t("Thèmes des actus et anecdotes")) {
+            Text(
+                t("Choisis tes thèmes (alimentation, sport, santé, insolite, anecdote du jour) en haut de l'écran des actus. Sans thème, les actus ne s'affichent plus sur l'accueil, mais restent dans Moi › Actus du jour."),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(onClick = { com.goodlife.app.social.AppNav.request.value = "moi:news" }) { Text(t("Choisir mes thèmes")) }
+        }
+
+        // ---- Sécurité ----
         FoldableSection(t("Sécurité"), Icons.Filled.Fingerprint, t("Verrouillage et captures d'écran")) {
             SettingSwitch(
                 title = t("Verrouiller avec l'empreinte"),
@@ -275,9 +241,6 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             if (lockMessage != null) Text(lockMessage!!, color = MaterialTheme.colorScheme.error)
         }
 
-        // ---- Pas ----
-        StepsSettingsSection()
-
         // ---- Sauvegarde ----
         BackupSection()
 
@@ -297,6 +260,13 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 subtitle = t("Après la photo d'un repas, le chef propose de retirer de « Mon frigo » ce qui a été utilisé. Tu valides, ou tu choisis « Pas mangé chez moi ». Le contenu du frigo est alors envoyé à Gemini avec la photo."),
                 checked = settings.fridgeAutoRemove,
                 onChange = { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
+            )
+            // Le même réglage que dans l'historique du coach : rangé aussi ici pour qu'on le trouve
+            if (settings.aiEnabled) SettingSwitch(
+                title = t("Garder l'historique du coach"),
+                subtitle = t("Tes conversations avec le chef restent chiffrées sur ton téléphone (sans les photos) pour les reprendre plus tard."),
+                checked = settings.coachHistory,
+                onChange = { on -> Repo.updateSettings { it.copy(coachHistory = on) } }
             )
             if (settings.aiEnabled && com.goodlife.app.ai.AiAccess.viaRelay) {
                 PremiumSettingsCard()
@@ -409,8 +379,69 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             if (updateMessage != null) Text(updateMessage!!, style = MaterialTheme.typography.bodySmall)
         }
 
-        // ---- Confidentialité ----
-        FoldableSection(t("Ce qui quitte ton téléphone"), Icons.Filled.Lock, t("Ta vie privée en clair")) {
+        // ---- Apparence ----
+        FoldableSection(t("Apparence et sons"), Icons.Filled.Palette, t("Thème, couleur, langue, sons")) {
+            Text(t("Thème"), style = MaterialTheme.typography.labelLarge)
+            THEME_MODES.forEach { (id, label) ->
+                Row(
+                    Modifier.fillMaxWidth().selectable(
+                        selected = settings.themeMode == id,
+                        onClick = { Repo.updateSettings { it.copy(themeMode = id) } },
+                        role = Role.RadioButton
+                    ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = settings.themeMode == id, onClick = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(label)
+                }
+            }
+            Text(t("Couleur"), style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                THEME_COLORS.filter { it.first != "auto" || dynamicColorSupported }.forEach { (id, label) ->
+                    FilterChip(
+                        selected = settings.themeColor == id ||
+                            (settings.themeColor == "auto" && !dynamicColorSupported && id == "blue"),
+                        onClick = { Repo.updateSettings { it.copy(themeColor = id) } },
+                        label = { Text(label) }
+                    )
+                }
+            }
+            if (dynamicColorSupported) {
+                Text(
+                    t("« Couleurs du téléphone » reprend les couleurs de ton fond d'écran (Material You)."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(t("Langue"), style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("system" to t("Langue du téléphone"), "fr" to "Français", "en" to "English").forEach { (id, label) ->
+                    FilterChip(
+                        selected = settings.language == id,
+                        onClick = {
+                            if (settings.language != id) {
+                                Repo.updateSettings { it.copy(language = id) }
+                                restartApp(context)
+                            }
+                        },
+                        label = { Text(label) }
+                    )
+                }
+            }
+            SettingSwitch(
+                title = t("Sons"),
+                subtitle = t("Petits sons pendant le quiz et quand l'XP monte. Suivent le volume multimédia."),
+                checked = settings.sounds,
+                onChange = { v ->
+                    Repo.updateSettings { it.copy(sounds = v) }
+                    if (v) Sounds.play(Sfx.CORRECT)
+                }
+            )
+        }
+
+        // ---- Mes données ----
+        FoldableSection(t("Mes données et confidentialité"), Icons.Filled.Lock, t("Ce qui quitte ton téléphone, exporter, effacer")) {
             DataFlowSummary()
             Text(
                 if (settings.aiEnabled) t("IA : activée.") else t("IA : désactivée, rien n'est envoyé à Gemini."),
@@ -430,7 +461,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- À propos ----
-        FoldableSection(t("À propos"), Icons.Filled.Info, t("Version, contact, effacer mes données")) {
+        FoldableSection(t("À propos"), Icons.Filled.Info, t("Version, contact, licences")) {
             Text(t("Lifoody v%1\$s", BuildConfig.VERSION_NAME), fontWeight = FontWeight.Medium)
             Text(
                 t("Projet développé avec l'assistance d'une IA (Claude, Anthropic). Lifoody est une app de bien-être, pas un dispositif médical : elle ne diagnostique, ne traite ni ne prévient aucune maladie. Les estimations sont indicatives et ne remplacent pas l'avis d'un professionnel de santé."),

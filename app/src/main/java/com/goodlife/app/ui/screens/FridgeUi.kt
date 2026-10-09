@@ -101,7 +101,7 @@ private fun step(unit: String): Double = when (unit) {
  * d'un ticket de caisse ou par le chef ; puis « Que cuisiner ? » avec ce qu'il contient.
  */
 @Composable
-internal fun FridgeContent(onClose: () -> Unit) {
+internal fun FridgeContent(onClose: () -> Unit, embedded: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by Repo.settings.collectAsState()
@@ -161,7 +161,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
     fun gallery(forWhat: String) { photoFor = forWhat; pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
 
     ScreenColumn {
-        SubScreenHeader(t("Mon frigo"), onClose)
+        if (!embedded) SubScreenHeader(t("Mon frigo"), onClose)
 
         // ---- Inventaire ----
         SectionCard(title = if (items.isEmpty()) t("Ce que j'ai à la maison") else t("Ce que j'ai à la maison · %1\$s", items.size), icon = Icons.Filled.Kitchen) {
@@ -197,7 +197,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
 
         // ---- Que cuisiner ? ----
         if (!aiReady) {
-            Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la dans Profil › Paramètres (18 ans et plus).") else t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la et ajoute ta clé Gemini dans Profil › Paramètres (18 ans et plus)."),
+            Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la dans Moi › Paramètres (18 ans et plus).") else t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la et ajoute ta clé Gemini dans Moi › Paramètres (18 ans et plus)."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return@ScreenColumn
         }

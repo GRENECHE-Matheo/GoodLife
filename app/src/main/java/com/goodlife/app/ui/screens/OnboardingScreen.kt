@@ -130,6 +130,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
         Repo.updateSettings {
             it.copy(
                 privacyAcceptedAt = System.currentTimeMillis(),
+                notifAsked = true,   // les notifications viennent d'être proposées : l'écran « Tes options » ne les redemande pas
                 stepsGoalMode = stepsMode,
                 stepsGoalManual = stepsManual.toNumber()?.toInt()?.coerceIn(1000, 40_000) ?: 8000
             )
@@ -261,7 +262,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                                         when (stepsMode) {
                                             "auto" -> t("Ta moyenne des 7 derniers jours + 10 %, pour progresser doucement (6 000 pas au début).")
                                             "manual" -> t("Tu fixes ton objectif, tu pourras le changer quand tu veux.")
-                                            else -> t("Chaque jour, l'IA regarde tes vrais pas de la semaine et ajuste ton objectif petit à petit (jamais plus de 15 % d'un jour à l'autre). Il faut activer l'IA (18 ans et plus) à l'étape suivante ; en attendant, l'objectif est automatique.")
+                                            else -> t("Chaque jour, l'IA regarde tes vrais pas de la semaine et ajuste ton objectif petit à petit (jamais plus de 15 % d'un jour à l'autre). Il faut activer l'IA (18 ans et plus) juste après l'inscription ; en attendant, l'objectif est automatique.")
                                         },
                                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

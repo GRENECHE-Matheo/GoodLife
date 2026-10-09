@@ -9,6 +9,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,13 +40,18 @@ fun FormeScreen() {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val active = com.goodlife.app.track.Tracker.live.collectAsState().value != null
     androidx.compose.runtime.LaunchedEffect(active) { if (active) tab = 1 }
+    val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(navRequest) {
+        if (navRequest == "forme:sommeil") { tab = 2; com.goodlife.app.social.AppNav.request.value = null }
+    }
     Column(Modifier.fillMaxSize()) {
         // Sur la carte, on garde toute la place pour elle : le grand titre se replie en douceur (au lieu de disparaître d'un coup)
         // Le titre se replie AVANT que la carte n'apparaisse (elle est créée après l'animation) et la carte est retirée d'un coup quand on la quitte :
         // la carte n'est jamais redimensionnée pendant une animation (c'est ce qui la faisait saccader)
         AnimatedVisibility(
             visible = !active && tab != 1,
-            enter = fadeIn(tween(220)),   // en revenant de la carte : le titre est tout de suite à sa place, rien ne glisse
+            // En revenant de la carte : le titre glisse depuis le haut en fondu, sans pousser le contenu
+            enter = slideInVertically(tween(Motion.DURATION)) { -it / 2 } + fadeIn(tween(Motion.DURATION)),
             exit = shrinkVertically(tween(Motion.DURATION)) + fadeOut(tween(Motion.DURATION / 2))
         ) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -56,7 +62,7 @@ fun FormeScreen() {
         }
         AnimatedVisibility(visible = !active, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
             PrimaryTabRow(selectedTabIndex = tab) {
-                listOf(t("Programme"), t("Carte"), t("Sommeil")).forEachIndexed { i, label ->
+                listOf(t("Programme"), t("Sorties"), t("Sommeil")).forEachIndexed { i, label ->
                     Tab(selected = tab == i, onClick = { tab = i }, text = { com.goodlife.app.ui.FitText(label) })
                 }
             }

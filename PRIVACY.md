@@ -73,7 +73,7 @@ Le fond de carte vient d'OpenFreeMap (données © contributeurs OpenStreetMap, �
 
 ## Notifications du coach
 
-Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Coach et notifications). Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes chiffres ; si le verrouillage par empreinte est activé, les chiffres ne s'affichent nulle part dans les notifications. Tu peux couper chaque notification à tout moment.
+Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Paramètres › Notifications). Le bilan du matin, le mot de midi, le rappel du soir et le bilan de la semaine sont préparés sur ton téléphone, sans réseau ni IA et sans aucun serveur. Sur l'écran verrouillé, seul « Un message du chef » s'affiche, sans tes chiffres ; si le verrouillage par empreinte est activé, les chiffres ne s'affichent nulle part dans les notifications. Tu peux couper chaque notification à tout moment.
 
 ## Actus du jour
 
@@ -118,7 +118,7 @@ La détection automatique utilise la Sleep API des services Google Play, calcul�
 
 ## Tes droits (RGPD)
 
-Accès et portabilité : Paramètres › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une) : le développeur n'en a aucune copie. Dans la version Google Play, le service IA ne garde que des compteurs d'utilisation liés à un identifiant aléatoire : « Effacer toutes mes données » remplace cet identifiant, et les anciens compteurs sont effacés automatiquement après 120 jours. Pour toute question : contact.fanixstudio@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
+Accès et portabilité : Paramètres › Mes données et confidentialité › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Moi › Mon objectif et mes infos. Effacement : Paramètres › Mes données et confidentialité › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une) : le développeur n'en a aucune copie. Dans la version Google Play, le service IA ne garde que des compteurs d'utilisation liés à un identifiant aléatoire : « Effacer toutes mes données » remplace cet identifiant, et les anciens compteurs sont effacés automatiquement après 120 jours. Pour toute question : contact.fanixstudio@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
 
 ## Ce que Lifoody ne fait pas
 

@@ -152,7 +152,7 @@ fun NewsScreen(onBack: () -> Unit) {
                 }
             }
             if (chosen.isEmpty()) Text(
-                t("Aucun thème choisi : les actus sont désactivées et n'apparaissent plus sur l'accueil. Choisis un thème pour les retrouver."),
+                t("Aucun thème choisi : les actus n'apparaissent plus sur l'accueil (cet écran reste dans Moi › Actus du jour). Choisis un thème pour les retrouver."),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if ("anecdote" in chosen) DailyAnecdote(today)

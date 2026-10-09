@@ -119,8 +119,8 @@ object Shopping {
 }
 
 @Composable
-fun ShoppingScreen(onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
+fun ShoppingScreen(onBack: () -> Unit, embedded: Boolean = false) {
+    if (!embedded) BackHandler(onBack = onBack)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val plan by Repo.plan.collectAsState()
@@ -137,7 +137,7 @@ fun ShoppingScreen(onBack: () -> Unit) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {
-            SubScreenHeader(t("Liste de courses"), onBack)
+            if (!embedded) SubScreenHeader(t("Liste de courses"), onBack)
             SectionCard(title = t("Pour les 7 prochains jours"), icon = Icons.Filled.ShoppingCart) {
                 Text(
                     if (upcoming.isEmpty()) t("Aucun repas prévu : ajoute des repas dans le planning, ou écris tes articles ci-dessous.")

@@ -22,7 +22,12 @@ Interface Material You, **aucun compte, aucune pub** : tes données restent chif
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.18.0
+## 🆕 Bientôt (v0.19.0)
+
+- **Une app rangée** : onglets Aujourd'hui · Ajouter · Repas · Forme · Moi, chaque fonction à un seul endroit,
+  paramètres rangés par thème.
+
+## Nouveautés de la v0.18.0
 
 - **Version Google Play : Lifoody Premium** — l'IA sans clé à créer, via le service IA de Lifoody (3 essais gratuits,
   puis 3,99 €/mois ou 29,99 €/an avec 7 jours d'essai). Le serveur n'enregistre ni photo ni message.
@@ -80,7 +85,7 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 
 - **Photos dans la conversation avec le coach**, et des **listes de courses** qu'il prépare pour toi.
 - **Objectif d'eau calculé chaque jour par l'IA**, planning avec **précisions** et liste de courses automatique.
-- **Retour** vers l'accueil depuis chaque onglet, **quiz** en un appui depuis l'en-tête, **Nutridex** qui se colorie.
+- **Retour** vers l'accueil depuis chaque onglet, **quiz** en un appui, **Nutridex** qui se colorie.
 
 ## Nouveautés de la v0.9.7
 

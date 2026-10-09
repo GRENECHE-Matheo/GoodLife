@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
@@ -132,7 +134,7 @@ private fun ScaleRow(icons: List<String>, selected: Int, onPick: (Int) -> Unit) 
 
 /** Missions de la première semaine (XP donnée une seule fois). */
 @Composable
-fun MissionsCard(summary: GameSummary) {
+fun MissionsCard(summary: GameSummary, onQuiz: () -> Unit = {}) {
     val meals by Repo.meals.collectAsState(); val game by Repo.game.collectAsState(); val water by Repo.water.collectAsState()
     val feelings by Repo.feelings.collectAsState(); val social by Repo.social.collectAsState(); val outings by Repo.outings.collectAsState()
     val missions = remember(meals, game, water, feelings, social, outings, summary) { Milestones.missions(summary) }
@@ -156,13 +158,22 @@ fun MissionsCard(summary: GameSummary) {
             }
             LinearProgressIndicator(progress = { done.toFloat() / missions.size }, modifier = Modifier.fillMaxWidth().height(6.dp), strokeCap = StrokeCap.Round)
             if (open) missions.forEach { m ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Une mission à faire mène directement là où on la fait (avant, il fallait chercher)
+                val go: (() -> Unit)? = if (m.done) null else when (m.id) {
+                    "repas", "scan" -> ({ com.goodlife.app.social.AppNav.request.value = "add" })
+                    "quiz" -> onQuiz
+                    "sport" -> ({ com.goodlife.app.social.AppNav.request.value = "forme" })
+                    "ami" -> ({ com.goodlife.app.social.AppNav.request.value = "moi:friends" })
+                    else -> null
+                }
+                Row(Modifier.fillMaxWidth().then(if (go != null) Modifier.clickable(onClick = go) else Modifier).padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(if (m.done) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked, null,
                         tint = if (m.done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Text("${m.emoji} ${m.title}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
                         color = if (m.done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
                     Text(t("+%1\$s XP", m.xp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    if (go != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(18.dp))
                 }
             }
         }

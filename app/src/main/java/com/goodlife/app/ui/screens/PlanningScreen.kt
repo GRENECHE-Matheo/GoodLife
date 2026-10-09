@@ -2,6 +2,10 @@
 
 package com.goodlife.app.ui.screens
 
+import androidx.compose.material3.Tab
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
@@ -107,8 +111,51 @@ private fun parse(d: String) = runCatching { ISO.parse(d) }.getOrNull()
 private fun fmt(d: String, pattern: String) = parse(d)?.let { SimpleDateFormat(pattern, com.goodlife.app.i18n.Lang.locale).format(it) } ?: d
 fun euros(v: Double): String = String.format(com.goodlife.app.i18n.Lang.locale, "%.2f €", v)
 
+/**
+ * Onglet « Repas » : tout ce qui concerne la cuisine, en 4 sous-onglets. Avant, les idées de repas étaient
+ * en bas de l'accueil, et la liste de courses et le frigo cachés derrière des boutons du planning.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun PlanningScreen() {
+    var sub by rememberSaveable { mutableIntStateOf(0) }
+    val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
+    LaunchedEffect(navRequest) {
+        val r = navRequest ?: return@LaunchedEffect
+        val target = when (r) { "repas:planning" -> 0; "repas:idees" -> 1; "repas:courses" -> 2; "repas:frigo" -> 3; else -> -1 }
+        if (target >= 0) { sub = target; com.goodlife.app.social.AppNav.request.value = null }
+    }
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+                ScreenTitle(t("Repas"), t("Planning, idées, courses et frigo"))
+            }
+        }
+        PrimaryTabRow(selectedTabIndex = sub) {
+            listOf(t("Planning"), t("Idées"), t("Courses"), t("Frigo")).forEachIndexed { i, label ->
+                Tab(selected = sub == i, onClick = { sub = i }, text = { com.goodlife.app.ui.FitText(label) })
+            }
+        }
+        androidx.compose.animation.AnimatedContent(
+            targetState = sub,
+            transitionSpec = { com.goodlife.app.ui.Motion.sharedAxisX(forward = targetState > initialState) },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            label = "repas"
+        ) { current ->
+            Box(Modifier.fillMaxSize()) {
+                when (current) {
+                    0 -> PlanningTab()
+                    1 -> ScreenColumn { MealIdeasCard() }
+                    2 -> ShoppingScreen(onBack = {}, embedded = true)
+                    else -> FridgeContent(onClose = {}, embedded = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanningTab() {
     val plan by Repo.plan.collectAsState()
     val profile by Repo.profile.collectAsState()
     val settings by Repo.settings.collectAsState()
@@ -118,27 +165,17 @@ fun PlanningScreen() {
     var generate by remember { mutableStateOf(false) }
     var redoDay by remember { mutableStateOf<String?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
-    var shopping by remember { mutableStateOf(false) }
-    var fridge by remember { mutableStateOf(false) }
 
     val days = weekDays(week)
     val target = profile?.targetKcal ?: 0
 
     ScreenColumn {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { ScreenTitle(t("Planning"), t("Tes repas de la semaine")) }
-            if (settings.aiEnabled) {
-                FilledTonalButton(onClick = { generate = true }) {
-                    Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(t("Ma semaine"))
-                }
+        if (settings.aiEnabled) {
+            FilledTonalButton(onClick = { generate = true }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(t("Préparer ma semaine avec l'IA"))
             }
-        }
-
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            OutlinedButton(onClick = { shopping = true }) { Text(t("🛒 Liste de courses")) }
-            OutlinedButton(onClick = { fridge = true }) { Text(t("🧊 Mon frigo")) }
         }
 
         // Semaine : « 29 sept. – 5 oct. » avec flèches
@@ -259,9 +296,6 @@ fun PlanningScreen() {
         confirmButton = { TextButton(onClick = { Repo.clearPlanned(days.filter { it >= localDay(0) }.toSet()); confirmClear = false }) { Text(t("Vider")) } },
         dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(t("Annuler")) } }
     )
-    if (shopping) androidx.compose.ui.window.Dialog(onDismissRequest = { shopping = false },
-        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) { ShoppingScreen(onBack = { shopping = false }) }
-    if (fridge) FridgeDialog(onDismiss = { fridge = false })
 }
 
 @Composable

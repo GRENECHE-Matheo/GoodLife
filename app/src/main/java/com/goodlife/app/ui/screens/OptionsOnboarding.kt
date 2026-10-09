@@ -73,12 +73,14 @@ fun OptionsOnboardingScreen() {
             ChefMascot(size = 96.dp, mood = ChefMood.BRAVO)
             Text(t("Tes options"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                t("Tout est désactivé par défaut. Active ce qui te plaît maintenant : tu pourras tout changer plus tard dans Profil › Paramètres."),
+                t("Tout est désactivé par défaut. Active ce qui te plaît maintenant : tu pourras tout changer plus tard dans Moi › Paramètres."),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.widthIn(max = 520.dp)
             )
             Column(Modifier.widthIn(max = 520.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OptionRow("👣", t("Compter mes pas"), t("Avec le capteur du téléphone (ou Health Connect). Envoyés seulement à l'IA si tu l'actives, et le total de la semaine à tes amis si ton profil est public."),
+                // Pas et notifications : déjà demandés à l'inscription ; montrés seulement aux comptes plus anciens
+                val firstTime = !settings.notifAsked
+                if (firstTime) OptionRow("👣", t("Compter mes pas"), t("Avec le capteur du téléphone (ou Health Connect). Envoyés seulement à l'IA si tu l'actives, et le total de la semaine à tes amis si ton profil est public."),
                     settings.stepsEnabled) { on -> if (on) enableSteps() else Repo.updateSettings { it.copy(stepsEnabled = false) } }
                 OptionRow("😴", t("Détecter mon sommeil"), t("Estimé par ton téléphone pendant la nuit (Google Play Services), sans rien envoyer."),
                     settings.sleepAuto) { on ->
@@ -86,7 +88,7 @@ fun OptionsOnboardingScreen() {
                     else if (SleepTracker.hasPermission(context)) SleepTracker.subscribe(context) { ok, err -> message = if (ok) null else err }
                     else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) askActivity.launch(Manifest.permission.ACTIVITY_RECOGNITION)
                 }
-                OptionRow("🔔", t("Les petits mots du chef"), t("Un bilan le matin, un mot à midi, un rappel le soir si ta série est en danger, un bilan le dimanche."),
+                if (firstTime) OptionRow("🔔", t("Les petits mots du chef"), t("Un bilan le matin, un mot à midi, un rappel le soir si ta série est en danger, un bilan le dimanche."),
                     settings.anyNotif) { on -> if (on) askNotif() else saveNotifPrefs(context, NotifPrefs(false, false, false, false)) }
                 OptionRow("💧", t("Rappel pour boire de l'eau"), t("Un petit rappel l'après-midi si tu n'as pas assez bu."),
                     settings.notifWater) { on ->
@@ -108,7 +110,7 @@ fun OptionsOnboardingScreen() {
                     settings.fridgeAutoRemove) { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
             }
             Text(
-                t("Aussi à découvrir : les amis et les croisements (Profil › Amis), la sauvegarde chiffrée (Paramètres), les cartes hors ligne (Forme › Carte)."),
+                t("Aussi à découvrir : les amis et les croisements (Moi › Amis), la sauvegarde chiffrée (Paramètres), les cartes hors ligne (Forme › Sorties)."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.widthIn(max = 520.dp)
             )

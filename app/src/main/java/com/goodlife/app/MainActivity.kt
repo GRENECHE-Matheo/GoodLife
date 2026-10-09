@@ -37,6 +37,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -261,11 +263,12 @@ private const val KEY_SAVED_AT = "goodlife_saved_at"
 private data class Tab(val label: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab(t("Accueil"), Icons.Filled.Home),
-    Tab(t("Scanner"), Icons.Filled.PhotoCamera),
-    Tab(t("Planning"), Icons.Filled.DateRange),
+    // Un onglet = un rôle : ma journée, ajouter un repas, la cuisine, bouger et dormir, tout ce qui me concerne
+    Tab(t("Aujourd'hui"), Icons.Filled.Home),
+    Tab(t("Ajouter"), Icons.Filled.AddCircle),
+    Tab(if (com.goodlife.app.i18n.Lang.en) "Meals" else "Repas", Icons.Filled.Restaurant),   // « Meal » au singulier ailleurs
     Tab(t("Forme"), Icons.Filled.FitnessCenter),
-    Tab(t("Profil"), Icons.Filled.Person)
+    Tab(t("Moi"), Icons.Filled.Person)
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -317,10 +320,15 @@ private fun MainTabs() {
     // Demande venue d'une notification (écran Amis, dans l'onglet Profil)
     val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
     LaunchedEffect(navRequest) {
-        when (navRequest) {
-            "friends" -> tab = 4
-            // Bouton « Photo » du widget : onglet Scanner
-            "scan" -> { tab = 1; com.goodlife.app.social.AppNav.request.value = null }
+        val r = navRequest
+        when {
+            r == null -> Unit
+            r == "friends" || r.startsWith("moi:") -> tab = 4
+            r.startsWith("repas:") -> tab = 2
+            r == "forme" -> { tab = 3; com.goodlife.app.social.AppNav.request.value = null }
+            r.startsWith("forme:") -> tab = 3
+            // Bouton « Photo » du widget, « Ajouter un repas » : onglet Ajouter
+            r == "scan" || r == "add" -> { tab = 1; com.goodlife.app.social.AppNav.request.value = null }
         }
     }
     // Retour du téléphone : depuis Scanner, Planning, Forme ou Profil, on revient à l'accueil (seul l'accueil ferme l'app).

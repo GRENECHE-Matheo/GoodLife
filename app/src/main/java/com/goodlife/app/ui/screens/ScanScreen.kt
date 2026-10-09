@@ -52,6 +52,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
@@ -148,6 +150,7 @@ fun ScanScreen(onDone: () -> Unit) {
     var showDex by remember { mutableStateOf(false) }
     var fridgeAsk by remember { mutableStateOf<List<Pair<String, Double>>?>(null) }
     var correcting by remember { mutableStateOf(false) }
+    var manualOpen by remember { mutableStateOf(false) }
     var correctError by remember { mutableStateOf<String?>(null) }
     // Repas prévu au planning à ce créneau, différent de celui photographié : on demande s'il faut le remplacer
     var replaceAsk by remember { mutableStateOf<Pair<com.goodlife.app.data.PlannedMeal, Meal>?>(null) }
@@ -227,7 +230,15 @@ fun ScanScreen(onDone: () -> Unit) {
     }
 
     val header: @Composable () -> Unit = {
-        ScreenTitle(t("Scanner"), if (mode == "photo") t("Photo du repas : l'IA estime les calories") else t("Code-barres d'un produit emballé"))
+        ScreenTitle(
+            t("Ajouter un repas"),
+            when (mode) {
+                "photo" -> t("Photo du repas : l'IA estime les calories")
+                "barcode" -> t("Code-barres d'un produit emballé")
+                "manual" -> t("Un aliment et sa quantité, ou des calories")
+                else -> t("Tes favoris et tes repas habituels, en un appui")
+            }
+        )
         // Les deux modes passent à la ligne si la place manque (paysage, grande police) au lieu de couper les mots
         androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -243,6 +254,16 @@ fun ScanScreen(onDone: () -> Unit) {
                 label = { Text(t("Code-barres")) },
                 leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp)) }
             )
+            FilterChip(
+                selected = mode == "manual", onClick = { mode = "manual"; reset(); manualOpen = true },
+                label = { Text(t("À la main")) },
+                leadingIcon = { Icon(Icons.Filled.Edit, null, Modifier.size(18.dp)) }
+            )
+            FilterChip(
+                selected = mode == "redo", onClick = { mode = "redo"; reset() },
+                label = { Text(t("Refaire")) },
+                leadingIcon = { Icon(Icons.Filled.Replay, null, Modifier.size(18.dp)) }
+            )
         }
         // Version Play sans abonnement : combien d'essais IA gratuits il reste
         val relay by com.goodlife.app.ai.Relay.status.collectAsState()
@@ -255,7 +276,7 @@ fun ScanScreen(onDone: () -> Unit) {
     }
 
     val current = photo
-    val cameraReady = current == null && hasCamera &&
+    val cameraReady = current == null && hasCamera && (mode == "photo" || mode == "barcode") &&
         !(mode == "photo" && (!settings.aiEnabled || !com.goodlife.app.ai.AiAccess.ready(settings)))
 
     if (showDex) {
@@ -359,6 +380,16 @@ fun ScanScreen(onDone: () -> Unit) {
     ScreenColumn {
         header()
         when {
+            // Saisie à la main (table Ciqual, sans IA) : la fenêtre s'ouvre tout de suite, et ce bouton la rouvre
+            mode == "manual" -> SectionCard(title = t("Saisir à la main"), icon = Icons.Filled.Edit) {
+                Text(
+                    t("Cherche un aliment (riz cuit, pomme…) et indique les grammes : les calories et les macros viennent de la table Ciqual de l'Anses, sans IA. Ou entre directement des calories."),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(onClick = { manualOpen = true }) { Text(t("Saisir un aliment")) }
+            }
+            // Refaire un repas : favoris ⭐ et repas fréquents, en liste
+            mode == "redo" -> QuickMeals(vertical = true, onAdded = { reset(); onDone() })
             mode == "photo" && !settings.aiEnabled -> SectionCard(title = t("IA désactivée")) {
                 Text(
                     if (com.goodlife.app.ai.AiAccess.viaRelay) t("L'analyse des photos envoie la photo à Google Gemini (via le service IA de Lifoody), c'est pourquoi elle demande ton accord. Le mode Code-barres fonctionne sans IA.") else t("L'analyse des photos envoie la photo à Google Gemini avec ta propre clé, c'est pourquoi elle demande ton accord. Le mode Code-barres fonctionne sans IA ni clé."),
@@ -453,6 +484,7 @@ fun ScanScreen(onDone: () -> Unit) {
         }
     }
     if (askConsent) AiConsentDialog(onDismiss = { askConsent = false })
+    if (manualOpen) AddMealDialog(onDismiss = { manualOpen = false }) { Repo.addMeal(it); manualOpen = false; onDone() }
     replaceAsk?.let { (planned, meal) ->
         val done = { replaceAsk = null; result?.let { finish(it) } ?: run { reset(); onDone() } }
         AlertDialog(

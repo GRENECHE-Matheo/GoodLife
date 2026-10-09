@@ -8,6 +8,29 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.19.0 — en préparation
+
+**Une app rangée : un onglet = un rôle, chaque chose à un seul endroit.**
+
+- 🛠️ **Nouveaux onglets** : **Aujourd'hui** (ta journée), **Ajouter** (tous les moyens d'ajouter un repas),
+  **Repas** (planning, idées, courses, frigo), **Forme** (programme, sorties, sommeil) et **Moi** (progrès, Nutridex,
+  amis, objectif, actus, paramètres).
+- 🛠️ **Aujourd'hui** : l'essentiel toujours au même endroit (calories, « Ajouter un repas », repas du jour, eau),
+  puis ce qui dépend du jour (quiz, série à sauver, humeur, missions). Le quiz a sa carte au lieu d'un 🧠 sans nom ;
+  la pastille du haut montre ton niveau et ta série.
+- ✨ **Ajouter** : photo, code-barres, **saisie à la main** et **« Refaire »** (favoris et repas habituels) au même endroit.
+- ✨ **Repas** : les **idées de repas**, la **liste de courses** et **Mon frigo** deviennent des sous-onglets.
+- ✨ **Moi** : un menu clair avec une ligne d'explication par entrée ; **Mes progrès** a enfin son nom ;
+  **Mon objectif et mes infos** sur un écran à part ; les **Actus** restent accessibles même sans thème choisi.
+- 🛠️ **Paramètres rangés par thème** : notifications, objectif d'eau, pas, sommeil, actus, sécurité, sauvegarde, IA
+  (avec l'historique du coach), apparence, mes données et confidentialité, à propos.
+- 🛠️ **Missions cliquables** : « Ajoute un ami » ouvre les Amis, « Fais une séance » ouvre Forme…
+- 🐛 « Calculer avec l'IA » n'apparaît plus quand l'IA est coupée ; les pas et les notifications ne sont plus demandés
+  deux fois au démarrage ; textes qui citaient d'anciens noms d'écrans corrigés.
+- 🐛 **Onglet Forme** : en quittant la carte, elle ne reste plus affichée par-dessus l'écran suivant ; passage fluide.
+
+---
+
 ## v0.18.0 — 09/10/2026
 
 **Lifoody Premium sur Google Play, scan corrigeable et planning qui suit tes repas.**
