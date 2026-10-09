@@ -104,7 +104,7 @@ fun ProgramTab() {
     when {
         !adult -> SectionCard(title = t("Programme sportif"), icon = Icons.Filled.FitnessCenter) {
             Text(
-                t("Le programme sur mesure est créé par l'IA, réservée aux 18 ans et plus. En attendant, les sorties (onglet Sorties) et tes pas comptent pour ton score et ton XP !"),
+                t("Le programme sur mesure est créé par l'IA, réservée aux 18 ans et plus. En attendant, les sorties (onglet Carte) et tes pas comptent pour ton score et ton XP !"),
                 style = MaterialTheme.typography.bodyMedium
             )
         }

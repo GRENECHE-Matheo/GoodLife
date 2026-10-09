@@ -110,7 +110,7 @@ fun OptionsOnboardingScreen() {
                     settings.fridgeAutoRemove) { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
             }
             Text(
-                t("Aussi à découvrir : les amis et les croisements (Moi › Amis), la sauvegarde chiffrée (Paramètres), les cartes hors ligne (Forme › Sorties)."),
+                t("Aussi à découvrir : les amis et les croisements (Moi › Amis), la sauvegarde chiffrée (Paramètres), les cartes hors ligne (Forme › Carte)."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.widthIn(max = 520.dp)
             )

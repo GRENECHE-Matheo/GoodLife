@@ -50,8 +50,8 @@ fun FormeScreen() {
         // la carte n'est jamais redimensionnée pendant une animation (c'est ce qui la faisait saccader)
         AnimatedVisibility(
             visible = !active && tab != 1,
-            // En revenant de la carte : le titre glisse depuis le haut en fondu, sans pousser le contenu
-            enter = slideInVertically(tween(Motion.DURATION)) { -it / 2 } + fadeIn(tween(Motion.DURATION)),
+            // En revenant de la carte : le titre se déplie en douceur, la barre d'onglets descend avec lui (elle sautait)
+            enter = expandVertically(tween(Motion.DURATION, easing = androidx.compose.animation.core.FastOutSlowInEasing)) + fadeIn(tween(Motion.DURATION)),
             exit = shrinkVertically(tween(Motion.DURATION)) + fadeOut(tween(Motion.DURATION / 2))
         ) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -62,7 +62,7 @@ fun FormeScreen() {
         }
         AnimatedVisibility(visible = !active, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
             PrimaryTabRow(selectedTabIndex = tab) {
-                listOf(t("Programme"), t("Sorties"), t("Sommeil")).forEachIndexed { i, label ->
+                listOf(t("Programme"), t("Carte"), t("Sommeil")).forEachIndexed { i, label ->
                     Tab(selected = tab == i, onClick = { tab = i }, text = { com.goodlife.app.ui.FitText(label) })
                 }
             }

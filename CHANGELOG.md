@@ -13,7 +13,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 **Une app rangée : un onglet = un rôle, chaque chose à un seul endroit.**
 
 - 🛠️ **Nouveaux onglets** : **Aujourd'hui** (ta journée), **Ajouter** (tous les moyens d'ajouter un repas),
-  **Repas** (planning, idées, courses, frigo), **Forme** (programme, sorties, sommeil) et **Moi** (progrès, Nutridex,
+  **Repas** (planning, idées, courses, frigo), **Forme** (programme, carte, sommeil) et **Moi** (progrès, Nutridex,
   amis, objectif, actus, paramètres).
 - 🛠️ **Aujourd'hui** : l'essentiel toujours au même endroit (calories, « Ajouter un repas », repas du jour, eau),
   puis ce qui dépend du jour (quiz, série à sauver, humeur, missions). Le quiz a sa carte au lieu d'un 🧠 sans nom ;
@@ -24,10 +24,10 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
   **Mon objectif et mes infos** sur un écran à part ; les **Actus** restent accessibles même sans thème choisi.
 - 🛠️ **Paramètres rangés par thème** : notifications, objectif d'eau, pas, sommeil, actus, sécurité, sauvegarde, IA
   (avec l'historique du coach), apparence, mes données et confidentialité, à propos.
-- 🛠️ **Missions cliquables** : « Ajoute un ami » ouvre les Amis, « Fais une séance » ouvre Forme…
+- 🛠️ **Missions cliquables** : « Ajoute un ami » ouvre les Amis, « Fais une sortie » ouvre Forme…
 - 🐛 « Calculer avec l'IA » n'apparaît plus quand l'IA est coupée ; les pas et les notifications ne sont plus demandés
   deux fois au démarrage ; textes qui citaient d'anciens noms d'écrans corrigés.
-- 🐛 **Onglet Forme** : en quittant la carte, elle ne reste plus affichée par-dessus l'écran suivant ; passage fluide.
+- 🐛 **Onglet Forme** : en quittant la carte, elle ne reste plus affichée par-dessus l'écran suivant, et la barre d'onglets descend en douceur au lieu de sauter.
 
 ---
 
