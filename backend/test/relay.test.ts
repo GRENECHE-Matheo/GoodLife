@@ -3,7 +3,7 @@ import { costMicros } from "../src/cost";
 import { checkVerdict, readSubscription, sha256Hex, signedJwt } from "../src/google";
 import { decide, emptyCounters, parisDay, refund, remaining } from "../src/limits";
 import { BadRequest, cleanRequest, kindOf, MAX_OUTPUT, withServerRules } from "../src/validate";
-import type { Limits } from "../src/config";
+import { readConfig, type Env, type Limits } from "../src/config";
 
 const L: Limits = { premiumPhotosPerDay: 15, premiumMessagesPerDay: 40, premiumAutoPerDay: 6, perMinute: 8, freeTrials: 3, trialsPerIpPerDay: 12, trialsPerDay: 600 };
 const NOON = Date.parse("2026-10-09T10:00:00Z");
@@ -147,5 +147,15 @@ describe("vérifications Google", () => {
   });
   it("empreinte SHA-256", async () => {
     expect(await sha256Hex("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  });
+});
+
+describe("configuration", () => {
+  it("calculs automatiques sur le modèle le moins cher, le reste sur le modèle principal", () => {
+    const cfg = readConfig({ ENVIRONMENT: "production" } as unknown as Env);
+    expect(cfg.models[0]).toBe("gemini-3.5-flash-lite");
+    expect(cfg.modelsAuto[0]).toBe("gemini-2.5-flash-lite");
+    expect(cfg.requireIntegrity).toBe(true);
+    expect(cfg.mockGemini).toBe(false);
   });
 });

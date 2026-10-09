@@ -21,6 +21,7 @@
     "PACKAGE_NAME": "com.goodlife.app",
     "PRODUCT_IDS": "lifoody_premium",
     "MODELS": "gemini-3.5-flash-lite,gemini-2.5-flash-lite",
+    "MODELS_AUTO": "gemini-2.5-flash-lite,gemini-3.5-flash-lite",
     "THINKING_LEVEL": "minimal",
     "MEDIA_RESOLUTION": "MEDIA_RESOLUTION_MEDIUM",
     "ALLOW_BASIC_INTEGRITY": "false",

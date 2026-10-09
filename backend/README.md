@@ -72,6 +72,7 @@ configuration de production (`wrangler.jsonc`) met `ENVIRONMENT=production`.
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `MODELS` | `gemini-3.5-flash-lite,gemini-2.5-flash-lite` | modèle principal puis secours |
+| `MODELS_AUTO` | `gemini-2.5-flash-lite,gemini-3.5-flash-lite` | calculs automatiques du jour (objectifs d'eau et de pas), moins chers |
 | `THINKING_LEVEL` | `minimal` | réflexion des modèles Gemini 3 (payée comme la réponse) |
 | `MEDIA_RESOLUTION` | `MEDIA_RESOLUTION_MEDIUM` | définition des photos envoyées au modèle |
 | `PREMIUM_PHOTOS_PER_DAY` / `PREMIUM_MESSAGES_PER_DAY` | 15 / 40 | limites des abonnés |

@@ -19,6 +19,7 @@ export interface Env {
   MEDIA_RESOLUTION?: string;         // définition des photos : MEDIA_RESOLUTION_LOW / MEDIUM / HIGH
   REQUIRE_INTEGRITY?: string;        // "true" : seule la vraie app installée depuis Play est acceptée
   ALLOW_BASIC_INTEGRITY?: string;    // "true" : accepte aussi MEETS_BASIC_INTEGRITY (téléphones plus anciens)
+  MODELS_AUTO?: string;              // modèles des calculs automatiques du jour (eau, pas) : plus simples, moins chers
   PREMIUM_PHOTOS_PER_DAY?: string;
   PREMIUM_MESSAGES_PER_DAY?: string;
   PREMIUM_AUTO_PER_DAY?: string;
@@ -39,6 +40,7 @@ export interface Config {
   packageName: string;
   productIds: string[];
   models: string[];
+  modelsAuto: string[];
   thinkingLevel: string;
   mediaResolution: string;
   requireIntegrity: boolean;
@@ -76,6 +78,8 @@ export function readConfig(env: Env): Config {
     packageName: env.PACKAGE_NAME || "com.goodlife.app",
     productIds: list(env.PRODUCT_IDS, ["lifoody_premium"]),
     models: list(env.MODELS, ["gemini-3.5-flash-lite", "gemini-2.5-flash-lite"]),
+    // Objectifs d'eau et de pas : un chiffre et une phrase, le modèle le moins cher suffit
+    modelsAuto: list(env.MODELS_AUTO, ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite"]),
     thinkingLevel: env.THINKING_LEVEL || "minimal",
     mediaResolution: env.MEDIA_RESOLUTION || "MEDIA_RESOLUTION_MEDIUM",
     // En production, la vérification Play Integrity est obligatoire (impossible de la couper par erreur hors « dev »)

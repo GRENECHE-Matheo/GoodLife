@@ -117,10 +117,11 @@ async function generate(req: Request, env: Env, cfg: Config, now: number): Promi
     }
   }
 
-  // 4) Gemini (modèle choisi par le serveur)
+  // 4) Gemini (modèle choisi par le serveur : le moins cher pour les calculs automatiques)
+  const models = kind === "auto" ? cfg.modelsAuto : cfg.models;
   const r = cfg.mockGemini
-    ? mockGemini(clean, cfg.models[0])
-    : await callGemini(clean, cfg.models, env.GEMINI_API_KEY!, cfg.thinkingLevel, cfg.mediaResolution);
+    ? mockGemini(clean, models[0])
+    : await callGemini(clean, models, env.GEMINI_API_KEY!, cfg.thinkingLevel, cfg.mediaResolution);
   if (r.status !== 200) {
     await user.refund(who.tier, kind, now);
     if (ip) await budget.trialRefund(ip, now);
