@@ -8,7 +8,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
-## v0.18.0 — en préparation (09/10/2026)
+## v0.18.0 — 09/10/2026
 
 **Lifoody Premium sur Google Play, scan corrigeable et planning qui suit tes repas.**
 
