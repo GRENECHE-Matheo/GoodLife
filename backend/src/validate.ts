@@ -2,11 +2,11 @@
 // Le relais ne transmet qu'une forme de requête connue : pas d'outils inattendus, pas de modèle choisi par l'app,
 // tailles bornées. Les photos et les textes ne sont jamais enregistrés ni journalisés.
 
-export type Task = "photo" | "coach" | "chat" | "json" | "search" | "auto";
-export const TASKS: Task[] = ["photo", "coach", "chat", "json", "search", "auto"];
+export type Task = "photo" | "coach" | "chat" | "json" | "search" | "auto" | "fix";
+export const TASKS: Task[] = ["photo", "coach", "chat", "json", "search", "auto", "fix"];
 
 /** Catégorie de quota : une photo, un message (coach, questions, planning…), ou un calcul automatique du jour. */
-export type Kind = "photo" | "message" | "auto";
+export type Kind = "photo" | "message" | "auto" | "fix";
 
 export class BadRequest extends Error {}
 
@@ -18,9 +18,9 @@ const MAX_SYSTEM = 40_000;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /** Longueur de réponse maximale par tâche (protège les coûts : la sortie est la partie la plus chère). */
-export const MAX_OUTPUT: Record<Task, number> = { photo: 1500, coach: 1400, chat: 900, json: 4000, search: 1200, auto: 400 };
+export const MAX_OUTPUT: Record<Task, number> = { photo: 1500, coach: 1400, chat: 900, json: 4000, search: 1200, auto: 400, fix: 1500 };
 /** Nombre de messages gardés : le coach n'envoie que les 10 derniers (+ 2 pour le court résumé du début). */
-const MAX_CONTENTS: Record<Task, number> = { photo: 2, coach: 12, chat: 20, json: 2, search: 20, auto: 2 };
+const MAX_CONTENTS: Record<Task, number> = { photo: 2, coach: 12, chat: 20, json: 2, search: 20, auto: 2, fix: 2 };
 
 export interface Part { text?: string; inline_data?: { mime_type: string; data: string } }
 export interface Content { role: "user" | "model"; parts: Part[] }
@@ -34,6 +34,8 @@ export interface CleanRequest {
 
 export function kindOf(task: Task, req: CleanRequest): Kind {
   if (task === "auto") return "auto";
+  // Correction d'un scan (« 400 g de merguez », nouveau nom) : texte seul, comptée à part
+  if (task === "fix" && !req.contents.some((c) => c.parts.some((p) => p.inline_data))) return "fix";
   // Une photo jointe au DERNIER message (scan, frigo, ticket, photo envoyée au coach) compte comme une photo
   const last = req.contents[req.contents.length - 1];
   if (task === "photo" || last?.parts.some((p) => p.inline_data)) return "photo";

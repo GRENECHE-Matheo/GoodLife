@@ -138,7 +138,7 @@ async function status(req: Request, env: Env, cfg: Config, now: number): Promise
   const left = await env.USERS.get(env.USERS.idFromName(who.key)).status(who.tier, cfg.limits, now);
   return json(200, {
     tier: who.tier, ...left, premiumUntil: who.premiumUntil,
-    limits: { photosPerDay: cfg.limits.premiumPhotosPerDay, messagesPerDay: cfg.limits.premiumMessagesPerDay, freeTrials: cfg.limits.freeTrials },
+    limits: { photosPerDay: cfg.limits.premiumPhotosPerDay, messagesPerDay: cfg.limits.premiumMessagesPerDay, fixesPerDay: cfg.limits.premiumFixesPerDay, freeTrials: cfg.limits.freeTrials },
   });
 }
 

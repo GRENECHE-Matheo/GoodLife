@@ -5,7 +5,7 @@ import { decide, emptyCounters, parisDay, refund, remaining } from "../src/limit
 import { BadRequest, cleanRequest, kindOf, MAX_OUTPUT, withServerRules } from "../src/validate";
 import { readConfig, type Env, type Limits } from "../src/config";
 
-const L: Limits = { premiumPhotosPerDay: 15, premiumMessagesPerDay: 40, premiumAutoPerDay: 6, perMinute: 8, freeTrials: 3, trialsPerIpPerDay: 12, trialsPerDay: 600 };
+const L: Limits = { premiumPhotosPerDay: 15, premiumMessagesPerDay: 40, premiumAutoPerDay: 6, premiumFixesPerDay: 10, perMinute: 8, freeTrials: 3, trialsPerIpPerDay: 12, trialsPerDay: 600 };
 const NOON = Date.parse("2026-10-09T10:00:00Z");
 const user = (text: string) => ({ role: "user", parts: [{ text }] });
 
@@ -159,3 +159,38 @@ describe("configuration", () => {
     expect(cfg.mockGemini).toBe(false);
   });
 });
+
+describe("corrections de scan", () => {
+  it("comptées à part des messages en Premium, comme un essai en gratuit", () => {
+    const fix = cleanRequest("fix", { contents: [user("400 g de merguez")] });
+    expect(kindOf("fix", fix)).toBe("fix");
+    // Une « correction » avec une photo jointe reste une photo (on ne contourne pas la limite des photos)
+    const withPhoto = cleanRequest("fix", { contents: [{ role: "user", parts: [{ text: "x" }, { inline_data: { mime_type: "image/jpeg", data: "AAAA" } }] }] });
+    expect(kindOf("fix", withPhoto)).toBe("photo");
+
+    let c = emptyCounters(parisDay(NOON));
+    for (let i = 0; i < 10; i++) { const d = decide(c, "premium", "fix", L, NOON + i * 61_000); expect(d.ok).toBe(true); c = d.counters; }
+    expect(decide(c, "premium", "fix", L, NOON + 11 * 61_000).reason).toBe("limit_day");
+    expect(c.message).toBe(0);
+    expect(remaining(c, "premium", L, NOON).messages).toBe(40);
+    expect(remaining(c, "premium", L, NOON).fixes).toBe(0);
+
+    const free = decide(emptyCounters(parisDay(NOON)), "free", "fix", L, NOON);
+    expect(free.ok).toBe(true);
+    expect(free.counters.trialsUsed).toBe(1);
+  });
+
+  it("anciens compteurs sans « fix » toujours lus", () => {
+    const old = { ...emptyCounters(parisDay(NOON)) } as Partial<ReturnType<typeof emptyCounters>>;
+    delete old.fix;
+    const d = decide(old as ReturnType<typeof emptyCounters>, "premium", "fix", L, NOON);
+    expect(d.ok).toBe(true);
+    expect(d.counters.fix).toBe(1);
+  });
+
+  it("limites par défaut : 8 photos, 20 messages, 10 corrections", () => {
+    const cfg = readConfig({ ENVIRONMENT: "production" } as unknown as Env);
+    expect([cfg.limits.premiumPhotosPerDay, cfg.limits.premiumMessagesPerDay, cfg.limits.premiumFixesPerDay]).toEqual([8, 20, 10]);
+  });
+});
+

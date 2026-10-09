@@ -23,6 +23,7 @@ export interface Env {
   PREMIUM_PHOTOS_PER_DAY?: string;
   PREMIUM_MESSAGES_PER_DAY?: string;
   PREMIUM_AUTO_PER_DAY?: string;
+  PREMIUM_FIXES_PER_DAY?: string;
   PER_MINUTE?: string;
   FREE_TRIALS?: string;
   TRIALS_PER_IP_PER_DAY?: string;
@@ -56,6 +57,7 @@ export interface Limits {
   premiumPhotosPerDay: number;
   premiumMessagesPerDay: number;
   premiumAutoPerDay: number;
+  premiumFixesPerDay: number;
   perMinute: number;
   freeTrials: number;
   trialsPerIpPerDay: number;
@@ -86,9 +88,10 @@ export function readConfig(env: Env): Config {
     requireIntegrity: dev ? env.REQUIRE_INTEGRITY === "true" : true,
     allowBasicIntegrity: env.ALLOW_BASIC_INTEGRITY === "true",
     limits: {
-      premiumPhotosPerDay: num(env.PREMIUM_PHOTOS_PER_DAY, 15, 0, 200),
-      premiumMessagesPerDay: num(env.PREMIUM_MESSAGES_PER_DAY, 40, 0, 500),
+      premiumPhotosPerDay: num(env.PREMIUM_PHOTOS_PER_DAY, 8, 0, 200),
+      premiumMessagesPerDay: num(env.PREMIUM_MESSAGES_PER_DAY, 20, 0, 500),
       premiumAutoPerDay: num(env.PREMIUM_AUTO_PER_DAY, 6, 0, 50),
+      premiumFixesPerDay: num(env.PREMIUM_FIXES_PER_DAY, 10, 0, 200),
       perMinute: num(env.PER_MINUTE, 8, 1, 60),
       freeTrials: num(env.FREE_TRIALS, 3, 0, 50),
       trialsPerIpPerDay: num(env.TRIALS_PER_IP_PER_DAY, 12, 1, 1000),

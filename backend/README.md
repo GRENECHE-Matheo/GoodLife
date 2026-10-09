@@ -10,7 +10,7 @@ pas à créer leur propre clé.
    lié au contenu exact de la demande, valable 5 minutes). En production, cette vérification ne peut pas être coupée.
 3. Vérifie l'**abonnement** auprès de Google (Google Play Developer API, mémorisé 6 h). Sans abonnement :
    3 essais IA au total.
-4. Compte l'usage : **abonnés 15 photos + 40 messages par jour** (+ 6 calculs automatiques : objectifs d'eau et de
+4. Compte l'usage : **abonnés 8 photos + 20 messages + 10 corrections de scan par jour** (+ 6 calculs automatiques : objectifs d'eau et de
    pas), **8 demandes par minute au plus**. Un **plafond de dépense** global (par jour et par mois) coupe le service
    avant que la facture ne puisse s'envoler.
 5. Appelle Gemini avec **sa propre clé** (secret Cloudflare), avec le modèle choisi par le serveur et des modèles de
@@ -75,7 +75,7 @@ configuration de production (`wrangler.jsonc`) met `ENVIRONMENT=production`.
 | `MODELS_AUTO` | `gemini-2.5-flash-lite,gemini-3.5-flash-lite` | calculs automatiques du jour (objectifs d'eau et de pas), moins chers |
 | `THINKING_LEVEL` | `minimal` | réflexion des modèles Gemini 3 (payée comme la réponse) |
 | `MEDIA_RESOLUTION` | `MEDIA_RESOLUTION_MEDIUM` | définition des photos envoyées au modèle |
-| `PREMIUM_PHOTOS_PER_DAY` / `PREMIUM_MESSAGES_PER_DAY` | 15 / 40 | limites des abonnés |
+| `PREMIUM_PHOTOS_PER_DAY` / `PREMIUM_MESSAGES_PER_DAY` / `PREMIUM_FIXES_PER_DAY` | 8 / 20 / 10 | limites des abonnés (photos, messages, corrections de scan) |
 | `FREE_TRIALS` | 3 | essais IA gratuits au total |
 | `MONTHLY_BUDGET_USD` / `DAILY_BUDGET_USD` | 30 / 3 | plafond de dépense : au-delà, l'IA se met en pause pour tous |
 | `PRODUCT_IDS` | `lifoody_premium` | abonnement(s) acceptés |
@@ -95,9 +95,9 @@ configuration de production (`wrangler.jsonc`) met `ENVIRONMENT=production`.
 |---|---|
 | Léger : 1 photo, 2 messages | ≈ 0,23 $ |
 | Moyen : 3 photos, 6 messages | ≈ 0,65 $ |
-| Maximum autorisé : 15 photos, 40 messages | ≈ 3,90 $ |
+| Maximum autorisé : 8 photos, 20 messages, 10 corrections | ≈ 2,70 $ |
 
-Avec `gemini-2.5-flash-lite` (0,10 $ / 0,40 $), ces coûts sont divisés par 4 environ (maximum ≈ 1 $ par mois).
+Avec `gemini-2.5-flash-lite` (0,10 $ / 0,40 $), ces coûts sont divisés par 4 environ. Les calculs automatiques (eau, pas) utilisent déjà ce modèle (`MODELS_AUTO`).
 
 Cache de contexte : le cache **explicite** de Gemini n'est pas utilisé, car il demande un long préambule identique
 pour tout le monde (au moins 1 000 à 4 000 jetons selon le modèle) et se paie à l'heure ; ici, les consignes du coach

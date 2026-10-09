@@ -33,7 +33,12 @@ object AiAccess {
 }
 
 /** Ce que le relais indique : offre et ce qu'il reste aujourd'hui. */
-data class RelayStatus(val premium: Boolean, val photosLeft: Int, val messagesLeft: Int, val trialsLeft: Int, val premiumUntil: Long = 0)
+data class RelayStatus(
+    val premium: Boolean, val photosLeft: Int, val messagesLeft: Int, val trialsLeft: Int, val premiumUntil: Long = 0,
+    val fixesLeft: Int = 0,
+    // Limites des abonnés, données par le serveur (réglables sans mettre l'app à jour)
+    val photosPerDay: Int = 8, val messagesPerDay: Int = 20, val fixesPerDay: Int = 10
+)
 
 /** Erreur du relais avec son code (premium_required, limit_day…), pour proposer la bonne action. */
 class RelayException(val code: String, message: String) : AiException(message)
@@ -99,10 +104,16 @@ object Relay {
 
     private fun parseStatus(json: String): RelayStatus? = runCatching {
         val o = JSONObject(json)
+        val prev = _status.value
+        val limits = o.optJSONObject("limits")   // seulement dans /v1/status ; sinon on garde les précédentes
         RelayStatus(
             premium = o.optString("tier") == "premium",
             photosLeft = o.optInt("photos"), messagesLeft = o.optInt("messages"), trialsLeft = o.optInt("trials"),
-            premiumUntil = o.optLong("premiumUntil")
+            premiumUntil = o.optLong("premiumUntil", prev?.premiumUntil ?: 0),
+            fixesLeft = o.optInt("fixes"),
+            photosPerDay = limits?.optInt("photosPerDay", 8) ?: prev?.photosPerDay ?: 8,
+            messagesPerDay = limits?.optInt("messagesPerDay", 20) ?: prev?.messagesPerDay ?: 20,
+            fixesPerDay = limits?.optInt("fixesPerDay", 10) ?: prev?.fixesPerDay ?: 10
         )
     }.getOrNull()?.also { _status.value = it }
 

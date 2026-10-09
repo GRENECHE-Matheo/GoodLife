@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.goodlife.app.BuildConfig
 import com.goodlife.app.ai.Relay
+import com.goodlife.app.ai.RelayStatus
 import com.goodlife.app.i18n.t
 import com.goodlife.app.store.Offer
 import com.goodlife.app.store.Store
@@ -76,9 +77,6 @@ object Paywall {
     fun show() { if (Store.available) open.value = true }
 }
 
-/** Abonnés : limites du jour indiquées par le relais (15 photos, 40 messages par défaut). */
-private const val PHOTOS_PER_DAY = 15
-private const val MESSAGES_PER_DAY = 40
 
 @Composable
 fun PremiumScreen(onClose: () -> Unit) {
@@ -130,8 +128,10 @@ fun PremiumScreen(onClose: () -> Unit) {
 
             // Ce qu'on gagne
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Benefit(Icons.Filled.PhotoCamera, t("Une photo, tes calories"), t("Jusqu'à %1\$s analyses de repas par jour, corrigeables avant de valider.", PHOTOS_PER_DAY))
-                Benefit(Icons.Filled.RestaurantMenu, t("Le coach chef"), t("Jusqu'à %1\$s messages par jour : idées de repas, recettes, conseils.", MESSAGES_PER_DAY))
+                // Limites des abonnés envoyées par le serveur (valeurs par défaut tant qu'il n'a pas répondu)
+                val lim = status ?: RelayStatus(false, 0, 0, 0)
+                Benefit(Icons.Filled.PhotoCamera, t("Une photo, tes calories"), t("Jusqu'à %1\$s analyses de repas par jour, et %2\$s corrections pour les ajuster.", lim.photosPerDay, lim.fixesPerDay))
+                Benefit(Icons.Filled.RestaurantMenu, t("Le coach chef"), t("Jusqu'à %1\$s messages par jour : idées de repas, recettes, conseils.", lim.messagesPerDay))
                 Benefit(Icons.Filled.CalendarMonth, t("Planning et courses"), t("Ta semaine de repas selon ton budget, et la liste de courses qui va avec."))
                 Benefit(Icons.Filled.WaterDrop, t("Objectifs du jour"), t("Eau et pas ajustés chaque jour à ton activité."))
                 Benefit(Icons.Filled.Lock, t("Ta vie privée"), t("Tes données restent chiffrées sur ton téléphone. Le service IA n'enregistre ni tes photos ni tes messages."))

@@ -11,12 +11,13 @@ export interface Counters {
   photo: number;
   message: number;
   auto: number;
+  fix: number;          // corrections de scan
   minute: number;       // minute (epoch) de la fenêtre en cours
   minuteCount: number;
   trialsUsed: number;   // essais gratuits utilisés depuis toujours
 }
 
-export const emptyCounters = (day: string): Counters => ({ day, photo: 0, message: 0, auto: 0, minute: 0, minuteCount: 0, trialsUsed: 0 });
+export const emptyCounters = (day: string): Counters => ({ day, photo: 0, message: 0, auto: 0, fix: 0, minute: 0, minuteCount: 0, trialsUsed: 0 });
 
 export type Refusal = "premium_required" | "limit_day" | "limit_minute";
 export interface Decision { ok: boolean; reason?: Refusal; counters: Counters }
@@ -28,7 +29,8 @@ export function parisDay(now: number): string {
 
 export function dayLimit(tier: Tier, kind: Kind, l: Limits): number {
   if (tier === "free") return Infinity;   // en gratuit, c'est le nombre total d'essais qui compte
-  return kind === "photo" ? l.premiumPhotosPerDay : kind === "message" ? l.premiumMessagesPerDay : l.premiumAutoPerDay;
+  return kind === "photo" ? l.premiumPhotosPerDay : kind === "message" ? l.premiumMessagesPerDay
+    : kind === "fix" ? l.premiumFixesPerDay : l.premiumAutoPerDay;
 }
 
 /**
@@ -39,6 +41,7 @@ export function dayLimit(tier: Tier, kind: Kind, l: Limits): number {
 export function decide(c0: Counters, tier: Tier, kind: Kind, l: Limits, now: number): Decision {
   const today = parisDay(now);
   const c: Counters = c0.day === today ? { ...c0 } : { ...emptyCounters(today), trialsUsed: c0.trialsUsed };
+  c.fix = c.fix ?? 0;   // compteurs enregistrés avant l'ajout des corrections
   const minute = Math.floor(now / 60_000);
   if (c.minute !== minute) { c.minute = minute; c.minuteCount = 0; }
   if (c.minuteCount >= l.perMinute) return { ok: false, reason: "limit_minute", counters: c };
@@ -55,19 +58,20 @@ export function decide(c0: Counters, tier: Tier, kind: Kind, l: Limits, now: num
 
 /** Rend la demande si Gemini n'a pas répondu (la personne ne perd rien quand le service échoue). */
 export function refund(c: Counters, tier: Tier, kind: Kind): Counters {
-  const r = { ...c, [kind]: Math.max(0, c[kind] - 1), minuteCount: Math.max(0, c.minuteCount - 1) };
+  const r = { ...c, [kind]: Math.max(0, (c[kind] ?? 0) - 1), minuteCount: Math.max(0, c.minuteCount - 1) };
   if (tier === "free") r.trialsUsed = Math.max(0, c.trialsUsed - 1);
   return r;
 }
 
-export interface Remaining { photos: number; messages: number; trials: number }
+export interface Remaining { photos: number; messages: number; fixes: number; trials: number }
 
 export function remaining(c0: Counters, tier: Tier, l: Limits, now: number): Remaining {
   const c = c0.day === parisDay(now) ? c0 : { ...emptyCounters(parisDay(now)), trialsUsed: c0.trialsUsed };
-  if (tier === "free") return { photos: 0, messages: 0, trials: Math.max(0, l.freeTrials - c.trialsUsed) };
+  if (tier === "free") return { photos: 0, messages: 0, fixes: 0, trials: Math.max(0, l.freeTrials - c.trialsUsed) };
   return {
     photos: Math.max(0, l.premiumPhotosPerDay - c.photo),
     messages: Math.max(0, l.premiumMessagesPerDay - c.message),
+    fixes: Math.max(0, l.premiumFixesPerDay - (c.fix ?? 0)),
     trials: Math.max(0, l.freeTrials - c.trialsUsed),
   };
 }

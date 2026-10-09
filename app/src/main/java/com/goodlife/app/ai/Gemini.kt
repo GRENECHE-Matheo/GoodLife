@@ -491,7 +491,8 @@ class Gemini(private val apiKey: String, private val model: String) {
              "portions": [{"nom": "...", "nombre": 1}],
              "eau_ml": 0, "boisson_seule": false}
         """.trimIndent()
-        val r = parseFood(call(prompt, null, task = "json"), "")
+        // Comptée à part des messages par le service IA (version Play) : corriger un scan ne prend pas sur le coach
+        val r = parseFood(call(prompt, null, task = "fix"), "")
         // Le Nutridex et le frigo restent ceux de la photo ; le nom choisi par la personne est gardé tel quel
         return r.copy(
             dish = newName?.trim()?.take(80)?.ifBlank { null } ?: r.dish,
