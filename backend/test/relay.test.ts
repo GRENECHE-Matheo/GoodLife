@@ -137,7 +137,7 @@ describe("vérifications Google", () => {
   });
   it("jeton du compte de service signé en RS256 et vérifiable", async () => {
     const kp = await crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["sign", "verify"]) as CryptoKeyPair;
-    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey));
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey) as ArrayBuffer);
     const pem = `-----BEGIN PRIVATE KEY-----\n${btoa(String.fromCharCode(...pkcs8))}\n-----END PRIVATE KEY-----\n`;
     const jwt = await signedJwt({ client_email: "relay@test.iam.gserviceaccount.com", private_key: pem }, "scope", now);
     const [h, c, s] = jwt.split(".");

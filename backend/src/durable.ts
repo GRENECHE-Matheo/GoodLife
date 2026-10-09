@@ -62,7 +62,11 @@ export class GlobalBudget extends DurableObject {
       { month, monthMicros: 0, day, dayMicros: 0, trialDay: day, trialsToday: 0, ipTrials: {} };
     if (s.month !== month) { s.month = month; s.monthMicros = 0; }
     if (s.day !== day) { s.day = day; s.dayMicros = 0; }
-    if (s.trialDay !== day) { s.trialDay = day; s.trialsToday = 0; s.ipTrials = {}; }   // les empreintes d'IP ne durent qu'un jour
+    if (s.trialDay !== day) {
+      // Les empreintes d'IP ne durent qu'un jour : effacées dès la première demande du jour suivant
+      s.trialDay = day; s.trialsToday = 0; s.ipTrials = {};
+      await this.ctx.storage.put("b", s);
+    }
     return s;
   }
 

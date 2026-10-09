@@ -169,7 +169,8 @@ fun PremiumScreen(onClose: () -> Unit) {
                         }
                         Text(
                             (if (o.trialDays > 0) t("%1\$s jours gratuits, puis %2\$s par %3\$s. ", o.trialDays, o.price, if (o.yearly) t("an") else t("mois")) else "") +
-                                t("Abonnement à renouvellement automatique, payé via Google Play. Annulable à tout moment dans Google Play, au plus tard 24 h avant le renouvellement : Premium reste actif jusqu'à la fin de la période payée. Si tu annules pendant l'essai gratuit, rien n'est facturé."),
+                                t("Abonnement à renouvellement automatique, payé via Google Play. Annulable à tout moment dans Google Play, au plus tard 24 h avant le renouvellement : Premium reste actif jusqu'à la fin de la période payée. Si tu annules pendant l'essai gratuit, rien n'est facturé.") + " " +
+                                t("En t'abonnant, tu demandes l'accès immédiat à Premium et tu reconnais que le droit de rétractation de 14 jours ne s'applique plus une fois cet accès commencé."),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

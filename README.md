@@ -9,7 +9,7 @@
 
 **Lifoody** (anciennement GoodLife) est une application Android pour mieux manger, bouger et dormir : scan de repas par photo,
 objectif calorique, pas, programme sportif, activités GPS, sommeil, séries et XP pour rester motivé.
-Interface Material You, **aucun compte, aucune pub, aucun serveur Lifoody** : tes données restent chiffrées sur ton téléphone (les services utilisés, comme la carte ou l'IA, sont détaillés dans la [politique de confidentialité](PRIVACY.md)).
+Interface Material You, **aucun compte, aucune pub** : tes données restent chiffrées sur ton téléphone (les services utilisés, comme la carte ou l'IA, sont détaillés dans la [politique de confidentialité](PRIVACY.md)). Édité par **Fanix Studio** · site : https://lifoody.pages.dev
 
 ---
 
@@ -22,7 +22,14 @@ Interface Material You, **aucun compte, aucune pub, aucun serveur Lifoody** : te
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.17.0
+## 🆕 Nouveautés de la v0.18.0
+
+- **Version Google Play : Lifoody Premium** — l'IA sans clé à créer, via le service IA de Lifoody (3 essais gratuits,
+  puis 2,99 €/mois ou 19,99 €/an avec 7 jours d'essai). Le serveur n'enregistre ni photo ni message.
+- **Version GitHub : toujours 100 % gratuite**, avec ta propre clé Gemini, directement chez Google.
+- Politique de confidentialité, conditions et documents de publication mis à jour.
+
+## Nouveautés de la v0.17.0
 
 - **GoodLife devient Lifoody** : nouveau nom, même app (tes données et tes amis sont gardés).
 - **Croisements anonymes** : identifiant qui change toutes les 15 min et carte chiffrée que seuls tes amis ouvrent.
@@ -173,17 +180,24 @@ Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'ins
 - **Verrouillage par empreinte** (ou visage / code) à l'ouverture et après 1 min en arrière-plan ;
   **captures d'écran bloquées** au choix.
 - Seules les photos analysées et les infos nécessaires à une réponse sont envoyées à l'API Google Gemini,
-  et seulement si tu as activé l'IA. Les photos ne sont pas enregistrées.
+  et seulement si tu as activé l'IA : directement avec ta clé (version GitHub), ou via le service IA de Lifoody,
+  qui transmet sans rien enregistrer (version Google Play). Les photos ne sont pas enregistrées.
 - La liste complète de ce qui quitte le téléphone est dans l'app (« Ce qui quitte ton téléphone ») et dans
   la [politique de confidentialité](PRIVACY.md). Export des données (JSON), effacement et retrait du consentement à tout moment.
 - Réservée aux 15 ans et plus ; objectif « Perdre du poids » non proposé avant 18 ans ni si l'IMC est sous 18,5.
 
 ## 🤖 IA
 
-L'IA est **désactivée par défaut** et réservée aux 18 ans et plus. Chaque utilisateur utilise **sa propre clé Gemini**,
-qu'il crée sur https://aistudio.google.com/apikey (il accepte alors les conditions de Google ; l'éventuelle facturation
-se fait entre lui et Google) puis colle dans *Paramètres › Intelligence artificielle*. La clé est stockée chiffrée,
-n'est jamais réaffichée, et aucune clé n'est intégrée dans l'app. Les requêtes vont directement du téléphone à Google.
+L'IA est **désactivée par défaut** et réservée aux 18 ans et plus. Aucune clé n'est jamais intégrée dans l'app.
+
+- **Version GitHub (gratuite)** : chaque utilisateur utilise **sa propre clé Gemini**, qu'il crée sur
+  https://aistudio.google.com/apikey (il accepte alors les conditions de Google ; l'éventuelle facturation se fait entre
+  lui et Google) puis colle dans *Paramètres › Intelligence artificielle*. La clé est stockée chiffrée, n'est jamais
+  réaffichée, et les requêtes vont directement du téléphone à Google.
+- **Version Google Play** : pas de clé à créer. Les requêtes passent par le **relais Lifoody** ([`backend/`](backend/),
+  Cloudflare Workers) qui garde la clé de Fanix Studio côté serveur, vérifie que l'app est authentique (Play Integrity)
+  et l'abonnement (Google Play), applique des limites par personne et un plafond de dépense, et n'enregistre aucun
+  contenu. 3 essais gratuits, puis **Lifoody Premium** (Google Play Billing).
 
 Chaque réponse est marquée « Généré par l'IA » avec un bouton « Signaler ».
 Modèle par défaut : `gemini-3.5-flash-lite` ; si un modèle disparaît, l'app bascule sur un autre.
@@ -196,7 +210,8 @@ clubs, planning, sommeil, quiz, amis, actus du jour, mot du chef et notification
 Le même code donne deux versions (*product flavors*) :
 - **github** : APK publié ici, avec la mise à jour intégrée vérifiée (empreinte + signature) ;
 - **play** : pour Google Play, **sans** mise à jour intégrée ni permission `REQUEST_INSTALL_PACKAGES`
-  (les mises à jour passent par le Play Store).
+  (les mises à jour passent par le Play Store), avec l'abonnement Lifoody Premium et l'IA via le relais
+  (adresse donnée au build : `-PLIFOODY_RELAY_URL=… -PLIFOODY_CLOUD_PROJECT=…`, voir [`backend/README.md`](backend/README.md)).
 
 ## 🛠️ Compilation
 
@@ -213,7 +228,8 @@ Publication sur Google Play : voir [`PLAY_STORE.md`](PLAY_STORE.md).
 Android 8.0 (API 26) et plus, jusqu'à Android 16 (dernière version visée par l'app), sur toutes les surcouches
 (One UI, HyperOS, OxygenOS/ColorOS, Pixel…). La détection automatique du sommeil nécessite les services Google Play.
 
-**Stack** : Kotlin · Jetpack Compose · Material 3 · CameraX · ML Kit · Health Connect · MapLibre · Gemini REST API.
+**Stack** : Kotlin · Jetpack Compose · Material 3 · CameraX · ML Kit · Health Connect · MapLibre · Gemini REST API ·
+Google Play Billing · Play Integrity · relais TypeScript sur Cloudflare Workers (Durable Objects).
 minSdk 26 · targetSdk 36.
 
 ## 📚 Sources et crédits

@@ -1,16 +1,17 @@
 # Politique de confidentialité — Lifoody
 
-Version 0.17.0 · mise à jour le 3 octobre 2026
+Version 0.18.0 · mise à jour le 9 octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 
 ## Qui est responsable ?
 
-Lifoody est un projet personnel développé par Mathéo Greneche, avec l'assistance d'une IA. L'app n'a pas de serveur et n'envoie aucune donnée à son développeur. Contact (questions, exercice de tes droits, signalements) : matheo.greneche0@gmail.com.
+Lifoody est édité par Fanix Studio (Mathéo Greneche) et développé avec l'assistance d'une IA. Adresse et immatriculation : voir les mentions légales sur lifoody.pages.dev. Contact (questions, exercice de tes droits, signalements) : contact.fanixstudio@gmail.com.
+Lifoody existe en deux versions : la version Google Play, où l'IA passe par le service IA de Lifoody (3 essais gratuits, puis l'abonnement Lifoody Premium), et la version GitHub, gratuite, où tu utilises ta propre clé Gemini. Sauf mention contraire, ce document vaut pour les deux.
 
 ## Qui peut utiliser Lifoody ?
 
-L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on peut consentir seul au traitement de ses données en France). Les fonctions IA sont réservées aux 18 ans et plus. L'objectif « Perdre du poids » n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5. Les croisements (rencontres avec des inconnus) sont réservés aux 18 ans et plus.
+L'app est réservée aux personnes de 15 ans et plus (âge à partir duquel on peut consentir seul au traitement de ses données en France). Les fonctions IA sont réservées aux 18 ans et plus. L'objectif « Perdre du poids » n'est pas proposé avant 18 ans, ni quand l'IMC est déjà inférieur à 18,5. Les croisements (rencontres avec des inconnus) sont réservés aux 18 ans et plus. L'abonnement Lifoody Premium (version Google Play) sert aux fonctions IA : il est donc lui aussi réservé aux 18 ans et plus.
 
 ## Ce qui reste sur ton téléphone
 
@@ -18,7 +19,7 @@ Ton profil (âge, sexe, poids, taille, activité, objectif, habitudes, allergies
 
 ## Ce qui est envoyé si tu actives l'IA
 
-L'IA est désactivée par défaut, demande un consentement séparé (réservé aux 18 ans et plus) et ta propre clé API Gemini, que tu crées toi-même chez Google. Si tu l'actives, seules les données nécessaires à chaque demande sont envoyées :
+L'IA est désactivée par défaut et demande un consentement séparé (réservé aux 18 ans et plus). Dans la version Google Play, elle passe par le service IA de Lifoody (3 essais gratuits, puis l'abonnement Lifoody Premium) ; dans la version GitHub, par ta propre clé API Gemini, que tu crées toi-même chez Google. Si tu l'actives, seules les données nécessaires à chaque demande sont envoyées :
 • Analyse de photo : la photo du repas et tes allergies ; si tu as activé « Retirer du frigo après une photo de repas », aussi la liste de « Mon frigo » (noms et quantités).
 • Objectif calorique : âge, sexe, poids, taille, activité, objectif, habitudes, allergies.
 • Idées de repas : ton objectif, les repas du jour, tes habitudes et allergies.
@@ -34,12 +35,23 @@ L'IA est désactivée par défaut, demande un consentement séparé (réservé a
 • Coach (« Parler au chef ») : tes questions, les photos que tu joins toi-même à un message (elles ne sont pas gardées), et pour personnaliser ses conseils : âge, sexe, poids, taille, activité, objectif calorique et macros, habitudes, allergies, repas du jour, pas du jour, et un résumé des 7 derniers jours (jours validés, score moyen, calories moyennes, total de pas, séances de sport, nombre et distance des sorties, évolution du poids, série en cours), ton score et ton niveau, ton programme sportif (séances, exercices, et les limites ou douleurs que tu as écrites), la liste de « Mon frigo » et les repas déjà prévus au planning pour les 7 prochains jours. Ces envois demandent ton accord, une fois, avant ta première question au coach (retiré si tu désactives l'IA). Les repas, listes de courses, changements du frigo et du programme qu'il propose ne sont appliqués que si tu appuies sur le bouton de la proposition. L'historique des conversations (sans les photos) est gardé chiffré sur ton téléphone pour pouvoir les reprendre : tu peux le désactiver, supprimer une conversation ou tout effacer à tout moment. Reprendre une conversation la renvoie à Gemini avec ta question suivante, pour que le chef garde le contexte.
 Ne sont jamais envoyés : ton prénom, ton sommeil, tes photos (sauf celles que tu fais analyser ou que tu joins au coach), tes positions GPS, ton historique complet. Les réponses de l'IA sont des estimations et peuvent contenir des erreurs ; elles sont signalées comme générées par l'IA.
 
-## À qui ces données sont envoyées
+## À qui ces données sont envoyées (version GitHub)
 
 • Google LLC (API Gemini), directement depuis ton téléphone, avec ta propre clé API et donc sous ton propre compte Google : en créant ta clé, tu acceptes toi-même les conditions de Google, et l'éventuelle facturation se fait entre toi et Google. Google traite ces données selon les conditions de l'API Gemini ; elles peuvent être conservées temporairement par Google (par exemple pour détecter les abus) et traitées hors de l'Union européenne. Selon ces conditions (version du 28 avril 2026), pour les utilisateurs situés dans l'Espace économique européen, Google n'utilise pas les demandes ni les réponses pour améliorer ses produits, même sur son offre sans frais. Google est une entreprise américaine adhérente au cadre de protection des données UE–États-Unis (Data Privacy Framework).
 • Lifoody n'a aucun serveur : le développeur ne reçoit et ne voit aucune de tes données.
 
-## Ta clé API
+## À qui ces données sont envoyées (version Google Play)
+
+• Le service IA de Lifoody, édité par Fanix Studio et hébergé par Cloudflare (Cloudflare Workers, sous-traitant). Ton téléphone lui envoie chaque demande en HTTPS ; il la vérifie (taille, type de demande, essais ou abonnement), ajoute ses propres consignes de sécurité, la transmet à Google, puis te renvoie la réponse. Il n'enregistre ni tes photos, ni tes messages, ni les réponses, ni tes données de santé, et n'en tient aucun journal. Il ne garde que des compteurs d'utilisation (photos et messages du jour, essais gratuits utilisés, date de dernière utilisation), rattachés à un identifiant aléatoire créé par l'app (sans lien avec ton identité ni avec ton téléphone) ou, avec Premium, à une empreinte de ton jeton d'achat Google Play. Ces compteurs sont effacés automatiquement après 120 jours sans utilisation. Pour limiter les abus des essais gratuits, il compte aussi les essais par réseau à l'aide d'une empreinte de ton adresse IP, mélangée à une valeur secrète et au jour, effacée dès le lendemain. Cloudflare voit ton adresse IP pour acheminer la demande, comme pour tout site web ; ses serveurs peuvent se trouver hors de l'Union européenne (clauses contractuelles types de la Commission européenne, Data Privacy Framework).
+• Google LLC (API Gemini), avec la clé de Fanix Studio, sur l'offre payante de l'API : selon les conditions de l'API Gemini, Google n'utilise pas les demandes ni les réponses pour améliorer ses produits ; elles peuvent être conservées temporairement (par exemple pour détecter les abus) et traitées hors de l'Union européenne. Google ne reçoit ni ton adresse IP ni ton identifiant : il ne voit que le serveur de Lifoody. Google est une entreprise américaine adhérente au cadre de protection des données UE–États-Unis (Data Privacy Framework).
+• Google Play Integrity : avec chaque demande, l'app joint un jeton de Google Play prouvant qu'il s'agit de la vraie app Lifoody installée depuis Google Play, sur un appareil authentique ; le serveur de Lifoody le fait vérifier par Google. Ce jeton contient des informations techniques sur l'app et l'appareil, pas tes données.
+Bases légales : ton consentement explicite pour l'envoi de tes données à l'IA (données de santé, RGPD art. 9.2.a) ; l'exécution du contrat (abonnement) et l'intérêt légitime (éviter les abus, maîtriser les coûts) pour les compteurs et la vérification de l'app.
+
+## Abonnement Lifoody Premium (version Google Play)
+
+Le paiement, l'essai gratuit, le renouvellement, la résiliation et les remboursements sont gérés par Google Play, selon ses conditions et sa politique de confidentialité : Fanix Studio ne reçoit jamais ta carte bancaire ni ton adresse e-mail. Pour savoir si ton abonnement est actif, l'app envoie au service IA le jeton d'achat fourni par Google Play ; le serveur le fait vérifier par Google (API Google Play Developer), qui répond l'état de l'abonnement et sa date de fin. Seuls cet état et une empreinte du jeton sont gardés, et revérifiés au plus tard toutes les 6 heures. Google Play transmet aussi à Fanix Studio des rapports de ventes (pays, montant, date, numéro de commande), sans aucune donnée de santé, conservés le temps exigé par la loi pour la comptabilité (10 ans). Les calculs automatiques du jour (objectifs d'eau et de pas) ne se font qu'avec Premium et ne consomment jamais d'essai gratuit.
+
+## Ta clé API (version GitHub)
 
 Ta clé Gemini est rangée dans un coffre à part, chiffrée par une clé de la puce de sécurité du téléphone (Android Keystore, StrongBox quand le téléphone en a une). Cette clé ne peut pas être extraite, et, si un code de verrouillage est défini sur le téléphone, elle ne fonctionne que téléphone déverrouillé (Android 9 et plus) : même avec les fichiers de l'app, personne ne peut lire ta clé API, ni toi, ni le développeur. Elle est saisie dans un champ de mot de passe (les claviers ne l'apprennent normalement pas), et elle est retirée du presse-papiers si tu l'as collée (Android 9 et plus). Elle est conservée lors des mises à jour de l'app et envoyée uniquement à Google, en HTTPS (aucun certificat ajouté à la main n'est accepté), dans l'en-tête des requêtes. Elle n'apparaît dans aucune exportation ni sauvegarde, et « Effacer toutes mes données » détruit aussi la clé du coffre.
 
@@ -66,7 +78,7 @@ Désactivées tant que tu ne les as pas acceptées (à l'inscription ou dans Par
 ## Actus du jour
 
 Tu choisis tes thèmes (alimentation, sport, santé et bien-être, insolite, anecdote du jour), ou aucun : les actus sont alors désactivées. Une fois par jour (à l'ouverture de l'accueil ou des actus), Lifoody lit les flux RSS publics de franceinfo, Sciences et Avenir, Futura, de l'Anses et de Santé publique France pour choisir des actus sur tes thèmes. Ces sites voient ton adresse IP, comme pour n'importe quel site ; aucune autre donnée ne leur est envoyée. Seul le titre est affiché (avec un court extrait pour l'Anses et Santé publique France) ; l'article complet s'ouvre chez la source, dans ton navigateur, seulement si tu le touches. La liste des actus déjà montrées reste chiffrée sur ton téléphone pour ne jamais te remontrer la même. Sans connexion, l'app affiche à la place des anecdotes vérifiées intégrées.
-• Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page publique de l'article et envoie son titre et son texte à Google Gemini, avec ta clé, pour le résumer. Aucune donnée te concernant n'est envoyée. Le résumé n'est pas gardé.
+• Résumé du chef (si l'IA est activée) : pour un article de l'Anses ou de Santé publique France, l'app lit la page publique de l'article et envoie son titre et son texte à Google Gemini (avec ta clé, ou via le service IA de Lifoody dans la version Google Play) pour le résumer. Aucune donnée te concernant n'est envoyée. Le résumé n'est pas gardé.
 
 ## Widgets
 
@@ -98,7 +110,7 @@ Sous chaque réponse de l'IA, un bouton « Signaler » te permet de prévenir le
 
 ## Retirer ton consentement
 
-Tu peux désactiver l'IA à tout moment dans Paramètres › Intelligence artificielle. Plus rien n'est alors envoyé. Ce retrait ne remet pas en cause les demandes faites avant. Pour retirer ton accord au traitement de tes données de santé, efface tes données (Paramètres) ou désinstalle l'app.
+Tu peux désactiver l'IA à tout moment dans Paramètres › Intelligence artificielle. Plus rien n'est alors envoyé. Ce retrait ne remet pas en cause les demandes faites avant. Désactiver l'IA ne résilie pas l'abonnement Lifoody Premium : pour cela, va dans Google Play › Paiements et abonnements (ou Paramètres › Intelligence artificielle › Gérer mon abonnement). Pour retirer ton accord au traitement de tes données de santé, efface tes données (Paramètres) ou désinstalle l'app.
 
 ## Le sommeil
 
@@ -106,11 +118,11 @@ La détection automatique utilise la Sleep API des services Google Play, calcul�
 
 ## Tes droits (RGPD)
 
-Accès et portabilité : Paramètres › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Comme Lifoody n'a pas de serveur, toutes tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une). Pour toute question : matheo.greneche0@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
+Accès et portabilité : Paramètres › Exporter mes données (fichier protégé par mot de passe, conseillé, ou fichier lisible JSON). Rectification : Profil › Modifier mes infos. Effacement : Paramètres › Effacer toutes mes données (ou désinstaller l'app) ; un fichier de sauvegarde que tu as créé est à supprimer toi-même là où tu l'as rangé. Retrait du consentement : interrupteur IA, profil privé (Amis). Tes données sont sur ton téléphone (et dans ta sauvegarde chiffrée, si tu en as créé une) : le développeur n'en a aucune copie. Dans la version Google Play, le service IA ne garde que des compteurs d'utilisation liés à un identifiant aléatoire : « Effacer toutes mes données » remplace cet identifiant, et les anciens compteurs sont effacés automatiquement après 120 jours. Pour toute question : contact.fanixstudio@gmail.com. Tu peux aussi adresser une réclamation à la CNIL (cnil.fr).
 
 ## Ce que Lifoody ne fait pas
 
-Aucune donnée n'est vendue, louée ou partagée à des fins publicitaires. Pas de publicité, pas de traceur, pas de profilage marketing. Lifoody n'a pas de serveur : le développeur ne reçoit aucune de tes données.
+Aucune donnée n'est vendue, louée ou partagée à des fins publicitaires. Pas de publicité, pas de traceur, pas de profilage marketing. Le développeur ne reçoit ni ne voit tes données de santé : la version GitHub n'utilise aucun serveur, et le service IA de la version Google Play transmet tes demandes sans les enregistrer.
 
 ## Important
 
