@@ -226,7 +226,7 @@ private fun HomeContent(
             }
             Spacer(Modifier.width(4.dp))
             // Le chef en haut ouvre la conversation avec le coach
-            Surface(onClick = onCoach, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Surface(onClick = onCoach, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = with(com.goodlife.app.ui.Tour) { Modifier.tourTarget("home.chef") }) {
                 ChefMascot(Modifier.padding(2.dp), size = 44.dp, mood = if (summary.quizDoneToday) ChefMood.CONTENT else ChefMood.QUESTION)
             }
         }
@@ -274,7 +274,7 @@ private fun HomeContent(
         }
 
         // Un seul bouton pour ajouter un repas : tout se fait dans l'onglet Ajouter (photo, code-barres, à la main, refaire)
-        Button(onClick = onScan, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+        Button(onClick = onScan, modifier = with(com.goodlife.app.ui.Tour) { Modifier.fillMaxWidth().height(56.dp).tourTarget("home.add") }) {
             Icon(Icons.Filled.Add, null)
             Spacer(Modifier.width(8.dp))
             Text(t("Ajouter un repas"), style = MaterialTheme.typography.titleMedium)

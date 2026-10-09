@@ -478,6 +478,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
             }
             var licenses by remember { mutableStateOf(false) }
             var mapCredits by remember { mutableStateOf(false) }
+            TextButton(onClick = { com.goodlife.app.social.AppNav.request.value = "moi:"; com.goodlife.app.ui.Tour.start() }) { Text(t("Revoir la visite de l'app")) }
             TextButton(onClick = { licenses = true }) { Text(t("Licences open source")) }
             TextButton(onClick = { mapCredits = true }) { Text(t("Données de la carte et de l'altitude")) }
             if (licenses) LicensesScreen(onDismiss = { licenses = false })

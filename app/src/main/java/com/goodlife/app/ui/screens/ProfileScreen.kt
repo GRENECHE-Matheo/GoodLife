@@ -169,7 +169,8 @@ private fun ProfileContent(summary: com.goodlife.app.game.GameSummary, onOpen: (
         }
 
         // Mes progrès : niveau, XP et série en un coup d'œil ; tout le détail (poids, graphiques, badges) derrière
-        Surface(onClick = { onOpen("progress") }, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+        Surface(onClick = { onOpen("progress") }, shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = with(com.goodlife.app.ui.Tour) { Modifier.tourTarget("moi.progress") }) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.EmojiEvents, null, tint = MaterialTheme.colorScheme.primary)
@@ -187,7 +188,7 @@ private fun ProfileContent(summary: com.goodlife.app.game.GameSummary, onOpen: (
         }
 
         NutridexCard(onOpen = { onOpen("dex") })
-        FriendsCard(onOpen = { onOpen("friends") })
+        Box(with(com.goodlife.app.ui.Tour) { Modifier.tourTarget("moi.friends") }) { FriendsCard(onOpen = { onOpen("friends") }) }
 
         // Le reste, en simple menu : une ligne = un écran
         Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
@@ -195,7 +196,9 @@ private fun ProfileContent(summary: com.goodlife.app.game.GameSummary, onOpen: (
             HorizontalDivider(Modifier.padding(horizontal = 20.dp))
             MenuRow(Icons.Filled.Newspaper, t("Actus du jour"), t("Articles et anecdotes, choix des thèmes")) { onOpen("news") }
             HorizontalDivider(Modifier.padding(horizontal = 20.dp))
-            MenuRow(Icons.Filled.Settings, t("Paramètres"), t("Notifications, objectifs, IA, sauvegarde, mes données")) { onOpen("settings") }
+            Box(with(com.goodlife.app.ui.Tour) { Modifier.tourTarget("moi.settings") }) {
+                MenuRow(Icons.Filled.Settings, t("Paramètres"), t("Notifications, objectifs, IA, sauvegarde, mes données")) { onOpen("settings") }
+            }
         }
     }
 }

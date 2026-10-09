@@ -356,6 +356,10 @@ private fun MainTabs() {
         }
     }
 
+    // Visite guidée : proposée une fois, puis par-dessus toute l'app (retour = arrêter la visite)
+    val tourStep by com.goodlife.app.ui.Tour.step.collectAsState()
+    androidx.activity.compose.BackHandler(enabled = tourStep >= 0) { com.goodlife.app.ui.Tour.stop() }
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
     if (wide) {
         // Tablettes / paysage : rail de navigation à gauche, toujours visible
         Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -365,6 +369,7 @@ private fun MainTabs() {
                     NavigationRailItem(
                         selected = tab == i,
                         onClick = { tab = i },
+                        modifier = with(com.goodlife.app.ui.Tour) { Modifier.tourTarget(i) },
                         icon = { Icon(t.icon, null) },
                         label = { com.goodlife.app.ui.FitText(t.label) }
                     )
@@ -387,6 +392,7 @@ private fun MainTabs() {
                             NavigationBarItem(
                                 selected = tab == i,
                                 onClick = { tab = i },
+                                modifier = with(com.goodlife.app.ui.Tour) { Modifier.tourTarget(i) },
                                 icon = { Icon(t.icon, null) },
                                 label = { com.goodlife.app.ui.FitText(t.label) }
                             )
@@ -398,6 +404,9 @@ private fun MainTabs() {
             content(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding))
         }
     }
+    com.goodlife.app.ui.TourOverlay(onTab = { tab = it })
+    }
+    if (com.goodlife.app.track.Tracker.live.collectAsState().value == null) com.goodlife.app.ui.TourOffer()
 }
 
 /** Invitation reçue par lien ou message : on demande avant d'ajouter la personne. */

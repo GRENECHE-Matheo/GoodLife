@@ -24,6 +24,9 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
   **Mon objectif et mes infos** sur un écran à part ; les **Actus** restent accessibles même sans thème choisi.
 - 🛠️ **Paramètres rangés par thème** : notifications, objectif d'eau, pas, sommeil, actus, sécurité, sauvegarde, IA
   (avec l'historique du coach), apparence, mes données et confidentialité, à propos.
+- ✨ **Visite guidée** : proposée une fois par le chef (« Je te fais visiter ? »), jamais imposée. 8 étapes sur la
+  vraie app, l'élément montré est éclairé : ta journée, ajouter un repas, le coach, Repas, Forme, Mes progrès,
+  **ajouter un ami**, les réglages. « Passer » à chaque étape ; à revoir dans Paramètres › À propos.
 - 🛠️ **Missions cliquables** : « Ajoute un ami » ouvre les Amis, « Fais une sortie » ouvre Forme…
 - 🐛 « Calculer avec l'IA » n'apparaît plus quand l'IA est coupée ; les pas et les notifications ne sont plus demandés
   deux fois au démarrage ; textes qui citaient d'anciens noms d'écrans corrigés.
