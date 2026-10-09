@@ -244,6 +244,14 @@ fun ScanScreen(onDone: () -> Unit) {
                 leadingIcon = { Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp)) }
             )
         }
+        // Version Play sans abonnement : combien d'essais IA gratuits il reste
+        val relay by com.goodlife.app.ai.Relay.status.collectAsState()
+        val st = relay
+        if (mode == "photo" && com.goodlife.app.ai.AiAccess.viaRelay && st != null && !st.premium) Text(
+            if (st.trialsLeft > 0) com.goodlife.app.i18n.tp(st.trialsLeft, "Il te reste %1\$s essai IA gratuit.", "Il te reste %1\$s essais IA gratuits.")
+            else t("Tes 3 essais IA gratuits sont utilisés."),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 
     val current = photo
