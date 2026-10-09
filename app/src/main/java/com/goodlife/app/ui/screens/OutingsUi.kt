@@ -316,7 +316,8 @@ fun OutingsTab() {
         targetState = screen,
         transitionSpec = {
             fun depth(s: String) = when { s.isEmpty() -> 0; s.startsWith("detail:") -> 2; else -> 1 }
-            if (targetState.isEmpty() || initialState.isEmpty()) com.goodlife.app.ui.Motion.fade()
+            if (initialState.isEmpty()) com.goodlife.app.ui.Motion.leaveHeavy()
+            else if (targetState.isEmpty()) com.goodlife.app.ui.Motion.fade()
             else com.goodlife.app.ui.Motion.sharedAxisX(forward = depth(targetState) >= depth(initialState))
         },
         modifier = Modifier.fillMaxSize(),

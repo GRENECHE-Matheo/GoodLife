@@ -41,11 +41,11 @@ fun FormeScreen() {
     androidx.compose.runtime.LaunchedEffect(active) { if (active) tab = 1 }
     Column(Modifier.fillMaxSize()) {
         // Sur la carte, on garde toute la place pour elle : le grand titre se replie en douceur (au lieu de disparaître d'un coup)
-        // Le titre se replie AVANT que la carte n'apparaisse, et se déplie APRÈS qu'elle a disparu :
+        // Le titre se replie AVANT que la carte n'apparaisse (elle est créée après l'animation) et la carte est retirée d'un coup quand on la quitte :
         // la carte n'est jamais redimensionnée pendant une animation (c'est ce qui la faisait saccader)
         AnimatedVisibility(
             visible = !active && tab != 1,
-            enter = expandVertically(tween(Motion.DURATION, delayMillis = 120)) + fadeIn(tween(Motion.DURATION, delayMillis = 120)),
+            enter = fadeIn(tween(220)),   // en revenant de la carte : le titre est tout de suite à sa place, rien ne glisse
             exit = shrinkVertically(tween(Motion.DURATION)) + fadeOut(tween(Motion.DURATION / 2))
         ) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -64,7 +64,7 @@ fun FormeScreen() {
         // Glissement latéral entre Programme et Sommeil ; simple fondu vers ou depuis la carte (trop lourde pour glisser)
         AnimatedContent(
             targetState = tab,
-            transitionSpec = { if (targetState == 1 || initialState == 1) Motion.fade() else Motion.sharedAxisX(forward = targetState > initialState) },
+            transitionSpec = { if (initialState == 1) Motion.leaveHeavy() else if (targetState == 1) Motion.fade() else Motion.sharedAxisX(forward = targetState > initialState) },
             modifier = Modifier.weight(1f).fillMaxWidth(),
             label = "forme"
         ) { current ->

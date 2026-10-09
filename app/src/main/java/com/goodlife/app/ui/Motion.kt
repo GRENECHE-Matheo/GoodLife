@@ -42,6 +42,13 @@ object Motion {
     fun fade(): ContentTransform =
         fadeIn(tween(220, delayMillis = 90, easing = LinearOutSlowInEasing)).togetherWith(fadeOut(tween(90, easing = FastOutSlowInEasing)))
 
+    /**
+     * En quittant la carte : elle disparaît tout de suite (sa surface OpenGL ne sait pas devenir transparente,
+     * elle restait affichée par-dessus l'écran suivant pendant le fondu), et l'écran suivant apparaît en fondu.
+     */
+    fun leaveHeavy(): ContentTransform =
+        fadeIn(tween(220, easing = LinearOutSlowInEasing)).togetherWith(androidx.compose.animation.ExitTransition.None)
+
     fun sharedAxisX(forward: Boolean): ContentTransform {
         val sign = if (forward) 1 else -1
         return (slideInHorizontally(tween(DURATION, easing = FastOutSlowInEasing)) { sign * it / 6 } +
