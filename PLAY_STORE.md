@@ -70,7 +70,7 @@
 
 À ajouter aussi :
 - « Réservée aux 15 ans et plus. Fonctions IA réservées aux 18 ans et plus : 3 essais gratuits, puis l'abonnement
-  Lifoody Premium (2,99 €/mois ou 19,99 €/an, 7 jours d'essai gratuit). Toutes les fonctions sans IA sont gratuites. »
+  Lifoody Premium (3,99 €/mois ou 29,99 €/an, 7 jours d'essai gratuit). Toutes les fonctions sans IA sont gratuites. »
 - « Projet développé avec l'assistance d'une IA. »
 - La fiche indiquera automatiquement « Achats intégrés ».
 
@@ -210,8 +210,8 @@ Possible seulement **après** avoir envoyé un AAB qui contient la bibliothèque
 1. Monétiser › Produits › **Abonnements** › Créer : identifiant **`lifoody_premium`** (le même que dans l'app et que
    `PRODUCT_IDS` du relais ; il ne pourra plus changer), nom « Lifoody Premium ».
 2. Deux **forfaits de base** (renouvellement automatique) :
-   - `mensuel` : période 1 mois, **2,99 €** (laisser Google convertir les autres pays) ;
-   - `annuel` : période 1 an, **19,99 €**.
+   - `mensuel` : période 1 mois, **3,99 €** (laisser Google convertir les autres pays) ;
+   - `annuel` : période 1 an, **29,99 €**.
 3. Une **offre** sur chaque forfait : « Essai sans frais » de **7 jours**, éligibilité « Nouveaux clients » (une seule fois
    par compte Google).
 4. Réglages conseillés : délai de grâce 7 jours, suspension de compte activée (l'app considère l'abonnement actif pendant

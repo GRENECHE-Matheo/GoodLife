@@ -7,7 +7,7 @@ package com.goodlife.app.store
 data class Offer(
     val basePlanId: String,
     val yearly: Boolean,
-    val price: String,          // prix après l'essai, mis en forme par Google Play (« 2,99 € »)
+    val price: String,          // prix après l'essai, mis en forme par Google Play (« 3,99 € »)
     val priceMicros: Long,
     val currency: String,
     val trialDays: Int,         // 0 = pas d'essai gratuit pour cette personne

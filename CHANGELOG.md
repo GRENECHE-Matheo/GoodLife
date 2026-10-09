@@ -12,8 +12,8 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 **Lifoody Premium sur Google Play, scan corrigeable et planning qui suit tes repas.**
 
-- ✨ **Version Google Play : Lifoody Premium.** L'IA sans clé à créer : 3 essais gratuits, puis 2,99 €/mois ou
-  19,99 €/an avec 7 jours d'essai (achat, restauration et résiliation par Google Play). Écran Premium clair, carte
+- ✨ **Version Google Play : Lifoody Premium.** L'IA sans clé à créer : 3 essais gratuits, puis 3,99 €/mois ou
+  29,99 €/an avec 7 jours d'essai (achat, restauration et résiliation par Google Play). Écran Premium clair, carte
   « Lifoody Premium » dans Paramètres avec ce qu'il reste aujourd'hui.
 - 🔒 **Service IA de Lifoody** (serveur Cloudflare de Fanix Studio) : la clé Gemini reste sur le serveur, l'app est
   vérifiée (Play Integrity) et l'abonnement aussi ; limites par personne et plafond de dépense ; ni photo, ni message,
