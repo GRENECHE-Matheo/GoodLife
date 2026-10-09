@@ -214,7 +214,7 @@ private fun ProfileContent(onOpenSettings: () -> Unit, onOpenDex: () -> Unit, on
                 Column(Modifier.weight(1f)) {
                     Text(t("Paramètres"), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        t("Thème, sons, empreinte, sauvegarde chiffrée, clé IA"),
+                        if (com.goodlife.app.ai.AiAccess.viaRelay) t("Thème, sons, empreinte, sauvegarde chiffrée, Premium") else t("Thème, sons, empreinte, sauvegarde chiffrée, clé IA"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

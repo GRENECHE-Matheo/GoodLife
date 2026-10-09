@@ -126,7 +126,7 @@ fun NewsScreen(onBack: () -> Unit) {
     var askAbout by remember { mutableStateOf<FeedItem?>(null) }
     var summarize by remember { mutableStateOf<FeedItem?>(null) }
     val uri = LocalUriHandler.current
-    val aiReady = Repo.aiAllowed() && Repo.settings.collectAsState().value.apiKey.isNotBlank()
+    val aiReady = Repo.aiAllowed() && com.goodlife.app.ai.AiAccess.ready(Repo.settings.collectAsState().value)
 
     LaunchedEffect(today, retry, themes) {
         if (feed != null) return@LaunchedEffect

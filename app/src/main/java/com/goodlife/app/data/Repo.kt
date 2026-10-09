@@ -1017,7 +1017,7 @@ object Repo {
     /** L'objectif d'eau vient-il de l'IA aujourd'hui ? (IA activée, clé, mode « ia » et un calcul disponible) */
     fun waterGoalFromAi(): Boolean {
         val s = _settings.value
-        return s.waterGoalMode == "ia" && aiAllowed() && s.apiKey.isNotBlank() && s.waterGoalIa > 0
+        return s.waterGoalMode == "ia" && aiAllowed() && com.goodlife.app.ai.AiAccess.ready(s) && s.waterGoalIa > 0
     }
 
     /** Objectif d'eau du jour (ml) : celui de l'IA s'il y en a un, sinon l'objectif fixe choisi. */

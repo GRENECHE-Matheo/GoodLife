@@ -70,6 +70,7 @@ import com.goodlife.app.ui.screens.OnboardingScreen
 import com.goodlife.app.ui.screens.ProfileScreen
 import com.goodlife.app.ui.screens.PrivacyScreen
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.safeDrawing
 import com.goodlife.app.ui.screens.ScanScreen
 import com.goodlife.app.ui.screens.FormeScreen
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -119,7 +120,17 @@ class MainActivity : FragmentActivity() {
         com.goodlife.app.coach.CoachNotifier.schedule(this)
         // Objectif de pas conseillé par l'IA : recalculé une fois par jour, à la première ouverture
         val ctx = applicationContext
+        // Version Google Play : abonnement Premium (Google Play) et statut auprès du relais IA (essais, limites du jour)
+        com.goodlife.app.store.Store.init(ctx)
+        com.goodlife.app.store.Store.onChange = {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                com.goodlife.app.ai.Relay.refreshStatus()
+                com.goodlife.app.steps.StepGoalAi.refreshIfNeeded(ctx)
+                com.goodlife.app.ai.WaterGoalAi.refreshIfNeeded(ctx)
+            }
+        }
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            com.goodlife.app.ai.Relay.refreshStatus()
             com.goodlife.app.steps.StepGoalAi.refreshIfNeeded(ctx)
             com.goodlife.app.ai.WaterGoalAi.refreshIfNeeded(ctx)   // objectif d'eau du jour (IA)
         }
@@ -225,6 +236,8 @@ class MainActivity : FragmentActivity() {
         Repo.reloadSecretsIfNeeded()
         // Mise à jour disponible ? Vérifié à chaque ouverture de l'app (une petite requête), affiché sur l'accueil
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { com.goodlife.app.net.Updater.check() }
+        // Abonnement relu à chaque retour dans l'app (renouvellement, résiliation, achat fait ailleurs)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { com.goodlife.app.store.Store.refresh() }
         super.onStart()
         val away = SystemClock.elapsedRealtime() - backgroundAt
         if (Repo.settings.value.appLock && backgroundAt > 0 && away > AppLock.GRACE_MS) {
@@ -277,7 +290,20 @@ fun GoodLifeApp() {
             0 -> OnboardingScreen()
             1 -> AiChoiceScreen()
             2 -> com.goodlife.app.ui.screens.OptionsOnboardingScreen()
-            else -> MainTabs()
+            else -> androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+                MainTabs()
+                // Écran Premium par-dessus l'app (essais épuisés, paramètres…), qui monte depuis le bas
+                val paywall by com.goodlife.app.ui.screens.Paywall.open.collectAsState()
+                AnimatedVisibility(
+                    visible = paywall,
+                    enter = slideInVertically { it / 3 } + fadeIn(),
+                    exit = slideOutVertically { it / 3 } + fadeOut()
+                ) {
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.safeDrawing)
+                    ) { com.goodlife.app.ui.screens.PremiumScreen(onClose = { com.goodlife.app.ui.screens.Paywall.open.value = false }) }
+                }
+            }
         }
     }
 }

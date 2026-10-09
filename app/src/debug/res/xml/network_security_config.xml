@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Versions de test (debug) uniquement : comme la version normale (HTTPS, autorités du système),
+  plus le relais IA lancé en local sur le PC (wrangler dev), joignable depuis l'émulateur à 10.0.2.2.
+  Les versions publiées (release) utilisent le fichier de src/main, sans aucune exception.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

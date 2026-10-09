@@ -25,7 +25,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.roundToInt
 
-class AiException(message: String) : Exception(message)
+open class AiException(message: String) : Exception(message)
 
 /** Nom affiché d'un repas : nombre et aliment (« 2× Banane »). Les calories affichées à côté sont le total. */
 fun mealName(count: Int, name: String): String = t("%1\$s× %2\$s", count.coerceAtLeast(1), name.trim())
@@ -92,20 +92,23 @@ class Gemini(private val apiKey: String, private val model: String) {
         if ((Repo.profile.value?.age ?: 0) < 18) {
             throw AiException(t("Les fonctions IA (Google Gemini) sont réservées aux personnes de 18 ans et plus."))
         }
-        if (apiKey.isBlank()) {
+        if (AiAccess.viaRelay) {
+            // Version Google Play : le relais Lifoody garde la clé, vérifie l'abonnement et compte les essais
+            if (com.goodlife.app.BuildConfig.RELAY_URL.isBlank()) throw AiException(t("Le service IA de Lifoody n'est pas encore disponible."))
+        } else if (apiKey.isBlank()) {
             throw AiException(t("Ajoute ta clé API Gemini dans Paramètres › Intelligence artificielle."))
         }
     }
 
     /** Demande qui attend une réponse JSON (analyse, objectif, recettes…). */
-    private suspend fun call(prompt: String, jpeg: ByteArray?): JSONObject = withContext(Dispatchers.IO) {
+    private suspend fun call(prompt: String, jpeg: ByteArray?, task: String = if (jpeg != null) "photo" else "json"): JSONObject = withContext(Dispatchers.IO) {
         guard()
         val body = JSONObject()
             .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", parts(prompt, jpeg))))
             .put("generationConfig", JSONObject()
                 .put("responseMimeType", "application/json")
                 .put("temperature", 0.2))
-        extractJson(text(send(body)))
+        extractJson(text(send(body, task)))
     }
 
     /**
@@ -125,7 +128,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
             .put("contents", contents)
             .put("generationConfig", JSONObject().put("temperature", 0.5).put("maxOutputTokens", 900))
-        text(send(body)).trim().ifBlank { throw AiException(t("L'IA n'a pas répondu. Reformule ta question.")) }
+        text(send(body, if (image != null) "photo" else "chat")).trim().ifBlank { throw AiException(t("L'IA n'a pas répondu. Reformule ta question.")) }
     }
 
     /**
@@ -135,10 +138,10 @@ class Gemini(private val apiKey: String, private val model: String) {
     suspend fun coach(system: String, history: List<ChatMessage>): CoachReply = withContext(Dispatchers.IO) {
         guard()
         val contents = JSONArray()
-        // Longue conversation : seuls les 12 derniers messages partent en entier ; le début est résumé en quelques lignes
+        // Longue conversation : seuls les 10 derniers messages partent en entier ; le début est résumé en quelques lignes
         // (1 ligne courte par message, 3 000 caractères au plus). Le chef garde l'essentiel en mémoire, et chaque
         // nouvelle question ne coûte pas plus cher que la précédente.
-        var cut = (history.size - 12).coerceAtLeast(0)
+        var cut = (history.size - 10).coerceAtLeast(0)
         while (cut in 1 until history.size && !history[cut].fromUser) cut++   // la partie gardée commence par une question
         val older = history.take(cut); val kept = history.drop(cut)
         if (older.isNotEmpty()) {
@@ -160,8 +163,8 @@ class Gemini(private val apiKey: String, private val model: String) {
             .put("generationConfig", JSONObject()
                 .put("responseMimeType", "application/json")
                 .put("temperature", 0.6)
-                .put("maxOutputTokens", 2000))
-        val o = extractJson(text(send(body)))
+                .put("maxOutputTokens", 1400))
+        val o = extractJson(text(send(body, "coach")))
         val reply = o.optString("reply").trim().ifBlank { throw AiException(t("Le chef n'a pas répondu. Reformule ta question.")) }
         val today = com.goodlife.app.data.localDay(0)
         val last = com.goodlife.app.data.localDay(13)
@@ -283,9 +286,10 @@ class Gemini(private val apiKey: String, private val model: String) {
             .put("contents", contents)
             .put("tools", JSONArray().put(JSONObject().put("google_search", JSONObject())))
             .put("generationConfig", JSONObject().put("temperature", 0.4).put("maxOutputTokens", 1200))
-        val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
+        val models = if (AiAccess.viaRelay) listOf("relay") else listOf(model) + FALLBACK_MODELS.filter { it != model }
         for (m in models) {
-            val (code, response) = post(m, body)
+            val (code, response) = if (AiAccess.viaRelay) Relay.generate("search", withGuards(body)) else post(m, body)
+            if (AiAccess.viaRelay && code !in 200..299) throw Relay.error(code, response)
             when {
                 code in 200..299 -> {
                     val txt = text(response).trim().ifBlank { throw AiException(t("L'IA n'a pas répondu. Reformule ta question.")) }
@@ -320,7 +324,13 @@ class Gemini(private val apiKey: String, private val model: String) {
     }
 
     /** Envoie la requête ; si un modèle n'existe plus, essaie les suivants. Renvoie la réponse brute. */
-    private fun send(body: JSONObject): String {
+    private suspend fun send(body: JSONObject, task: String): String {
+        if (AiAccess.viaRelay) {
+            // Le serveur choisit le modèle (avec ses modèles de secours) et ajoute sa clé : l'app n'en a pas
+            val (code, response) = Relay.generate(task, withGuards(body))
+            if (code in 200..299) return response
+            throw Relay.error(code, response)
+        }
         val models = listOf(model) + FALLBACK_MODELS.filter { it != model }
         var lastError = t("Erreur inconnue")
         for (m in models) {
@@ -676,7 +686,7 @@ class Gemini(private val apiKey: String, private val model: String) {
      */
     suspend fun recommendSteps(
         p: Profile, average: Int,
-        week: List<Pair<String, com.goodlife.app.data.StepDay>> = emptyList(), previous: Int = 0
+        week: List<Pair<String, com.goodlife.app.data.StepDay>> = emptyList(), previous: Int = 0, auto: Boolean = false
     ): Pair<Int, String> {
         val detail = week.joinToString("; ") { (d, s) -> t("%1\$s : %2\$s pas (objectif %3\$s)", d, s.steps, s.goal) }.ifBlank { t("pas d'historique") }
         val met = week.count { it.second.goal > 0 && it.second.steps >= it.second.goal }
@@ -690,7 +700,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             Objectif atteint $met jour(s) sur ${week.size}. Objectif d'hier : ${if (previous > 0) "$previous pas" else "aucun"}.
             Réponds UNIQUEMENT en JSON : {"pas": 0, "explication": "1 à 2 phrases simples en français, avec les vrais chiffres"}
         """.trimIndent()
-        val o = call(prompt, null)
+        val o = call(prompt, null, task = if (auto) "auto" else "json")
         var steps = o.optDouble("pas", 0.0).roundToInt()
         if (previous > 0) steps = steps.coerceIn((previous * 0.85).roundToInt(), (previous * 1.15).roundToInt())
         steps = ((steps / 250.0).roundToInt() * 250).coerceIn(3000, 20_000)
@@ -701,7 +711,7 @@ class Gemini(private val apiKey: String, private val model: String) {
      * Objectif d'eau du jour (ml de boissons) selon les besoins de la personne et son activité d'hier.
      * Bornes de l'app : 1 à 4 L, arrondi à 250 ml, ±25 % par rapport à l'objectif d'hier.
      */
-    suspend fun recommendWater(p: Profile, stepsYesterday: Int, sessionsYesterday: Int, outingMinutesYesterday: Int, previous: Int = 0): Pair<Int, String> {
+    suspend fun recommendWater(p: Profile, stepsYesterday: Int, sessionsYesterday: Int, outingMinutesYesterday: Int, previous: Int = 0, auto: Boolean = false): Pair<Int, String> {
         val prompt = """
             Tu es un coach bien-être (pas un professionnel de santé, pas d'avis médical). Propose la quantité de BOISSONS
             (surtout de l'eau) à viser AUJOURD'HUI, en ml, en t'appuyant sur les repères officiels (EFSA : apport total en eau
@@ -715,7 +725,7 @@ class Gemini(private val apiKey: String, private val model: String) {
             Reste raisonnable et progressif ; ne dépasse jamais 4 L.
             Réponds UNIQUEMENT en JSON : {"ml": 0, "explication": "1 à 2 phrases simples en français, avec les vrais chiffres"}
         """.trimIndent()
-        val o = call(prompt, null)
+        val o = call(prompt, null, task = if (auto) "auto" else "json")
         var ml = o.optDouble("ml", 0.0).roundToInt()
         if (ml <= 0) throw AiException(t("Réponse IA illisible."))
         if (previous > 0) ml = ml.coerceIn((previous * 0.75).roundToInt(), (previous * 1.25).roundToInt())

@@ -200,7 +200,7 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
                                 }
                             }
                             g.suggestionsHtml?.let { Box(Modifier.widthIn(max = 340.dp)) { SearchSuggestions(it) } }
-                            if (!g.searched) Text(t("(Réponse sans recherche internet : ton modèle ou ta clé ne la permettent pas.)"),
+                            if (!g.searched) Text((if (com.goodlife.app.ai.AiAccess.viaRelay) t("(Réponse sans recherche internet.)") else t("(Réponse sans recherche internet : ton modèle ou ta clé ne la permettent pas.)")),
                                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (!m.fromUser) AiContentFooter(t("Question sur « %1\$s »\n%2\$s", title, m.text), Modifier.widthIn(max = 340.dp))
@@ -238,7 +238,7 @@ private fun AiChatContent(title: String, context: String, image: ByteArray?, sug
                 }
             }
             Text(
-                t("Les questions et le contexte sont envoyés à Google Gemini avec ta clé. Rien n'est gardé après fermeture."),
+                if (com.goodlife.app.ai.AiAccess.viaRelay) t("Les questions et le contexte sont envoyés à Google Gemini via le serveur de Lifoody, qui n'enregistre rien. Rien n'est gardé après fermeture.") else t("Les questions et le contexte sont envoyés à Google Gemini avec ta clé. Rien n'est gardé après fermeture."),
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
             )

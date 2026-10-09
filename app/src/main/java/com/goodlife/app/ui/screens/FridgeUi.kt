@@ -123,7 +123,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
     var info by remember { mutableStateOf<String?>(null) }
     val p = profile ?: return
     val remaining = (p.targetKcal - Repo.mealsOfDay(meals).sumOf { it.kcal }).coerceAtLeast(0)
-    val aiReady = Repo.aiAllowed() && settings.apiKey.isNotBlank()
+    val aiReady = Repo.aiAllowed() && com.goodlife.app.ai.AiAccess.ready(settings)
 
     fun readReceipt(bytes: ByteArray) {
         receiptLoading = true; error = null
@@ -197,7 +197,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
 
         // ---- Que cuisiner ? ----
         if (!aiReady) {
-            Text(t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la et ajoute ta clé Gemini dans Profil › Paramètres (18 ans et plus)."),
+            Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la dans Profil › Paramètres (18 ans et plus).") else t("Les idées de recettes et la lecture du ticket utilisent l'IA : active-la et ajoute ta clé Gemini dans Profil › Paramètres (18 ans et plus)."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return@ScreenColumn
         }
@@ -229,7 +229,7 @@ internal fun FridgeContent(onClose: () -> Unit) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp)); Text(t("Que cuisiner ?"))
             }
-            Text(t("Ton frigo, la photo et tes précisions sont envoyés à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée."),
+            Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Ton frigo, la photo et tes précisions sont envoyés à Google Gemini via le serveur de Lifoody (qui n'enregistre rien), avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée.") else t("Ton frigo, la photo et tes précisions sont envoyés à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)

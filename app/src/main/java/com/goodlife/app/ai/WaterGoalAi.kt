@@ -19,7 +19,7 @@ object WaterGoalAi {
         val p = Repo.profile.value ?: return
         val today = localDay(0)
         if (running || s.waterGoalMode != "ia" || s.waterGoalIaDay == today) return
-        if (!Repo.aiAllowed() || s.apiKey.isBlank()) return
+        if (!Repo.aiAllowed() || !AiAccess.autoReady(s)) return
         running = true
         try {
             val yesterday = localDay(-1)
@@ -29,7 +29,7 @@ object WaterGoalAi {
             val sessions = Repo.sport.value.done.count { it.startsWith(yesterday) }
             val (ml, why) = Gemini(s.apiKey, s.model).recommendWater(
                 p, stepsYesterday = steps, sessionsYesterday = sessions,
-                outingMinutesYesterday = (outings.sumOf { it.movingMs } / 60_000).toInt(), previous = s.waterGoalIa
+                outingMinutesYesterday = (outings.sumOf { it.movingMs } / 60_000).toInt(), previous = s.waterGoalIa, auto = true
             )
             Repo.updateSettings { it.copy(waterGoalIa = ml, waterGoalIaWhy = why, waterGoalIaDay = today) }
         } catch (_: Exception) {

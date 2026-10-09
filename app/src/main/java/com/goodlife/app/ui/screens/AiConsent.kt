@@ -47,6 +47,7 @@ fun disableAi() = Repo.updateSettings { it.copy(aiEnabled = false, aiConsentAske
 /** Explication honnête de ce que l'activation de l'IA implique. */
 @Composable
 fun AiConsentText() {
+    if (com.goodlife.app.ai.AiAccess.viaRelay) { AiConsentTextRelay(); return }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             t("Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes, coach) utilisent Google Gemini avec ta propre clé API, que tu crées toi-même chez Google (Google AI Studio). En la créant, tu acceptes les conditions de Google (18 ans minimum) ; l'éventuelle facturation se fait entre toi et Google. Si tu actives l'IA :"),
@@ -58,6 +59,29 @@ fun AiConsentText() {
         )
         Text(
             t("Ces données ne sont ni vendues ni utilisées pour de la publicité par Lifoody. Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz."),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * Version Google Play : l'IA passe par le relais Lifoody (Fanix Studio), qui transmet à Google Gemini avec sa propre clé
+ * sans rien enregistrer du contenu. Consentement explicite (données de santé, RGPD art. 9.2.a).
+ */
+@Composable
+private fun AiConsentTextRelay() {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            t("Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes, coach) utilisent Google Gemini, via le service IA de Lifoody édité par Fanix Studio. Aucune clé à créer : 3 essais gratuits, puis l'abonnement Lifoody Premium. Si tu actives l'IA :"),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            t("• La photo du repas et tes allergies sont envoyées pour l'analyse.\n• Pour les recommandations : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour. Pour le coach, en plus : tes chiffres des 7 derniers jours (scores, calories, pas, séances, sorties, évolution du poids) et ton planning. Ce sont des données de santé.\n• Elles passent par le serveur de Lifoody (hébergé par Cloudflare), qui les transmet aussitôt à Google sans les enregistrer : ni photo, ni message, ni réponse n'y sont gardés. Il ne garde que des compteurs d'utilisation, liés à un identifiant aléatoire.\n• Google les traite pour répondre et peut les conserver temporairement (par exemple pour détecter les abus), parfois hors de l'UE. Avec l'offre payante de l'API Gemini utilisée par Lifoody, Google ne s'en sert pas pour améliorer ses produits.\n• Les réponses de l'IA sont des estimations et peuvent être fausses : vérifie-les.\n• Ton prénom, ton sommeil et tes positions GPS ne sont jamais envoyés."),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            t("Ces données ne sont ni vendues ni utilisées pour de la publicité. Réservé aux 18 ans et plus. Tu peux désactiver l'IA à tout moment dans Paramètres. Sans IA, tout le reste fonctionne : saisie manuelle, scan de code-barres, planning, sommeil, quiz."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

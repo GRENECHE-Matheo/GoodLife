@@ -128,7 +128,7 @@ fun ScanScreen(onDone: () -> Unit) {
     }
     val askCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasCamera = it }
 
-    val aiReady = settings.aiEnabled && settings.apiKey.isNotBlank()
+    val aiReady = settings.aiEnabled && com.goodlife.app.ai.AiAccess.ready(settings)
     var mode by rememberSaveable { mutableStateOf(if (aiReady) "photo" else "barcode") }
     var photo by remember { mutableStateOf<Bitmap?>(null) }
     var loading by remember { mutableStateOf<String?>(null) }
@@ -209,7 +209,7 @@ fun ScanScreen(onDone: () -> Unit) {
 
     val current = photo
     val cameraReady = current == null && hasCamera &&
-        !(mode == "photo" && (!settings.aiEnabled || settings.apiKey.isBlank()))
+        !(mode == "photo" && (!settings.aiEnabled || !com.goodlife.app.ai.AiAccess.ready(settings)))
 
     if (showDex) {
         NutridexScreen(onBack = { showDex = false })
@@ -314,12 +314,15 @@ fun ScanScreen(onDone: () -> Unit) {
         when {
             mode == "photo" && !settings.aiEnabled -> SectionCard(title = t("IA désactivée")) {
                 Text(
-                    t("L'analyse des photos envoie la photo à Google Gemini avec ta propre clé, c'est pourquoi elle demande ton accord. Le mode Code-barres fonctionne sans IA ni clé."),
+                    if (com.goodlife.app.ai.AiAccess.viaRelay) t("L'analyse des photos envoie la photo à Google Gemini (via le service IA de Lifoody), c'est pourquoi elle demande ton accord. Le mode Code-barres fonctionne sans IA.") else t("L'analyse des photos envoie la photo à Google Gemini avec ta propre clé, c'est pourquoi elle demande ton accord. Le mode Code-barres fonctionne sans IA ni clé."),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Button(onClick = { askConsent = true }) { Text(t("Activer l'IA")) }
             }
-            mode == "photo" && settings.apiKey.isBlank() -> SectionCard(title = t("Ajoute ta clé Gemini")) {
+            mode == "photo" && com.goodlife.app.ai.AiAccess.viaRelay && !com.goodlife.app.ai.AiAccess.ready(settings) -> SectionCard(title = t("Bientôt disponible")) {
+                Text(t("L'analyse des photos arrive très vite dans cette version. En attendant, le mode Code-barres fonctionne."), style = MaterialTheme.typography.bodyMedium)
+            }
+            mode == "photo" && !com.goodlife.app.ai.AiAccess.ready(settings) -> SectionCard(title = t("Ajoute ta clé Gemini")) {
                 Text(
                     t("Chaque utilisateur utilise sa propre clé, créée chez Google. Elle reste chiffrée sur ce téléphone et n'est envoyée qu'à Google."),
                     style = MaterialTheme.typography.bodyMedium

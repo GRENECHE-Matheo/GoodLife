@@ -225,7 +225,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 settings.notifWater
             ) { on -> Repo.updateSettings { it.copy(notifWater = on) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
             Text(t("Objectif d'eau par jour"), style = MaterialTheme.typography.labelLarge)
-            val aiWater = Repo.aiAllowed() && settings.apiKey.isNotBlank()
+            val aiWater = Repo.aiAllowed() && com.goodlife.app.ai.AiAccess.ready(settings)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (aiWater) androidx.compose.material3.FilterChip(settings.waterGoalMode == "ia",
                     { Repo.updateSettings { it.copy(waterGoalMode = "ia", waterGoalIaDay = "") }
@@ -284,7 +284,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         FoldableSection(t("Intelligence artificielle"), Icons.Filled.VpnKey, if (settings.aiEnabled) t("Activée") else t("Désactivée")) {
             SettingSwitch(
                 title = t("Fonctions IA (Google Gemini)"),
-                subtitle = if (settings.aiEnabled) t("Activées. Pour chaque demande, la photo et les infos nécessaires sont envoyées à Google avec ta clé.")
+                subtitle = if (settings.aiEnabled && com.goodlife.app.ai.AiAccess.viaRelay) t("Activées. Pour chaque demande, la photo et les infos nécessaires passent par le serveur de Lifoody, qui les transmet à Google sans les enregistrer.")
+                           else if (settings.aiEnabled) t("Activées. Pour chaque demande, la photo et les infos nécessaires sont envoyées à Google avec ta clé.")
                            else t("Désactivées. Aucune donnée n'est envoyée à Google."),
                 checked = settings.aiEnabled,
                 onChange = { on -> if (on) askAiConsent = true else disableAi() }
@@ -295,7 +296,9 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 checked = settings.fridgeAutoRemove,
                 onChange = { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
             )
-            if (settings.aiEnabled) {
+            if (settings.aiEnabled && com.goodlife.app.ai.AiAccess.viaRelay) {
+                PremiumSettingsCard()
+            } else if (settings.aiEnabled) {
                 Text(
                     t("Chaque utilisateur utilise sa propre clé Gemini, créée chez Google (tu acceptes alors ses conditions ; l'éventuelle facturation se fait entre toi et Google). Elle est chiffrée sur ce téléphone, conservée lors des mises à jour de l'app, et n'est envoyée qu'à Google avec tes demandes."),
                     style = MaterialTheme.typography.bodyMedium
@@ -303,7 +306,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) {
                     Text(t("Créer ma clé chez Google"))
                 }
-                if (settings.apiKey.isNotBlank() && !replacingKey) {
+                if (com.goodlife.app.ai.AiAccess.ready(settings) && !replacingKey) {
                     // Clé déjà enregistrée : on ne montre que sa fin, pour la reconnaître
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 10.dp))
@@ -348,7 +351,7 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                     }
                 }
                 // Choix du modèle : uniquement quand une clé personnelle est enregistrée.
-                if (settings.apiKey.isNotBlank()) {
+                if (com.goodlife.app.ai.AiAccess.ready(settings)) {
                     Text(t("Modèle (avec ta clé)"), style = MaterialTheme.typography.labelLarge)
                     Gemini.KNOWN_MODELS.forEach { (id, desc) ->
                         Row(
@@ -525,4 +528,38 @@ private fun ExportDialog(onDismiss: () -> Unit, onProtected: (String) -> Unit, o
         confirmButton = { TextButton(enabled = ok, onClick = { onProtected(pw) }) { Text(t("Exporter")) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler")) } }
     )
+}
+
+/** Version Google Play : abonnement Premium à la place de la clé personnelle. */
+@Composable
+private fun PremiumSettingsCard() {
+    val premium by com.goodlife.app.store.Store.premium.collectAsState()
+    val status by com.goodlife.app.ai.Relay.status.collectAsState()
+    val context = LocalContext.current
+    val uri = LocalUriHandler.current
+    Text(
+        t("Aucune clé à créer : le service IA de Lifoody s'en charge. Il vérifie ton abonnement et transmet tes demandes à Google Gemini sans rien enregistrer."),
+        style = MaterialTheme.typography.bodyMedium
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(if (premium) Icons.Filled.Lock else Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(if (premium) t("Lifoody Premium actif") else t("Version gratuite"), style = MaterialTheme.typography.bodyLarge)
+            val s = status
+            Text(
+                when {
+                    premium && s != null -> t("Aujourd'hui : encore %1\$s photos et %2\$s messages.", s.photosLeft, s.messagesLeft)
+                    premium -> t("Analyses de repas, coach, planning et objectifs du jour.")
+                    s != null && s.trialsLeft <= 0 -> t("Tes 3 essais IA gratuits sont utilisés.")
+                    s != null -> com.goodlife.app.i18n.tp(s.trialsLeft, "%1\$s essai IA gratuit restant.", "%1\$s essais IA gratuits restants.")
+                    else -> t("3 essais IA gratuits, puis Premium.")
+                },
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (premium) OutlinedButton(onClick = { uri.openUri(com.goodlife.app.store.Store.manageUrl(context.packageName)) }) { Text(t("Gérer mon abonnement")) }
+        else FilledTonalButton(onClick = { Paywall.show() }) { Text(t("Découvrir Premium")) }
+    }
 }

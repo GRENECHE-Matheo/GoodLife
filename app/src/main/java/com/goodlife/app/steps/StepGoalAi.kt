@@ -19,12 +19,12 @@ object StepGoalAi {
         val p = Repo.profile.value ?: return
         val today = localDay(0)
         if (running || !s.stepsEnabled || s.stepsGoalMode != "ia" || s.stepsGoalIaDay == today) return
-        if (!Repo.aiAllowed() || s.apiKey.isBlank()) return
+        if (!Repo.aiAllowed() || !com.goodlife.app.ai.AiAccess.autoReady(s)) return
         running = true
         try {
             val days = Repo.steps.value.days
             val week = (1..7).mapNotNull { d -> days[localDay(-d)]?.let { localDay(-d) to it } }
-            val (goal, why) = Gemini(s.apiKey, s.model).recommendSteps(p, Steps.weekAverage(), week, s.stepsGoalIa)
+            val (goal, why) = Gemini(s.apiKey, s.model).recommendSteps(p, Steps.weekAverage(), week, s.stepsGoalIa, auto = true)
             Repo.updateSettings { it.copy(stepsGoalIa = goal, stepsGoalIaWhy = why, stepsGoalIaDay = today) }
         } catch (_: Exception) {
             // Pas de réseau ou clé refusée : on garde l'objectif d'hier et on réessaiera à la prochaine ouverture

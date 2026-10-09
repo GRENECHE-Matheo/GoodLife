@@ -158,7 +158,7 @@ fun CoachScreen(onBack: () -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val list = rememberLazyListState()
-    val aiReady = Repo.aiAllowed() && settings.apiKey.isNotBlank()
+    val aiReady = Repo.aiAllowed() && com.goodlife.app.ai.AiAccess.ready(settings)
     val summary = remember { Coach.summary() }
     val (mood, dailyWord) = remember(summary, profile) {
         if (summary != null && profile != null) Coach.homeMessage(summary, profile!!) else ChefMood.CONTENT to ""
@@ -254,6 +254,7 @@ fun CoachScreen(onBack: () -> Unit) {
                                 Bubble(false,
                                     if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres. Dis-moi aussi ce que tu as dans ton frigo, ou ce que tu veux changer dans ton planning ou ton programme : je te le propose, tu valides d'un bouton.")
                                     else if ((profile?.age ?: 0) < 18) t("Salut l'ami ! 👋 Discuter avec moi utilise l'IA de Google, réservée aux 18 ans et plus. En attendant, je te laisse mes petits mots ici et dans tes notifications !")
+                                    else if (com.goodlife.app.ai.AiAccess.viaRelay) t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec ton frigo…), active l'IA juste en dessous : tu as 3 essais gratuits, puis Lifoody Premium.")
                                     else t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec ton frigo…), il te faut une clé Gemini : elle se crée gratuitement chez Google en deux minutes. Je t'explique juste en dessous !")
                                 )
                             }
@@ -341,7 +342,7 @@ fun CoachScreen(onBack: () -> Unit) {
                     // Une seule ligne (le détail complet a été accepté au premier message, et reste à un appui)
                     var privacyInfo by remember { mutableStateOf(false) }
                     Text(
-                        t("Envoyé à Google Gemini avec ta clé · En savoir plus"),
+                        if (com.goodlife.app.ai.AiAccess.viaRelay) t("Envoyé à Google Gemini via le service IA de Lifoody · En savoir plus") else t("Envoyé à Google Gemini avec ta clé · En savoir plus"),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                             .clickable { privacyInfo = true }
@@ -350,7 +351,8 @@ fun CoachScreen(onBack: () -> Unit) {
                         onDismissRequest = { privacyInfo = false },
                         confirmButton = { androidx.compose.material3.TextButton(onClick = { privacyInfo = false }) { Text(t("OK")) } },
                         title = { Text(t("Ce que voit Google")) },
-                        text = { Text(t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. L'historique reste chiffré sur ton téléphone, sans les photos.")) }
+                        text = { Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) passent par le serveur de Lifoody, qui les transmet à Google Gemini sans les enregistrer. Jamais ton prénom, ton sommeil ni tes positions GPS. L'historique reste chiffré sur ton téléphone, sans les photos.")
+                            else t("Tes questions, les photos que tu envoies et tes chiffres (profil, repas, pas, séries, sport, planning) sont envoyés à Google Gemini avec ta clé. Jamais ton prénom, ton sommeil ni tes positions GPS. L'historique reste chiffré sur ton téléphone, sans les photos.")) }
                     )
                 }
             }
@@ -366,7 +368,8 @@ private fun CoachConsentDialog(onAccept: () -> Unit, onDismiss: () -> Unit) {
         title = { Text(t("Le chef a besoin de tes chiffres")) },
         text = {
             Text(
-                t("Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\nJamais ton prénom, ton sommeil ni tes positions GPS ; une photo n'est envoyée que si tu la joins toi-même à un message. Tu peux retirer cet accord en désactivant l'IA dans Paramètres.")
+                if (com.goodlife.app.ai.AiAccess.viaRelay) t("Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (via le serveur de Lifoody, qui n'enregistre rien) avec : ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\nJamais ton prénom, ton sommeil ni tes positions GPS ; une photo n'est envoyée que si tu la joins toi-même à un message. Tu peux retirer cet accord en désactivant l'IA dans Paramètres.")
+                else t("Pour des conseils vraiment adaptés, chaque question est envoyée à Google Gemini (avec ta clé) avec : ton âge, sexe, poids, taille, activité, objectif, habitudes et allergies, tes repas et tes pas du jour, un résumé de tes 7 derniers jours (jours validés, score, calories, pas, sport, évolution du poids, série), ton programme sportif et les repas prévus au planning. Ce sont des données de santé.\n\nJamais ton prénom, ton sommeil ni tes positions GPS ; une photo n'est envoyée que si tu la joins toi-même à un message. Tu peux retirer cet accord en désactivant l'IA dans Paramètres.")
             )
         },
         confirmButton = { TextButton(onClick = onAccept) { Text(t("J'accepte")) } },
@@ -654,6 +657,13 @@ private fun CoachKeySetup() {
                 FilledTonalButton(onClick = { consent = true }) { Text(t("Activer l'IA")) }
             } else {
                 Text(t("1. IA activée ✓"), style = MaterialTheme.typography.bodySmall)
+            }
+            if (com.goodlife.app.ai.AiAccess.viaRelay) {
+                // Version Google Play : pas de clé, le service IA de Lifoody s'en charge (essais gratuits, puis Premium)
+                Text(t("2. C'est tout : 3 essais gratuits t'attendent, puis Lifoody Premium pour continuer."), style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = { Paywall.show() }) { Text(t("Découvrir Premium")) }
+                if (consent) AiConsentDialog(onDismiss = { consent = false })
+                return@Column
             }
             Text(t("2. Crée ta clé : connecte-toi avec ton compte Google, appuie sur « Create API key », puis copie la clé."), style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text(t("Créer ma clé chez Google")) }

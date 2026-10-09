@@ -133,7 +133,7 @@ fun ShoppingScreen(onBack: () -> Unit) {
     val upcoming = plan.filter { it.date >= localDay(0) && it.date <= localDay(6) && !it.done }
     val cost = upcoming.sumOf { it.costEur }
     fun update(l: List<ShopItem>) { items = l; Shopping.save(l) }
-    val aiReady = Repo.aiAllowed() && settings.apiKey.isNotBlank()
+    val aiReady = Repo.aiAllowed() && com.goodlife.app.ai.AiAccess.ready(settings)
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         ScreenColumn {

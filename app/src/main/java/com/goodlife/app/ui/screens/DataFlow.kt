@@ -50,7 +50,10 @@ fun DataFlowSummary(showAi: Boolean = true) {
             style = MaterialTheme.typography.bodyMedium
         )
         if (showAi) {
-            FlowLine(
+            if (com.goodlife.app.ai.AiAccess.viaRelay) FlowLine(
+                Icons.Filled.AutoAwesome, t("IA (si tu l'actives) → serveur de Lifoody → Google Gemini"),
+                t("Photo du repas (ou du frigo, du ticket de caisse, ou celle que tu joins au coach) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres de la semaine (scores, pas, sport, poids), ton planning, ton programme et le contenu de « Mon frigo ». Le serveur de Lifoody (Fanix Studio, hébergé par Cloudflare) vérifie ton abonnement et transmet à Google sans rien enregistrer ; il ne garde que des compteurs d'utilisation. Jamais ton prénom, ton sommeil ni tes positions.")
+            ) else FlowLine(
                 Icons.Filled.AutoAwesome, t("IA (si tu l'actives) → Google Gemini"),
                 t("Photo du repas (ou du frigo, du ticket de caisse, ou celle que tu joins au coach) et allergies pour l'analyse. Pour les conseils : âge, sexe, poids, taille, activité, objectif, habitudes, allergies et repas du jour (données de santé) ; pour le coach, aussi tes chiffres de la semaine (scores, pas, sport, poids), ton planning, ton programme et le contenu de « Mon frigo ». Envoyé avec ta propre clé. Jamais ton prénom, ton sommeil ni tes positions.")
             )
