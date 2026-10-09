@@ -8,7 +8,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
-## v0.19.0 — en préparation
+## v0.19.0 — 09/10/2026
 
 **Une app rangée : un onglet = un rôle, chaque chose à un seul endroit.**
 

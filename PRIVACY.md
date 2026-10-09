@@ -1,6 +1,6 @@
 # Politique de confidentialité — Lifoody
 
-Version 0.18.0 · mise à jour le 9 octobre 2026
+Version 0.19.0 · mise à jour le 9 octobre 2026
 
 > Projet personnel assisté par IA. Ce document décrit honnêtement ce que fait l'application ; il ne constitue pas un avis juridique.
 

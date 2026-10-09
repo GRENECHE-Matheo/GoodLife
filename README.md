@@ -22,7 +22,7 @@ Interface Material You, **aucun compte, aucune pub** : tes données restent chif
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Bientôt (v0.19.0)
+## 🆕 Nouveautés de la v0.19.0
 
 - **Une app rangée** : onglets Aujourd'hui · Ajouter · Repas · Forme · Moi, chaque fonction à un seul endroit,
   paramètres rangés par thème.

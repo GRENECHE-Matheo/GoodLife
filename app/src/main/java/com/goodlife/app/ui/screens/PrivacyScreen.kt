@@ -106,7 +106,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         ScreenColumn {
             SubScreenHeader(t("Confidentialité"), onBack)
             Text(
-                t("Version 0.18.0 · mise à jour le 9 octobre 2026"),
+                t("Version 0.19.0 · mise à jour le 9 octobre 2026"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
