@@ -5,6 +5,7 @@ package com.goodlife.app.ui.screens
 import androidx.compose.foundation.layout.FlowRow
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.graphics.graphicsLayer
+import com.goodlife.app.ui.AfterEnter
 import com.goodlife.app.i18n.t
 
 import android.Manifest
@@ -310,8 +311,17 @@ fun OutingsTab() {
     // Choix d'une zone hors ligne sur la carte (le cadre)
     var offlinePicking by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = screen.isNotEmpty()) { screen = if (screen.startsWith("detail:")) "history" else "" }
-    // Glissement entre la carte, l'historique et le détail d'une sortie (au lieu d'un changement sec)
-    com.goodlife.app.ui.SlideSwitch(screen, depth = { when { it.isEmpty() -> 0; it.startsWith("detail:") -> 2; else -> 1 } }) { shown ->
+    // Glissement entre l'historique et le détail ; fondu vers ou depuis la carte, créée seulement après l'animation
+    androidx.compose.animation.AnimatedContent(
+        targetState = screen,
+        transitionSpec = {
+            fun depth(s: String) = when { s.isEmpty() -> 0; s.startsWith("detail:") -> 2; else -> 1 }
+            if (targetState.isEmpty() || initialState.isEmpty()) com.goodlife.app.ui.Motion.fade()
+            else com.goodlife.app.ui.Motion.sharedAxisX(forward = depth(targetState) >= depth(initialState))
+        },
+        modifier = Modifier.fillMaxSize(),
+        label = "outings"
+    ) { shown ->
     when {
         shown == "history" -> OutingHistory(onBack = { screen = "" }, onOpen = { screen = "detail:$it" })
         shown == "offline" -> OfflineZonesScreen(onBack = { screen = "" }, onPick = { offlinePicking = true; screen = "" })
@@ -324,14 +334,16 @@ fun OutingsTab() {
                 retry = routeId; screen = ""
             }
         )
-        else -> OutingsMap(
-            retryRoute = retry,
-            onClearRetry = { retry = 0L },
-            onHistory = { screen = "history" },
-            offlinePicking = offlinePicking,
-            onOfflinePicking = { offlinePicking = it },
-            onOfflineZones = { offlinePicking = false; screen = "offline" }
-        )
+        else -> AfterEnter {
+            OutingsMap(
+                retryRoute = retry,
+                onClearRetry = { retry = 0L },
+                onHistory = { screen = "history" },
+                offlinePicking = offlinePicking,
+                onOfflinePicking = { offlinePicking = it },
+                onOfflineZones = { offlinePicking = false; screen = "offline" }
+            )
+        }
     }
     }
 }

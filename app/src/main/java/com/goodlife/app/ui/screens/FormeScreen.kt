@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.goodlife.app.ui.AfterEnter
 import com.goodlife.app.ui.Motion
 import com.goodlife.app.ui.ScreenColumn
 import com.goodlife.app.ui.ScreenTitle
@@ -40,9 +41,11 @@ fun FormeScreen() {
     androidx.compose.runtime.LaunchedEffect(active) { if (active) tab = 1 }
     Column(Modifier.fillMaxSize()) {
         // Sur la carte, on garde toute la place pour elle : le grand titre se replie en douceur (au lieu de disparaître d'un coup)
+        // Le titre se replie AVANT que la carte n'apparaisse, et se déplie APRÈS qu'elle a disparu :
+        // la carte n'est jamais redimensionnée pendant une animation (c'est ce qui la faisait saccader)
         AnimatedVisibility(
             visible = !active && tab != 1,
-            enter = expandVertically(tween(Motion.DURATION)) + fadeIn(tween(Motion.DURATION)),
+            enter = expandVertically(tween(Motion.DURATION, delayMillis = 120)) + fadeIn(tween(Motion.DURATION, delayMillis = 120)),
             exit = shrinkVertically(tween(Motion.DURATION)) + fadeOut(tween(Motion.DURATION / 2))
         ) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -58,17 +61,17 @@ fun FormeScreen() {
                 }
             }
         }
-        // Glissement latéral dans le sens des onglets (Programme → Carte → Sommeil)
+        // Glissement latéral entre Programme et Sommeil ; simple fondu vers ou depuis la carte (trop lourde pour glisser)
         AnimatedContent(
             targetState = tab,
-            transitionSpec = { Motion.sharedAxisX(forward = targetState > initialState) },
+            transitionSpec = { if (targetState == 1 || initialState == 1) Motion.fade() else Motion.sharedAxisX(forward = targetState > initialState) },
             modifier = Modifier.weight(1f).fillMaxWidth(),
             label = "forme"
         ) { current ->
             Box(Modifier.fillMaxSize()) {
                 when (current) {
                     0 -> ScreenColumn { ProgramTab() }
-                    1 -> OutingsTab()
+                    1 -> AfterEnter { OutingsTab() }
                     else -> SleepScreen(showTitle = false)
                 }
             }
