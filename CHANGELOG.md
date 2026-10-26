@@ -8,7 +8,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
-## v0.20.0 — à venir (pas encore publiée)
+## v0.20.0 — 26/10/2026
 
 **Un vrai coach : il regarde plus que les calories, il te dit franchement ce qui coince, et il te relance au bon moment.**
 
@@ -37,7 +37,8 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
   Le consentement IA commence par « En clair ».
 - 🛠️ **Visite guidée** : nouvelle étape « Le point du chef », et on peut toucher la zone éclairée pour avancer.
 - 🔒 **Garde-fous renforcés** : jamais de félicitations pour avoir mangé moins, aucun conseil de déficit avant 18 ans ni
-  en cas de signal d'alerte (apports très bas, perte de plus d'1 kg par semaine, IMC bas) ; le chef propose alors de l'aide
+  en cas de signal d'alerte (apports très bas, « pas mangé » plusieurs jours de suite, perte de plus d'1 kg par semaine,
+  IMC bas) ; le chef propose alors de l'aide
   (médecin, Fil Santé Jeunes, Anorexie Boulimie Info Écoute). Les mêmes règles sont données à l'IA du chef.
 
 ---

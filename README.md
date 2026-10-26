@@ -22,7 +22,14 @@ Interface Material You, **aucun compte, aucune pub** : tes données restent chif
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.19.0
+## 🆕 Nouveautés de la v0.20.0
+
+- **Un vrai coach** : chaque jour, le point du chef (pas que les calories : protéines, repas sautés, pas, sommeil),
+  « Tu as mangé ce midi ? » à l'heure de tes repas, « On bouge ? », un bilan de la semaine avec un défi à choisir,
+  et un ton au choix (doux, équilibré, exigeant). Tout est calculé sur ton téléphone.
+- **« Mes provisions »** remplace « Frigo », et la confidentialité est expliquée en mots simples.
+
+## Nouveautés de la v0.19.0
 
 - **Une app rangée** : onglets Aujourd'hui · Ajouter · Repas · Forme · Moi, chaque fonction à un seul endroit,
   paramètres rangés par thème.
