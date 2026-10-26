@@ -76,6 +76,16 @@ class InsightsTest {
         assertFalse(ids(i).contains("care.low"))
     }
 
+    @Test fun jamaisRienMangeDeclencheLeGardeFou() {
+        // Aucun repas noté, et « pas mangé » midi et soir deux jours de suite : 0 kcal, mais le chef s'inquiète
+        val skips = listOf(days[days.size - 2], days.last()).flatMap { d -> listOf("$d#DEJEUNER", "$d#DINER") }.toSet()
+        val all = Insights.all(input(emptyList(), skipped = skips))
+        assertEquals("care.skip", all.first().id)
+        assertFalse(all.any { it.id.startsWith("rhythm.skip") })
+        // Un seul repas sauté : pas d'inquiétude
+        assertFalse(ids(input(emptyList(), skipped = setOf("${days.last()}#DEJEUNER"))).contains("care.skip"))
+    }
+
     @Test fun perteTropRapide() {
         val w = listOf(days[13] to 80.0, days[20] to 78.4, days[27] to 76.8, days[33] to 75.4)
         val meals = past.flatMap { day(it, 1900, 100.0, 220.0, 60.0) }

@@ -246,7 +246,15 @@ class CoachFacts(val input: CoachInput) {
         (input.targetKcal > 0 && past7.takeLast(3).let { l -> l.size == 3 && l.all { kcal(it) in 1 until input.targetKcal / 2 } })
     val careFast: Boolean = (weightRate ?: 0.0) < -1.0
     val careBmi: Boolean = bmi < 18.5 && input.goal == Goal.PERTE
-    val care: Boolean = careLow || careFast || careBmi
+    /**
+     * « Pas mangé » répété : rien n'est noté (0 kcal), donc les autres signaux ne voient rien. On compte les jours
+     * où la personne a dit n'avoir mangé ni le midi ni le soir, et les repas principaux sautés sur 7 jours.
+     */
+    private val recent: List<String> = (past7 + input.today).distinct()
+    val emptyDays: Int = recent.count { d -> listOf(MealSlot.DEJEUNER, MealSlot.DINER).all { "$d#${it.name}" in input.skipped } && kcal(d) < 400 }
+    val skippedMain: Int = recent.sumOf { d -> listOf(MealSlot.PETIT_DEJ, MealSlot.DEJEUNER, MealSlot.DINER).count { "$d#${it.name}" in input.skipped && it !in input.fasting } }
+    val careSkip: Boolean = emptyDays >= 2 || skippedMain >= 6
+    val care: Boolean = careLow || careFast || careBmi || careSkip
 }
 
 object Insights {
@@ -272,6 +280,9 @@ object Insights {
         val help = if (f.input.age <= 25) t("Fil Santé Jeunes répond gratuitement et anonymement au 0 800 235 236 (12-25 ans).")
                    else t("Ton médecin peut t'aider, et la ligne Anorexie Boulimie Info Écoute répond au 09 69 325 900 (appel non surtaxé).")
         when {
+            f.careSkip -> out += Insight("care.skip", Area.CARE, InsightKind.CARE, 100, t("Le chef prend de tes nouvelles"),
+                t("Tu m'as dit plusieurs fois ces derniers jours que tu n'avais pas mangé. Si c'est le temps ou l'argent qui manque, je peux t'aider avec des repas simples, rapides et pas chers. Si c'est l'envie de manger qui n'est pas là, ou si manger est compliqué en ce moment, en parler à un proche ou à un médecin aide vraiment.") + " " + help,
+                action = "repas:idees", actionLabel = t("Des idées simples"))
             f.careLow -> out += Insight("care.low", Area.CARE, InsightKind.CARE, 100, t("Le chef prend de tes nouvelles"),
                 t("Ces derniers jours, tes repas notés sont très en dessous de tes besoins estimés. Peut-être que tu n'as pas tout noté, et c'est très bien ainsi. Mais si manger est compliqué en ce moment, en parler à un proche ou à un médecin aide vraiment.") + " " + help)
             f.careFast -> out += Insight("care.fast", Area.CARE, InsightKind.CARE, 95, t("Tu perds du poids vite"),
@@ -350,7 +361,7 @@ object Insights {
     private fun rhythm(f: CoachFacts, out: MutableList<Insight>) {
         val i = f.input
         for (slot in listOf(MealSlot.DEJEUNER, MealSlot.DINER)) {
-            if (slot in i.fasting) continue
+            if (slot in i.fasting || f.careSkip) continue   // repas très souvent sautés : le message d'inquiétude s'en charge
             val n = f.skippedSlot(slot)
             if (n < 3) continue
             val extra = when {
