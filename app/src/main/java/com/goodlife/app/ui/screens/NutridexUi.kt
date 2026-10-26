@@ -124,6 +124,11 @@ fun NutridexCard(onOpen: () -> Unit) {
                     t("%1\$s / %2\$s aliments découverts", found, total),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
+                // Ce qu'est le Nutridex, en clair (le nom seul ne parle pas à tout le monde)
+                Text(
+                    t("Ta collection d'aliments : chaque aliment reconnu sur tes photos ou tes codes-barres s'y ajoute, avec ce qu'il t'apporte."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
                 Spacer(Modifier.height(6.dp))
                 LinearProgressIndicator(
                     progress = { found.toFloat() / total },

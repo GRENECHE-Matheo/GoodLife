@@ -8,6 +8,40 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.20.0 — à venir (pas encore publiée)
+
+**Un vrai coach : il regarde plus que les calories, il te dit franchement ce qui coince, et il te relance au bon moment.**
+
+- ✨ **Le point du chef** (Aujourd'hui) : chaque jour, la chose la plus utile, calculée sur ton téléphone à partir
+  de repères publics (ANSES, Santé publique France, EFSA, OMS). Pas que les calories : protéines (« côté calories,
+  tu es dans ton objectif : le souci n'est pas là »), glucides quand tu fais du sport, matières grasses, repas sautés,
+  petit-déjeuner, dîners tardifs, pas en baisse par rapport à **tes propres habitudes**, séances du programme, sommeil,
+  eau, rythme de perte ou de prise de poids. Toujours sur une moyenne de 7 jours, jamais sur un seul jour.
+- ✨ **« Tu as mangé ce midi ? »** : le chef apprend l'heure habituelle de tes repas. Si rien n'est noté 1 h 30 après,
+  il te demande (même app fermée) : **Je le note** (photo, code-barres, à la main ou un repas déjà fait, rangé à la
+  bonne heure), **Pas mangé** (noté sans jugement) ou **Plus tard**. Jamais si le repas est déjà noté.
+- ✨ **« On bouge ? »** : le jour d'une séance de ton programme, ou quand tu marches moins que d'habitude depuis 3 jours.
+- ✨ **Ton du coach** au choix : **doux**, **équilibré** ou **exigeant** (comme un coach de salle, sans jamais être méchant).
+- ✨ **Mon bilan de la semaine** : une réussite d'abord, tes chiffres comparés aux 4 semaines d'avant, un lien observé
+  dans tes données (« après une nuit de 7 h, tu fais 1 800 pas de plus »), les points à travailler et **un défi à
+  choisir** avec ton plan (« quand je finis de déjeuner, je marche 10 minutes »). Le défi est mesuré la semaine suivante.
+  Avec l'IA : **« Le chef t'explique »** (tu vois le message avant de l'envoyer).
+- ✨ **Messages du chef** : appuyer sur une notification ouvre enfin **le message complet**, même quand l'app est verrouillée,
+  et tous les messages sont gardés dans une liste.
+- ✨ **Ce que le chef a appris** (Paramètres › Le coach) : tes heures de repas, les repas que tu sautes volontairement,
+  ton heure de coucher… À corriger ou à tout effacer.
+- 🛠️ **Notifications plus respectueuses** : 1 à 3 par jour au plus selon le ton, jamais la nuit ni juste avant ton
+  coucher, et le chef se calme tout seul (puis propose de couper) quand tu ne réponds pas. Un canal Android par type.
+- 🛠️ **« Frigo » devient « Mes provisions »**, avec une phrase qui explique à quoi ça sert. Le Nutridex aussi est expliqué.
+- 🛠️ **Confidentialité en mots simples** : « Quelqu'un peut-il voir mes données ? Non… », puis le détail pour qui le veut.
+  Le consentement IA commence par « En clair ».
+- 🛠️ **Visite guidée** : nouvelle étape « Le point du chef », et on peut toucher la zone éclairée pour avancer.
+- 🔒 **Garde-fous renforcés** : jamais de félicitations pour avoir mangé moins, aucun conseil de déficit avant 18 ans ni
+  en cas de signal d'alerte (apports très bas, perte de plus d'1 kg par semaine, IMC bas) ; le chef propose alors de l'aide
+  (médecin, Fil Santé Jeunes, Anorexie Boulimie Info Écoute). Les mêmes règles sont données à l'IA du chef.
+
+---
+
 ## v0.19.0 — 09/10/2026
 
 **Une app rangée : un onglet = un rôle, chaque chose à un seul endroit.**

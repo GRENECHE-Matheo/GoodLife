@@ -86,16 +86,4 @@ object Milestones {
     fun markBadgesSeen(all: List<Badge>) {
         Repo.putExtra("badges_seen", JSONArray(all.filter { it.unlocked }.map { it.id }).toString())
     }
-
-    /**
-     * Garde-fou bienveillant : les 3 derniers jours terminés, des repas ont été notés mais moins de la moitié des
-     * besoins estimés. On propose alors gentiment de l'aide (jamais de reproche), sauf si c'est mis en pause.
-     */
-    fun undereating(s: GameSummary?): Boolean {
-        if (s == null) return false
-        if (Repo.settings.value.guardSnoozeUntil > System.currentTimeMillis()) return false
-        val target = Repo.profile.value?.targetKcal ?: return false
-        val last3 = s.history.filter { it.date >= localDay(-3) }
-        return last3.size == 3 && last3.all { it.kcal > 0 && it.kcal < target * 0.5 }
-    }
 }

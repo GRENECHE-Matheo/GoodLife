@@ -63,9 +63,9 @@ import com.goodlife.app.data.Repo
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Visite guidée de l'app (proposée une fois, jamais imposée) : 5 étapes, une par onglet. L'onglet est éclairé,
- * le reste assombri, et le chef explique en une phrase. « Passer » à chaque étape ; on peut la revoir dans
- * Moi › Paramètres › À propos.
+ * Visite guidée de l'app (proposée une fois, jamais imposée) : l'élément est éclairé, le reste assombri, et le chef
+ * explique en une phrase. On avance avec « Suivant » ou en touchant soi-même la zone éclairée (on apprend mieux en
+ * faisant). « Passer » à chaque étape ; on peut la revoir dans Moi › Paramètres › À propos.
  */
 object Tour {
     /** Étape en cours (0 à 4 = l'onglet montré), ou -1 quand la visite n'est pas lancée. */
@@ -91,12 +91,13 @@ private data class TourStep(val tab: Int, val target: String, val emoji: String,
 private fun steps() = listOf(
     TourStep(0, "tab0", "☀️", t("Aujourd'hui"), t("Ta journée en un coup d'œil : calories, repas du jour et eau. Le quiz et les missions du jour sont juste en dessous.")),
     TourStep(0, "home.add", "➕", t("Ajouter un repas"), t("Ce bouton (ou l'onglet Ajouter) : photo de ton assiette et l'IA estime les calories, code-barres d'un produit, saisie à la main, ou un repas habituel en un appui.")),
-    TourStep(0, "home.chef", "👨‍🍳", t("Ton coach"), t("Touche le chef pour lui parler : idées de repas, recettes, conseils sport. Il connaît tes chiffres de la semaine.")),
-    TourStep(2, "tab2", "🍽️", t("Repas"), t("Ton planning de la semaine, des idées de repas, ta liste de courses et ce qu'il y a dans ton frigo.")),
+    TourStep(0, "home.coach", "💡", t("Le point du chef"), t("Chaque jour, le chef te dit la chose la plus utile : ce qui va, et ce qui coince (pas que les calories : protéines, rythme des repas, pas, sommeil). « Mon bilan » compare ta semaine aux précédentes et te propose un défi.")),
+    TourStep(0, "home.chef", "👨‍🍳", t("Parler au chef"), t("Touche le chef pour lui poser tes questions : idées de repas, recettes, conseils sport. Il connaît tes chiffres de la semaine.")),
+    TourStep(2, "tab2", "🍽️", t("Repas"), t("Ton planning de la semaine, des idées de repas, ta liste de courses et tes provisions (ce que tu as chez toi).")),
     TourStep(3, "tab3", "💪", t("Forme"), t("Ton programme sportif, la carte pour tes sorties GPS, et ton sommeil.")),
     TourStep(4, "moi.progress", "🏆", t("Mes progrès"), t("Ton niveau, ta série, tes badges, ton poids et tes courbes. C'est aussi ici que tu te pèses.")),
     TourStep(4, "moi.friends", "👥", t("Ajouter un ami"), t("Ouvre Amis puis « Ajouter un ami » : colle vos deux téléphones (Tap to Sync), scanne son QR code ou envoie-lui ta carte par message. Vous comparez vos séries et vous vous encouragez.")),
-    TourStep(4, "moi.settings", "⚙️", t("Les réglages"), t("Notifications, objectifs d'eau et de pas, IA, sauvegarde et tes données : tout est dans Paramètres. Tu peux revoir cette visite dans Paramètres › À propos.")),
+    TourStep(4, "moi.settings", "⚙️", t("Les réglages"), t("Le ton du coach (doux, équilibré ou exigeant), les notifications, l'IA, la sauvegarde et tes données : tout est dans Paramètres. Tu peux revoir cette visite dans Paramètres › À propos.")),
 )
 
 /** Fenêtre « Je te fais visiter ? », une seule fois (nouveaux comptes, et anciens comptes après la réorganisation). */
@@ -138,21 +139,31 @@ fun TourOverlay(onTab: (Int) -> Unit) {
     }
     AnimatedVisibility(visible = step in all.indices, enter = fadeIn(tween(250)), exit = fadeOut(tween(200))) {
         val current = step.coerceIn(0, all.lastIndex)
-        val target = Tour.targets[all[current].target]
-        val density = LocalDensity.current
-        val pad = with(density) { 6.dp.toPx() }
-        // Le halo glisse d'un onglet à l'autre
-        val cx by animateFloatAsState(target?.center?.x ?: 0f, tween(350), label = "tourX")
-        val cy by animateFloatAsState(target?.center?.y ?: 0f, tween(350), label = "tourY")
-        val w = (target?.width ?: 0f) + pad * 2
-        val h = (target?.height ?: 0f) + pad * 2
         var boxTop by remember { mutableStateOf(0f) }
         var boxH by remember { mutableStateOf(0f) }
+        // Élément hors de l'écran (petit téléphone, liste défilée) : pas de halo au mauvais endroit, juste la bulle
+        val target = Tour.targets[all[current].target]?.takeIf { r -> boxH <= 0f || (r.top >= boxTop - 1f && r.bottom <= boxTop + boxH + 1f) }
+        val density = LocalDensity.current
+        fun next() { if (current < all.lastIndex) Tour.step.value = current + 1 else { Tour.stop(); onTab(0) } }
+        val pad = with(density) { 6.dp.toPx() }
+        // Le halo glisse d'un élément à l'autre ; la première fois (position pas encore connue), il se pose directement
+        var placed by remember { mutableStateOf(false) }
+        val spec: androidx.compose.animation.core.AnimationSpec<Float> = if (placed) tween(350) else androidx.compose.animation.core.snap()
+        val cx by animateFloatAsState(target?.center?.x ?: 0f, spec, label = "tourX")
+        val cy by animateFloatAsState(target?.center?.y ?: 0f, spec, label = "tourY")
+        LaunchedEffect(target != null) { if (target != null) placed = true }
+        val w = (target?.width ?: 0f) + pad * 2
+        val h = (target?.height ?: 0f) + pad * 2
         Box(
             Modifier.fillMaxSize()
                 .onGloballyPositioned { boxTop = it.positionInRoot().y; boxH = it.size.height.toFloat() }
-                // La visite ne laisse pas toucher l'app derrière (seulement ses boutons)
-                .pointerInput(Unit) { detectTapGestures { } }
+                // La visite ne laisse pas toucher l'app derrière ; toucher la zone éclairée fait avancer (« fais-le toi-même »)
+                .pointerInput(current, target) {
+                    detectTapGestures { pos ->
+                        val r = target ?: return@detectTapGestures
+                        if (r.inflate(pad).contains(Offset(pos.x, pos.y + boxTop))) next()
+                    }
+                }
         ) {
             Canvas(Modifier.fillMaxSize().graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }) {
                 drawRect(Color.Black.copy(alpha = 0.55f))
@@ -186,6 +197,8 @@ fun TourOverlay(onTab: (Int) -> Unit) {
                             Column(Modifier.weight(1f)) {
                                 Text("${all[i].emoji} ${all[i].title}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Text(all[i].text, style = MaterialTheme.typography.bodyMedium)
+                                if (i == current && target != null) Text(t("Touche la zone éclairée ou « Suivant »."),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -200,9 +213,7 @@ fun TourOverlay(onTab: (Int) -> Unit) {
                             }
                         }
                         if (current < all.lastIndex) TextButton(onClick = { Tour.stop(); onTab(0) }) { Text(t("Passer")) }
-                        Button(onClick = {
-                            if (current < all.lastIndex) Tour.step.value = current + 1 else { Tour.stop(); onTab(0) }
-                        }) { Text(if (current < all.lastIndex) t("Suivant") else t("C'est parti !")) }
+                        Button(onClick = { next() }) { Text(if (current < all.lastIndex) t("Suivant") else t("C'est parti !")) }
                     }
                 }
             }

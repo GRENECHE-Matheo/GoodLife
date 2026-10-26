@@ -126,6 +126,14 @@ fun HomeScreen(onScan: () -> Unit, onOpenProfile: () -> Unit) {
     val steps by Repo.steps.collectAsState()
     val summary = remember(meals, p, game, steps) { Game.summarize(meals, p, game, steps.days, newRulesFrom = Repo.settings.value.scoreRulesFrom, foodOnlyFrom = Repo.settings.value.foodOnlyFrom, richFrom = Repo.settings.value.richScoreFrom) }
     var overlay by rememberSaveable { mutableStateOf("") }
+    // Demandes venues d'une notification ou du bilan : conversation avec le chef, quiz
+    val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
+    LaunchedEffect(navRequest) {
+        when (navRequest) {
+            "home:coach" -> { overlay = "coach"; com.goodlife.app.social.AppNav.request.value = null }
+            "home:quiz" -> { overlay = "quiz"; com.goodlife.app.social.AppNav.request.value = null }
+        }
+    }
     SlideSwitch(overlay, depth = { when { it == "" -> 0; it.startsWith("progress") || it == "news" || it == "coach" -> 1; else -> 2 } }) { screen ->
         when (screen) {
             "news" -> NewsScreen(onBack = { overlay = "" })
@@ -281,6 +289,11 @@ private fun HomeContent(
         }
         FridgeUndoCard()
 
+        // Le point du chef : une seule chose, la plus utile du moment (calculée sur le téléphone)
+        if (!settings.coachNewAsked && settings.notifAsked) NewCoachCard()
+        MuteAskCard()
+        CoachCard(summary, p, onOpen = onCoach)
+
         // Toujours à la même place : les repas du jour, puis l'eau
         SectionCard(title = t("Repas du jour"), icon = Icons.Filled.Restaurant) {
             if (today.isEmpty()) {
@@ -349,10 +362,7 @@ private fun HomeContent(
         FeelingCard()
         MissionsCard(summary, onQuiz = onQuiz)
         NewBadgeCard(summary, onOpen = onProgress)
-        CareCard(summary)
         if (!settings.notifAsked) NotifOptInCard()
-
-        CoachCard(summary, p, onOpen = onCoach)
         // Actus : en bas, et aussi dans Moi › Actus du jour (accessibles même sans thème choisi)
         NewsTeaser(onOpen = onNews)
         Spacer(Modifier.height(8.dp))
@@ -387,7 +397,7 @@ private fun FridgeUndoCard() {
     val (text, _) = last ?: return
     Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(t("🧊 Retiré du frigo : %1\$s", text), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 10.dp))
+            Text(t("🧺 Retiré de tes provisions : %1\$s", text), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(vertical = 10.dp))
             TextButton(onClick = { com.goodlife.app.data.Fridge.undoLastRemoval() }) { Text(t("Annuler")) }
             IconButton(onClick = { com.goodlife.app.data.Fridge.lastRemoval.value = null }) { Icon(Icons.Filled.Close, t("Fermer")) }
         }

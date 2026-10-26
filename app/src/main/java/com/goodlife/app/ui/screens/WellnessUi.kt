@@ -280,26 +280,3 @@ fun FeelingInsights() {
         }
     }
 }
-
-/** Garde-fou bienveillant : quelques jours avec très peu de calories notées. */
-@Composable
-fun CareCard(summary: GameSummary) {
-    val settings by Repo.settings.collectAsState()
-    if (!remember(summary, settings.guardSnoozeUntil) { Milestones.undereating(summary) }) return
-    SectionCard(container = MaterialTheme.colorScheme.secondaryContainer) {
-        Row(verticalAlignment = Alignment.Top) {
-            ChefMascot(size = 56.dp, mood = ChefMood.COEUR)
-            Spacer(Modifier.width(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(t("Le chef prend de tes nouvelles"), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    t("Ces trois derniers jours, tes repas notés font moins de la moitié de tes besoins estimés. Peut-être que tu n'as pas tout noté, et c'est très bien ainsi ! Mais si manger est compliqué en ce moment, c'est important d'en parler à un proche ou à un médecin. Fil Santé Jeunes répond aussi, gratuitement et anonymement, au 0 800 235 236."),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                TextButton(onClick = { Repo.updateSettings { it.copy(guardSnoozeUntil = System.currentTimeMillis() + 7 * 86_400_000L) } }) {
-                    Text(t("Merci, ne plus afficher cette semaine"))
-                }
-            }
-        }
-    }
-}

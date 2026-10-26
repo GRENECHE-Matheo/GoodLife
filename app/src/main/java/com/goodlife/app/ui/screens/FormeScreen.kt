@@ -42,7 +42,8 @@ fun FormeScreen() {
     androidx.compose.runtime.LaunchedEffect(active) { if (active) tab = 1 }
     val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
     androidx.compose.runtime.LaunchedEffect(navRequest) {
-        if (navRequest == "forme:sommeil") { tab = 2; com.goodlife.app.social.AppNav.request.value = null }
+        val target = when (navRequest) { "forme:programme" -> 0; "forme:carte" -> 1; "forme:sommeil" -> 2; else -> -1 }
+        if (target >= 0) { tab = target; com.goodlife.app.social.AppNav.request.value = null }
     }
     Column(Modifier.fillMaxSize()) {
         // Sur la carte, on garde toute la place pour elle : le grand titre se replie en douceur (au lieu de disparaître d'un coup)

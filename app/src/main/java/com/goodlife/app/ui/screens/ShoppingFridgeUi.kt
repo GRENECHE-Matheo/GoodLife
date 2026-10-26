@@ -201,7 +201,7 @@ fun ShoppingScreen(onBack: () -> Unit, embedded: Boolean = false) {
                     if (items.any { it.checked }) TextButton(onClick = {
                         com.goodlife.app.data.Fridge.add(items.filter { it.checked }.map { it.toFridgeItem() })
                         update(items.filter { !it.checked })
-                    }) { Text(t("Ranger les cochés dans le frigo")) }
+                    }) { Text(t("Ranger les cochés dans mes provisions")) }
                     TextButton(onClick = { update(items.filter { !it.checked }) }) { Text(t("Retirer les cochés")) }
                     TextButton(onClick = { update(emptyList()) }) { Text(t("Tout effacer")) }
                 }

@@ -88,8 +88,8 @@ fun OptionsOnboardingScreen() {
                     else if (SleepTracker.hasPermission(context)) SleepTracker.subscribe(context) { ok, err -> message = if (ok) null else err }
                     else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) askActivity.launch(Manifest.permission.ACTIVITY_RECOGNITION)
                 }
-                if (firstTime) OptionRow("🔔", t("Les petits mots du chef"), t("Un bilan le matin, un mot à midi, un rappel le soir si ta série est en danger, un bilan le dimanche."),
-                    settings.anyNotif) { on -> if (on) askNotif() else saveNotifPrefs(context, NotifPrefs(false, false, false, false)) }
+                if (firstTime) OptionRow("🔔", t("Les petits mots du chef"), t("Un bilan le matin, « tu as mangé ? » si un repas manque, un coup de pouce pour bouger, et un bilan le dimanche."),
+                    settings.anyNotif) { on -> if (on) askNotif() else saveNotifPrefs(context, NotifPrefs.NONE) }
                 OptionRow("💧", t("Rappel pour boire de l'eau"), t("Un petit rappel l'après-midi si tu n'as pas assez bu."),
                     settings.notifWater) { on ->
                     if (on) askNotifWater() else { Repo.updateSettings { it.copy(notifWater = false) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
@@ -105,8 +105,8 @@ fun OptionsOnboardingScreen() {
                         )
                     }
                 }
-                if (settings.aiEnabled) OptionRow("🧊", t("Retirer du frigo après une photo de repas"),
-                    t("Le chef propose de retirer de « Mon frigo » ce que tu as cuisiné ; tu valides à chaque fois."),
+                if (settings.aiEnabled) OptionRow("🧊", t("Retirer de mes provisions après une photo de repas"),
+                    t("Le chef propose de retirer de « Mes provisions » ce que tu as cuisiné ; tu valides à chaque fois."),
                     settings.fridgeAutoRemove) { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
             }
             Text(

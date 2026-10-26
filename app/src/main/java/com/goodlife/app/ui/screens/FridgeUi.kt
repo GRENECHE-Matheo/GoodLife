@@ -161,12 +161,17 @@ internal fun FridgeContent(onClose: () -> Unit, embedded: Boolean = false) {
     fun gallery(forWhat: String) { photoFor = forWhat; pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
 
     ScreenColumn {
-        if (!embedded) SubScreenHeader(t("Mon frigo"), onClose)
+        if (!embedded) SubScreenHeader(t("Mes provisions"), onClose)
+        // Beaucoup de personnes ne comprenaient pas « Frigo » : on explique en une phrase à quoi ça sert
+        Text(
+            t("Mes provisions, c'est la liste de ce que tu as chez toi : frigo, placards, congélateur. Le chef s'en sert pour te proposer des repas avec ce que tu as déjà, et éviter de gaspiller."),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         // ---- Inventaire ----
         SectionCard(title = if (items.isEmpty()) t("Ce que j'ai à la maison") else t("Ce que j'ai à la maison · %1\$s", items.size), icon = Icons.Filled.Kitchen) {
             if (items.isEmpty()) Text(
-                t("Ton frigo est vide pour l'instant. Ajoute ce que tu as, prends en photo ton ticket ou ton frigo, ou dis-le simplement au chef."),
+                t("Tes provisions sont vides pour l'instant. Ajoute ce que tu as chez toi, prends en photo ton ticket de caisse ou ton frigo, ou dis-le simplement au chef."),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -213,7 +218,7 @@ internal fun FridgeContent(onClose: () -> Unit, embedded: Boolean = false) {
             }
             photo?.let { bytes ->
                 val bmp = remember(bytes) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
-                if (bmp != null) Image(bmp, t("Photo du frigo"), Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+                if (bmp != null) Image(bmp, t("Photo du frigo ou des placards"), Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
                 TextButton(onClick = { photo = null }) { Text(t("Retirer la photo")) }
             }
             OutlinedTextField(written, { written = it.take(400) }, label = { Text(t("Précisions (facultatif)")) },
@@ -229,7 +234,7 @@ internal fun FridgeContent(onClose: () -> Unit, embedded: Boolean = false) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp)); Text(t("Que cuisiner ?"))
             }
-            Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Ton frigo, la photo et tes précisions sont envoyés à Google Gemini via le serveur de Lifoody (qui n'enregistre rien), avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée.") else t("Ton frigo, la photo et tes précisions sont envoyés à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée."),
+            Text(if (com.goodlife.app.ai.AiAccess.viaRelay) t("Tes provisions, la photo et tes précisions sont envoyées à Google Gemini via le serveur de Lifoody (qui n'enregistre rien), avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée.") else t("Tes provisions, la photo et tes précisions sont envoyées à Google Gemini avec ta clé, avec tes allergies, habitudes et calories restantes. La photo n'est pas gardée."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -303,7 +308,7 @@ private fun FridgeItemDialog(item: FridgeItem?, onDismiss: () -> Unit, onDelete:
     val q = qty.toNumber()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (item == null) t("Ajouter au frigo") else t("Modifier")) },
+        title = { Text(if (item == null) t("Ajouter à mes provisions") else t("Modifier")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it.take(60) }, label = { Text(t("Aliment")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -324,7 +329,7 @@ private fun FridgeItemDialog(item: FridgeItem?, onDismiss: () -> Unit, onDelete:
         },
         dismissButton = {
             Row {
-                if (onDelete != null) IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, t("Retirer du frigo")) }
+                if (onDelete != null) IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, t("Retirer de mes provisions")) }
                 TextButton(onClick = onDismiss) { Text(t("Annuler")) }
             }
         }
@@ -337,7 +342,7 @@ private fun ReceiptDialog(found: List<FridgeItem>, onDismiss: () -> Unit, onAdd:
     var keep by remember { mutableStateOf(found.indices.toSet()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(t("Ajouter au frigo ?")) },
+        title = { Text(t("Ajouter à tes provisions ?")) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 found.forEachIndexed { i, f ->

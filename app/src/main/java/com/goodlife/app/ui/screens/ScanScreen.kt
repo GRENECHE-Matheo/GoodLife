@@ -157,6 +157,18 @@ fun ScanScreen(onDone: () -> Unit) {
 
     fun reset() { photo = null; result = null; product = null; error = null; loading = null; newDex = emptyList(); correctError = null }
 
+    // Ouvert depuis « Tu as mangé ? » : directement sur la bonne façon d'ajouter (photo, code-barres, à la main, refaire)
+    val navRequest by com.goodlife.app.social.AppNav.request.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(navRequest) {
+        val r = navRequest ?: return@LaunchedEffect
+        if (!r.startsWith("add:")) return@LaunchedEffect
+        val m = r.removePrefix("add:").takeIf { it in setOf("photo", "barcode", "manual", "redo") } ?: "photo"
+        mode = if (m == "photo" && !aiReady) "barcode" else m
+        reset()
+        if (mode == "manual") manualOpen = true
+        com.goodlife.app.social.AppNav.request.value = null
+    }
+
     /** Corrige l'analyse d'après une précision écrite, ou d'après le nouveau nom du plat ([newName]). */
     fun correct(text: String, newName: String? = null) {
         val prev = result ?: return
@@ -818,7 +830,7 @@ private fun FridgeRemoveDialog(used: List<Pair<String, Double>>, onRemove: (List
     var keep by remember { mutableStateOf(used.indices.toSet()) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onNotHome,
-        title = { Text(t("Retirer du frigo ?")) },
+        title = { Text(t("Retirer de tes provisions ?")) },
         text = {
             Column {
                 Text(t("Ce repas semble avoir utilisé :"), style = MaterialTheme.typography.bodyMedium)

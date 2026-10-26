@@ -110,7 +110,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
     var goal by rememberSaveable { mutableStateOf(Goal.MAINTIEN) }
     var habits by rememberSaveable { mutableStateOf("") }
     var allergies by rememberSaveable { mutableStateOf("") }
-    var notifs by rememberSaveable { mutableStateOf(listOf(true, true, true, true)) }
+    var notifs by rememberSaveable { mutableStateOf(listOf(true, true, true, true, true, true)) }
     // Pas : compter ou non, avec quoi, et quel objectif
     val canSensor = remember { com.goodlife.app.steps.Steps.sensorAvailable(context) }
     val canHc = remember { com.goodlife.app.steps.Steps.healthConnectAvailable(context) }
@@ -138,8 +138,8 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
         Repo.saveProfile(Nutrition.formulaTarget(profile()))
         saveNotifPrefs(context, prefs)
     }
-    val prefs = NotifPrefs(notifs[0], notifs[1], notifs[2], notifs[3])
-    val askNotif = rememberNotifPermission { granted -> finish(if (granted) prefs else NotifPrefs(false, false, false, false)) }
+    val prefs = NotifPrefs(notifs[0], notifs[1], notifs[2], notifs[3], notifs.getOrElse(4) { true }, notifs.getOrElse(5) { true })
+    val askNotif = rememberNotifPermission { granted -> finish(if (granted) prefs else NotifPrefs.NONE) }
 
     // Autorisations pour compter les pas (demandées en quittant la page « Tes pas »)
     val askSensor = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -272,9 +272,9 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                             6 -> SummaryPage(profile(), healthOk) { healthOk = it; error = null }
                             else -> {
                                 PageTitle(ChefMood.BRAVO, t("Le chef t'accompagne"), t("Des petits messages pour garder le rythme, sans t'embêter."))
-                                NotifChoices(prefs) { n -> notifs = listOf(n.morning, n.noon, n.evening, n.weekly) }
+                                NotifChoices(prefs) { n -> notifs = listOf(n.morning, n.noon, n.evening, n.weekly, n.meal, n.move) }
                                 Text(
-                                    t("Préparés sur ton téléphone, jamais plus d'un à la fois. Sur l'écran verrouillé, seul « Un message du chef » s'affiche. Tu peux tout changer dans Paramètres."),
+                                    t("Préparés sur ton téléphone, sans IA. Jamais la nuit, et le chef se calme tout seul si tu ne réponds pas. Sur l'écran verrouillé, seul « Un message du chef » s'affiche. Tu peux tout changer dans Paramètres."),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -296,7 +296,7 @@ private fun OnboardingPages(onOpenPolicy: () -> Unit) {
                                 onClick = { if (prefs.any) askNotif() else finish(prefs) },
                                 modifier = Modifier.fillMaxWidth().height(52.dp)
                             ) { Text(t("Terminer")) }
-                            TextButton(onClick = { finish(NotifPrefs(false, false, false, false)) }, modifier = Modifier.fillMaxWidth()) {
+                            TextButton(onClick = { finish(NotifPrefs.NONE) }, modifier = Modifier.fillMaxWidth()) {
                                 Text(t("Pas de notifications pour l'instant"))
                             }
                         }
@@ -341,9 +341,12 @@ private fun ColumnScope.WelcomePage() {
 
 @Composable
 private fun PolicyPage(accepted: Boolean, onAccept: (Boolean) -> Unit, onOpenPolicy: () -> Unit) {
-    PageTitle(ChefMood.CONTENT, t("Tes données restent chez toi"), t("Voici exactement ce qui peut quitter ton téléphone, et quand."))
+    PageTitle(ChefMood.CONTENT, t("Tes données restent chez toi"), t("En bref, avec des mots simples. Le détail complet est juste en dessous."))
+    SectionCard(title = t("En bref")) { PlainPrivacy() }
+    var details by rememberSaveable { mutableStateOf(false) }
     SectionCard {
-        DataFlowSummary()
+        TextButton(onClick = { details = !details }) { Text(if (details) t("Masquer le détail") else t("Voir le détail : ce qui peut quitter ton téléphone, et quand")) }
+        if (details) DataFlowSummary()
         TextButton(onClick = onOpenPolicy) { Text(t("Lire la politique de confidentialité complète")) }
     }
     CheckLine(accepted, onAccept, t("J'ai lu et j'accepte la politique de confidentialité de Lifoody."))
@@ -366,7 +369,7 @@ private fun SummaryPage(p: Profile, consent: Boolean, onConsent: (Boolean) -> Un
     }
     CheckLine(
         consent, onConsent,
-        t("J'accepte que Lifoody enregistre sur ce téléphone mes données de santé (poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins. Je peux retirer cet accord en effaçant mes données (Paramètres).")
+        t("J'accepte que Lifoody garde sur ce téléphone mes informations de santé (poids, taille, repas, pas, sommeil, allergies) pour calculer mes besoins et me conseiller. Elles ne quittent pas le téléphone sans mon accord, et je peux tout effacer quand je veux (Paramètres).")
     )
 }
 

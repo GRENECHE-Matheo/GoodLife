@@ -169,7 +169,10 @@ object Coach {
             if (pr.limits.isNotBlank()) sb.append(t(". Limites / douleurs : %1\$s", pr.limits))
             sb.append(".\n")
         }
-        com.goodlife.app.data.Fridge.promptList().takeIf { it.isNotBlank() }?.let { sb.append(t("Son frigo : ")).append(it).append(".\n") }
+        // Ce que le coach du téléphone a relevé (sans le sommeil ni l'eau, qui ne sont pas envoyés au coach)
+        CoachBrain.insights().filter { it.area != Area.SLEEP && it.area != Area.WATER && it.area != Area.CARE && it.id != "rhythm.late" }.take(4)
+            .takeIf { it.isNotEmpty() }?.let { l -> sb.append(t("Constats du coach cette semaine : ")).append(l.joinToString(" ; ") { it.title }).append(".\n") }
+        com.goodlife.app.data.Fridge.promptList().takeIf { it.isNotBlank() }?.let { sb.append(t("Ses provisions (frigo, placards) : ")).append(it).append(".\n") }
         val upcoming = Repo.plan.value.filter { it.date >= localDay(0) && it.date <= localDay(7) && !it.done }
             .sortedWith(compareBy({ it.date }, { it.slot.ordinal }))
         if (upcoming.isNotEmpty()) {
@@ -178,6 +181,13 @@ object Coach {
             sb.append('\n')
         }
         return sb.toString()
+    }
+
+    /** Le ton choisi par la personne, pour que l'IA parle comme le coach du téléphone. */
+    fun toneRule(): String = when (CoachBrain.tone()) {
+        Tone.DOUX -> "\nTon choisi par la personne : DOUX (très encourageant, tout en douceur, pas d'injonction).\n"
+        Tone.EQUILIBRE -> "\nTon choisi par la personne : ÉQUILIBRÉ (franc mais gentil).\n"
+        Tone.EXIGEANT -> "\nTon choisi par la personne : EXIGEANT (direct comme un coach de salle, il pousse et fixe un objectif précis, sans jamais être méchant ni culpabilisant).\n"
     }
 
     /** Créneau du repas en fonction de l'heure (pour le rappel de midi). */

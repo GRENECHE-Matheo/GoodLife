@@ -50,6 +50,10 @@ fun AiConsentText() {
     if (com.goodlife.app.ai.AiAccess.viaRelay) { AiConsentTextRelay(); return }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
+            t("En clair : quand tu utilises une fonction IA, ce qu'elle doit regarder (une photo, ta question, tes chiffres) est envoyé à Google pour avoir la réponse. Personne d'autre ne le voit, et ça ne sert pas à entraîner l'IA. Le détail :"),
+            style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+        )
+        Text(
             t("Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes, coach) utilisent Google Gemini avec ta propre clé API, que tu crées toi-même chez Google (Google AI Studio). En la créant, tu acceptes les conditions de Google (18 ans minimum) ; l'éventuelle facturation se fait entre toi et Google. Si tu actives l'IA :"),
             style = MaterialTheme.typography.bodyMedium
         )
@@ -72,6 +76,10 @@ fun AiConsentText() {
 @Composable
 private fun AiConsentTextRelay() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            t("En clair : quand tu utilises une fonction IA, ce qu'elle doit regarder (une photo, ta question, tes chiffres) passe par le serveur de Lifoody puis chez Google pour avoir la réponse, sans être gardé. Personne d'autre ne le voit, et ça ne sert pas à entraîner l'IA. Le détail :"),
+            style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+        )
         Text(
             t("Les fonctions IA (analyse des photos, objectif calorique, idées de repas, recettes, coach) utilisent Google Gemini, via le service IA de Lifoody édité par Fanix Studio. Aucune clé à créer : 3 essais gratuits, puis l'abonnement Lifoody Premium. Si tu actives l'IA :"),
             style = MaterialTheme.typography.bodyMedium

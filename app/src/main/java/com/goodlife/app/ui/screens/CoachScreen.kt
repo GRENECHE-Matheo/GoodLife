@@ -120,6 +120,14 @@ Tu es « le chef », le coach bienveillant de l'app Lifoody : alimentation, cuis
 Tu tutoies, tu es chaleureux, positif et concret. Tu t'appuies sur les chiffres de la personne donnés plus bas
 (sans les réciter tous) pour personnaliser tes conseils. Jamais de culpabilisation ni de régime restrictif ;
 ne pousse jamais à manger sous l'objectif calorique. Réponse courte (2 à 8 phrases, listes « • » permises).
+Sois franc comme un vrai coach : si quelque chose coince dans ses chiffres (protéines basses, repas sautés, peu de pas,
+séances manquées), dis-le simplement, explique pourquoi en une phrase et propose UNE action concrète. Parle du comportement,
+jamais de la personne ; propose plutôt qu'ordonner. Garde-fous : ne félicite jamais le fait de manger moins, de sauter des repas
+ni une perte de poids rapide ; ne propose jamais moins de 1 200 kcal (femme) ou 1 500 kcal (homme), ni une perte de plus
+de 0,5 à 1 kg par semaine, ni du sport « pour compenser » un repas ; aucune promesse chiffrée de perte de poids. Si la
+personne parle de se faire vomir, de laxatifs, de se punir, de culpabilité ou de peur de manger, réponds avec douceur,
+sans aucun chiffre, et donne ces ressources : son médecin, Anorexie Boulimie Info Écoute 09 69 325 900, Fil Santé Jeunes
+0 800 235 236 (jusqu'à 25 ans), et le 3114 en cas de détresse. Tu n'es ni médecin, ni diététicien, ni nutritionniste.
 Réponds UNIQUEMENT en JSON : {"reply": "ta réponse", "meals": [], "courses": [], "frigo_ajout": [], "frigo_retrait": [],
 "programme_seances": [], "programme_retirer": []}
 Si la personne envoie une photo (aliment, plat, étiquette, frigo, menu…), décris prudemment ce que tu vois et donne
@@ -165,6 +173,8 @@ fun CoachScreen(onBack: () -> Unit) {
     }
 
     var askConsent by remember { mutableStateOf<String?>(null) }
+    // « Le chef t'explique » (bilan de la semaine) : le message est proposé, la personne le voit et l'envoie elle-même
+    LaunchedEffect(Unit) { CoachPanels.chatPrefill.value?.let { input = it; CoachPanels.chatPrefill.value = null } }
     var showHistory by remember { mutableStateOf(false) }
     if (showHistory) {
         CoachHistoryScreen(onClose = { showHistory = false }, onOpen = { c -> CoachSession.open(c); error = null; showHistory = false })
@@ -203,7 +213,7 @@ fun CoachScreen(onBack: () -> Unit) {
         input = ""; pendingPhoto = null; error = null; loading = true
         scope.launch {
             try {
-                val system = CHAT_RULES + "\n" + COACH_RULES + t("\nChiffres et contexte de la personne :\n") + Coach.aiContext()
+                val system = CHAT_RULES + "\n" + COACH_RULES + Coach.toneRule() + t("\nChiffres et contexte de la personne :\n") + Coach.aiContext()
                 val r = Gemini(settings.apiKey, settings.model).coach(system, entries.map { it.message })
                 entries.add(CoachEntry(ChatMessage(false, r.text), r.meals, r.shopping, r.fridgeAdd, r.fridgeRemove, r.sessions, r.removeDays))
                 CoachSession.persist()
@@ -252,10 +262,10 @@ fun CoachScreen(onBack: () -> Unit) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (dailyWord.isNotBlank()) Bubble(false, dailyWord)
                                 Bubble(false,
-                                    if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres. Dis-moi aussi ce que tu as dans ton frigo, ou ce que tu veux changer dans ton planning ou ton programme : je te le propose, tu valides d'un bouton.")
+                                    if (aiReady) t("Pose-moi toutes tes questions : quoi manger, une idée de recette, un conseil sport, ton bilan de la semaine… Je connais tes chiffres. Dis-moi aussi ce que tu as chez toi (tes provisions), ou ce que tu veux changer dans ton planning ou ton programme : je te le propose, tu valides d'un bouton.")
                                     else if ((profile?.age ?: 0) < 18) t("Salut l'ami ! 👋 Discuter avec moi utilise l'IA de Google, réservée aux 18 ans et plus. En attendant, je te laisse mes petits mots ici et dans tes notifications !")
-                                    else if (com.goodlife.app.ai.AiAccess.viaRelay) t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec ton frigo…), active l'IA juste en dessous : tu as 3 essais gratuits, puis Lifoody Premium.")
-                                    else t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec ton frigo…), il te faut une clé Gemini : elle se crée gratuitement chez Google en deux minutes. Je t'explique juste en dessous !")
+                                    else if (com.goodlife.app.ai.AiAccess.viaRelay) t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec tes provisions…), active l'IA juste en dessous : tu as 3 essais gratuits, puis Lifoody Premium.")
+                                    else t("Salut l'ami ! 👋 Pour discuter avec moi et débloquer les autres fonctions IA (photo de tes repas, planning de la semaine, programme sportif, idées avec tes provisions…), il te faut une clé Gemini : elle se crée gratuitement chez Google en deux minutes. Je t'explique juste en dessous !")
                                 )
                             }
                         }
@@ -595,17 +605,17 @@ private fun FridgeProposal(entry: Int, add: List<com.goodlife.app.data.FridgeIte
     val key = "$entry#frigo"
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.widthIn(max = 360.dp).padding(top = 6.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(t("🧊 Mettre à jour ton frigo"), style = MaterialTheme.typography.titleSmall)
+            Text(t("🧺 Mettre à jour tes provisions"), style = MaterialTheme.typography.titleSmall)
             if (add.isNotEmpty()) Text(t("Ajouter : %1\$s", add.joinToString(", ") { "${it.name} (${it.qtyText()})" }),
                 style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
             if (remove.isNotEmpty()) Text(t("Retirer : %1\$s", remove.joinToString(", ") { (n, q) -> "$n (${if (q % 1.0 == 0.0) q.toLong() else q})" }),
                 style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
-            if (added[key] == true) Text(t("Frigo mis à jour ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            if (added[key] == true) Text(t("Provisions mises à jour ✓"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             else FilledTonalButton(onClick = {
                 if (add.isNotEmpty()) com.goodlife.app.data.Fridge.add(add)
                 if (remove.isNotEmpty()) com.goodlife.app.data.Fridge.remove(remove)
                 added[key] = true; CoachSession.persist()
-            }) { Text(t("Mettre à jour mon frigo")) }
+            }) { Text(t("Mettre à jour mes provisions")) }
         }
     }
 }

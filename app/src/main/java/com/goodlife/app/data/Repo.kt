@@ -100,9 +100,14 @@ data class Settings(
     val tourOffered: Boolean = false,       // la visite guidée a été proposée (une fois ; on peut la revoir dans À propos)
     val featuresAsked: Boolean = false,     // l'écran « Tes options » a été proposé (inscription, ou une fois pour les anciens comptes)        // la question a déjà été posée (inscription ou accueil)
     val lastNudgeDay: String = "",          // dernier « tu nous manques », pour ne pas insister
-    val coachConsentAt: Long = 0L           // accord pour envoyer au coach le résumé de ses chiffres (0 = pas encore)
+    val coachConsentAt: Long = 0L,          // accord pour envoyer au coach le résumé de ses chiffres (0 = pas encore)
+    // Coach v0.20 : ton choisi, « tu as mangé ? » et « on bouge ? » (coupés tant que la personne ne les a pas acceptés)
+    val coachTone: String = "EQUILIBRE",    // DOUX | EQUILIBRE | EXIGEANT
+    val notifMeal: Boolean = false,         // le chef demande si un repas habituel n'est pas noté
+    val notifMove: Boolean = false,         // le chef pousse à bouger (séance du jour, pas en baisse)
+    val coachNewAsked: Boolean = false      // la carte « nouveau coach » a été proposée
 ) {
-    val anyNotif: Boolean get() = notifMorning || notifNoon || notifEvening || notifWeekly
+    val anyNotif: Boolean get() = notifMorning || notifNoon || notifEvening || notifWeekly || notifMeal || notifMove
 
     /** Jamais les secrets dans un texte (le toString() automatique d'une data class les écrirait en clair). */
     override fun toString(): String = "Settings(apiKey=${if (apiKey.isEmpty()) "" else "•••"}, backupKey=${if (backupKey.isEmpty()) "" else "•••"}, model=$model)"
@@ -176,6 +181,10 @@ data class Settings(
         .put("notifAsked", notifAsked)
         .put("lastNudgeDay", lastNudgeDay)
         .put("coachConsentAt", coachConsentAt)
+        .put("coachTone", coachTone)
+        .put("notifMeal", notifMeal)
+        .put("notifMove", notifMove)
+        .put("coachNewAsked", coachNewAsked)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -249,7 +258,11 @@ data class Settings(
             notifWeekly = o.optBoolean("notifWeekly", false),
             notifAsked = o.optBoolean("notifAsked", false),
             lastNudgeDay = o.optString("lastNudgeDay"),
-            coachConsentAt = o.optLong("coachConsentAt", 0L)
+            coachConsentAt = o.optLong("coachConsentAt", 0L),
+            coachTone = o.optString("coachTone", "EQUILIBRE"),
+            notifMeal = o.optBoolean("notifMeal", false),
+            notifMove = o.optBoolean("notifMove", false),
+            coachNewAsked = o.optBoolean("coachNewAsked", false)
         )
     }
 }
@@ -404,12 +417,16 @@ object Repo {
     @Synchronized
     fun addMeal(meal: Meal) {
         // Garde-fou commun à toutes les sources (saisie, photo IA, code-barres, planning)
+        // Repas noté après coup depuis « Tu as mangé ce midi ? » : il prend l'heure habituelle de ce repas
+        val at = runCatching { com.goodlife.app.coach.CoachStore.mealTime(meal.timestamp) }.getOrDefault(meal.timestamp)
         val m = meal.copy(
+            timestamp = at,
             kcal = meal.kcal.coerceIn(0, MAX_MEAL_KCAL),
             proteinG = meal.proteinG.safeGrams(), carbsG = meal.carbsG.safeGrams(), fatG = meal.fatG.safeGrams()
         )
         _meals.value = (_meals.value + m).sortedByDescending { it.timestamp }
         persistMeals()
+        runCatching { com.goodlife.app.coach.CoachStore.mealAdded(m.timestamp) }
     }
 
     @Synchronized
@@ -914,6 +931,7 @@ object Repo {
         put(K_FEEL, feelingsJson().toString())
         o.optJSONObject("extras")?.let { x -> BACKUP_EXTRAS.forEach { k -> x.optString(k).takeIf { it.isNotBlank() }?.let { putExtra(k, it) } } }
         Fridge.reload()
+        com.goodlife.app.coach.CoachStore.reload()
         val social = o.optJSONObject("social")?.let { runCatching { SocialState.fromJson(it) }.getOrNull() } ?: SocialState()
         _social.value = social
         put(K_SOCIAL, social.toJson().toString())
@@ -962,6 +980,7 @@ object Repo {
         com.goodlife.app.social.Identity.reset()
         _settings.value = Settings()
         Fridge.reload()
+        com.goodlife.app.coach.CoachStore.reload()
         appContext?.let { ctx ->
             // Tout le cache : tuiles d'itinéraires et d'altitude (elles trahissent les zones parcourues), photos, mises à jour
             runCatching { ctx.cacheDir.listFiles()?.forEach { it.deleteRecursively() } }
@@ -1012,7 +1031,7 @@ object Repo {
     private const val K_WATER = "water"
     private const val K_FEEL = "feelings"
     /** États annexes gardés dans la sauvegarde (mémoire du quiz et des actus, pour ne jamais rien répéter). */
-    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed", "shopping", "badges_seen", "fridge")
+    private val BACKUP_EXTRAS = listOf("quiz_state", "news_bank", "news_feed", "shopping", "badges_seen", "fridge", "coach_memory")
 
     /** L'IA n'est utilisable qu'avec consentement explicite et pour les 18 ans et plus (conditions Google). */
     fun aiAllowed(): Boolean = _settings.value.aiEnabled && (_profile.value?.age ?: 0) >= 18
@@ -1056,7 +1075,9 @@ object Repo {
                 .put("coachConsentAt", s.coachConsentAt)
                 .put("notifications", JSONObject()
                     .put("bilanDuMatin", s.notifMorning).put("motDeMidi", s.notifNoon)
-                    .put("serieEnDanger", s.notifEvening).put("bilanDeLaSemaine", s.notifWeekly)))
+                    .put("serieEnDanger", s.notifEvening).put("bilanDeLaSemaine", s.notifWeekly)
+                    .put("tuAsMange", s.notifMeal).put("onBouge", s.notifMove).put("tonDuCoach", s.coachTone)))
+            .put("memoireDuCoach", getExtra("coach_memory")?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject.NULL)
             .toString(2)
     }
 }

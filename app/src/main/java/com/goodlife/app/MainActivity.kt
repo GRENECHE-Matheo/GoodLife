@@ -193,7 +193,15 @@ class MainActivity : FragmentActivity() {
 
     /** Ouverte depuis une notification d'amis : on affiche l'écran Amis. */
     private fun handleOpenRequest(intent: android.content.Intent?) {
-        intent?.getStringExtra(com.goodlife.app.social.AppNav.EXTRA)?.let { com.goodlife.app.social.AppNav.request.value = it }
+        // Version de développement : données de test du coach (la classe DemoData n'existe pas dans l'app publiée)
+        if (BuildConfig.DEBUG) intent?.getStringExtra("goodlife_demo")?.let { what ->
+            runCatching { Class.forName("com.goodlife.app.DemoData").getMethod("run", android.content.Context::class.java, String::class.java).invoke(null, this, what) }
+        }
+        intent?.getStringExtra(com.goodlife.app.social.AppNav.EXTRA)?.let { r ->
+            com.goodlife.app.social.AppNav.request.value = r
+            // Bouton d'une notification du coach (« Je le note », « Je pars marcher ») : la notification a servi, on la retire
+            if (r.startsWith("check:") || "|msg:" in r) com.goodlife.app.coach.CoachNotifier.cancelReminders(this)
+        }
     }
 
     /** Carte d'ami reçue par message (texte partagé ou lien d'invitation) : vérifiée (signature) puis ajoutée. */
@@ -241,6 +249,8 @@ class MainActivity : FragmentActivity() {
         // Abonnement relu à chaque retour dans l'app (renouvellement, résiliation, achat fait ailleurs)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { com.goodlife.app.store.Store.refresh() }
         super.onStart()
+        // Le coach sait que l'app a été ouverte : il n'insiste pas avec un rappel juste après
+        runCatching { com.goodlife.app.coach.CoachStore.opened() }
         val away = SystemClock.elapsedRealtime() - backgroundAt
         if (Repo.settings.value.appLock && backgroundAt > 0 && away > AppLock.GRACE_MS) {
             locked.value = true
@@ -323,10 +333,14 @@ private fun MainTabs() {
         val r = navRequest
         when {
             r == null -> Unit
+            // Messages du chef, « Tu as mangé ? », bilan de la semaine : par-dessus l'onglet en cours
+            com.goodlife.app.ui.screens.CoachPanels.handle(r) -> com.goodlife.app.social.AppNav.request.value = null
+            r.startsWith("home:") -> tab = 0
+            r.startsWith("add:") -> tab = 1
             r == "friends" || r.startsWith("moi:") -> tab = 4
             r.startsWith("repas:") -> tab = 2
-            r == "forme" -> { tab = 3; com.goodlife.app.social.AppNav.request.value = null }
-            r.startsWith("forme:") -> tab = 3
+            r == "forme" || r.startsWith("forme|") -> { tab = 3; com.goodlife.app.social.AppNav.request.value = null }
+            r.startsWith("forme:") -> { tab = 3; if ('|' in r) com.goodlife.app.social.AppNav.request.value = r.substringBefore('|') }
             // Bouton « Photo » du widget, « Ajouter un repas » : onglet Ajouter
             r == "scan" || r == "add" -> { tab = 1; com.goodlife.app.social.AppNav.request.value = null }
         }
@@ -404,6 +418,7 @@ private fun MainTabs() {
             content(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding))
         }
     }
+    com.goodlife.app.ui.screens.CoachOverlays()
     com.goodlife.app.ui.TourOverlay(onTab = { tab = it })
     }
     if (com.goodlife.app.track.Tracker.live.collectAsState().value == null) com.goodlife.app.ui.TourOffer()

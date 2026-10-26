@@ -128,11 +128,11 @@ fun PlanningScreen() {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
-                ScreenTitle(t("Repas"), t("Planning, idées, courses et frigo"))
+                ScreenTitle(t("Repas"), t("Planning, idées, courses et provisions"))
             }
         }
         PrimaryTabRow(selectedTabIndex = sub) {
-            listOf(t("Planning"), t("Idées"), t("Courses"), t("Frigo")).forEachIndexed { i, label ->
+            listOf(t("Planning"), t("Idées"), t("Courses"), t("Provisions")).forEachIndexed { i, label ->
                 Tab(selected = sub == i, onClick = { sub = i }, text = { com.goodlife.app.ui.FitText(label) })
             }
         }

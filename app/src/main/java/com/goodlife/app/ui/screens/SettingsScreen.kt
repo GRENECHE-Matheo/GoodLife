@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.SportsGymnastics
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -42,6 +43,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -155,10 +157,23 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
     ScreenColumn {
         SubScreenHeader(t("Paramètres"), onBack)
 
+        // ---- Le coach ----
+        FoldableSection(t("Le coach"), Icons.Filled.SportsGymnastics, toneName(com.goodlife.app.coach.Tone.of(settings.coachTone))) {
+            Text(t("Le chef regarde tes repas, tes pas, ton sommeil et ton eau pour te dire ce qui va et ce qui coince. Tout est calculé sur ton téléphone, à partir de repères publics (ANSES, Santé publique France, OMS)."),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(t("Ton du coach"), style = MaterialTheme.typography.titleSmall)
+            ToneChooser(settings.coachTone) { tn -> Repo.updateSettings { it.copy(coachTone = tn.name) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
+            androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedButton(onClick = { CoachPanels.week.value = true }) { Text(t("Mon bilan de la semaine")) }
+                OutlinedButton(onClick = { CoachPanels.inbox.value = true }) { Text(t("Messages du chef")) }
+                OutlinedButton(onClick = { CoachPanels.memory.value = true }) { Text(t("Ce que le chef a appris")) }
+            }
+        }
+
         // ---- Notifications ----
-        FoldableSection(t("Notifications"), Icons.Filled.Notifications, t("Petits mots du chef, rappel d'eau")) {
+        FoldableSection(t("Notifications"), Icons.Filled.Notifications, t("« Tu as mangé ? », bouger, bilans, eau")) {
             Text(
-                t("Messages préparés sur ton téléphone (sans réseau ni IA), jamais plus d'un à la fois. Sur l'écran verrouillé, seul « Un message du chef » s'affiche."),
+                t("Messages préparés sur ton téléphone (sans réseau ni IA). Jamais la nuit ni juste avant ton coucher, 1 à 3 par jour au plus selon le ton, et le chef se calme tout seul si tu ne réponds pas. Sur l'écran verrouillé, seul « Un message du chef » s'affiche."),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             NotifSettingsBlock(settings)
@@ -256,8 +271,8 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 onChange = { on -> if (on) askAiConsent = true else disableAi() }
             )
             if (settings.aiEnabled) SettingSwitch(
-                title = t("Retirer du frigo après une photo de repas"),
-                subtitle = t("Après la photo d'un repas, le chef propose de retirer de « Mon frigo » ce qui a été utilisé. Tu valides, ou tu choisis « Pas mangé chez moi ». Le contenu du frigo est alors envoyé à Gemini avec la photo."),
+                title = t("Retirer de mes provisions après une photo de repas"),
+                subtitle = t("Après la photo d'un repas, le chef propose de retirer de « Mes provisions » ce qui a été utilisé. Tu valides, ou tu choisis « Pas mangé chez moi ». La liste de tes provisions est alors envoyée à Gemini avec la photo."),
                 checked = settings.fridgeAutoRemove,
                 onChange = { on -> Repo.updateSettings { it.copy(fridgeAutoRemove = on) } }
             )
@@ -441,7 +456,11 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
         }
 
         // ---- Mes données ----
-        FoldableSection(t("Mes données et confidentialité"), Icons.Filled.Lock, t("Ce qui quitte ton téléphone, exporter, effacer")) {
+        FoldableSection(t("Mes données et confidentialité"), Icons.Filled.Lock, t("Qui voit quoi, exporter, effacer")) {
+            Text(t("En bref"), style = MaterialTheme.typography.titleSmall)
+            PlainPrivacy()
+            HorizontalDivider()
+            Text(t("Le détail"), style = MaterialTheme.typography.titleSmall)
             DataFlowSummary()
             Text(
                 if (settings.aiEnabled) t("IA : activée.") else t("IA : désactivée, rien n'est envoyé à Gemini."),
