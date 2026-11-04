@@ -80,6 +80,8 @@ object CoachNotifier {
 
     /** (Re)programme les rappels activés et annule les autres. À appeler au démarrage et à chaque changement. */
     fun schedule(context: Context) {
+        // Les canaux existent dès le départ : ils apparaissent dans les réglages Android, et on sait s'ils sont coupés
+        runCatching { createChannels(context) }
         val am = context.getSystemService(AlarmManager::class.java) ?: return
         val profileOk = Repo.profile.value != null
         Kind.entries.forEach { kind ->
@@ -353,6 +355,22 @@ object CoachNotifier {
             }
         }
         runCatching { NotificationManagerCompat.from(context).notify(id, b.build()) }
+    }
+
+    /**
+     * Types de messages activés dans l'app mais coupés dans les réglages Android (canal désactivé) :
+     * (identifiant du canal, nom affiché). La personne croit les recevoir alors qu'Android les cache.
+     */
+    fun blockedChannels(context: Context): List<Pair<String, String>> {
+        val nm = context.getSystemService(NotificationManager::class.java) ?: return emptyList()
+        val s = Repo.settings.value
+        val wanted = listOfNotNull(
+            (CH_MEAL to t("Repas pas notés")).takeIf { s.notifMeal },
+            (CH_MOVE to t("Bouger")).takeIf { s.notifMove },
+            (CH_REMIND to t("Rappels de série et d'eau")).takeIf { s.notifEvening || s.notifWater },
+            (CH_SUMMARY to t("Bilans et petits mots du chef")).takeIf { s.notifMorning || s.notifNoon || s.notifWeekly }
+        )
+        return wanted.filter { (id, _) -> nm.getNotificationChannel(id)?.importance == NotificationManager.IMPORTANCE_NONE }
     }
 
     private fun createChannels(context: Context) {

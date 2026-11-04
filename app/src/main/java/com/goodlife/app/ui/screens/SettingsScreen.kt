@@ -177,11 +177,17 @@ private fun SettingsContent(onBack: () -> Unit, onOpenPolicy: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             NotifSettingsBlock(settings)
+            val askWater = rememberNotifPermission { ok ->
+                if (ok) { Repo.updateSettings { it.copy(notifWater = true) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
+            }
             SettingSwitch(
                 t("Rappel d'hydratation"),
                 t("Vers 15 h 30, seulement si tu as bu moins de la moitié de ton objectif d'eau."),
                 settings.notifWater
-            ) { on -> Repo.updateSettings { it.copy(notifWater = on) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
+            ) { on ->
+                if (on) askWater()
+                else { Repo.updateSettings { it.copy(notifWater = false) }; com.goodlife.app.coach.CoachNotifier.schedule(context) }
+            }
         }
 
         // ---- Objectifs du jour : eau, puis pas ----

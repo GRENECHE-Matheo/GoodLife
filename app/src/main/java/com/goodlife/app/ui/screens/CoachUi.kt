@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -89,17 +90,68 @@ fun saveNotifPrefs(context: android.content.Context, p: NotifPrefs) {
     CoachNotifier.schedule(context)
 }
 
+/** Ouvre les réglages Android des notifications de Lifoody (ou d'un seul type, [channel]). */
+fun openNotifSettings(context: android.content.Context, channel: String? = null) {
+    val intent = if (channel != null) Intent(AndroidSettings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+        .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName).putExtra(AndroidSettings.EXTRA_CHANNEL_ID, channel)
+    else Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName)
+    runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.onFailure {
+        // Certains téléphones n'ont pas cet écran : la fiche de l'app, où se trouvent aussi les notifications
+        runCatching {
+            context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + context.packageName))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+}
+
+/** « Les notifications sont coupées » : pourquoi le chef ne peut pas écrire, et un bouton vers les réglages Android. */
+@Composable
+fun NotifBlockedDialog(onOpen: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { ChefMascot(size = 64.dp, mood = ChefMood.QUESTION) },
+        title = { Text(t("Les notifications sont coupées")) },
+        text = {
+            Text(t("Android bloque les notifications de Lifoody : le chef ne peut pas t'écrire (« Tu as mangé ? », bilans, rappels). Appuie sur « Ouvrir les réglages », active « Autoriser les notifications », puis reviens ici : c'est tout."),
+                style = MaterialTheme.typography.bodyMedium)
+        },
+        confirmButton = { Button(onClick = onOpen) { Text(t("Ouvrir les réglages")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Plus tard")) } }
+    )
+}
+
 /**
- * Demande l'autorisation d'afficher des notifications (Android 13+) puis appelle [onResult].
- * Avant Android 13, l'autorisation est accordée d'office.
+ * Demande l'autorisation d'afficher des notifications puis appelle [onResult]. Si Android la refuse (refusée
+ * plusieurs fois, ou notifications coupées dans les réglages), une fenêtre explique pourquoi et mène aux réglages
+ * Android ; au retour dans l'app, on revérifie tout seul et le choix est appliqué si les notifications sont activées.
  */
 @Composable
 fun rememberNotifPermission(onResult: (Boolean) -> Unit): () -> Unit {
     val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> onResult(granted) }
+    var blocked by remember { mutableStateOf(false) }
+    var waiting by remember { mutableStateOf(false) }   // partie dans les réglages Android : on revérifie au retour
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && CoachNotifier.permissionGranted(context)) onResult(true) else blocked = true
+    }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME && waiting) { waiting = false; onResult(CoachNotifier.permissionGranted(context)) }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    if (blocked) NotifBlockedDialog(
+        onOpen = { blocked = false; waiting = true; openNotifSettings(context) },
+        onDismiss = { blocked = false; onResult(false) }
+    )
     return {
-        if (Build.VERSION.SDK_INT >= 33 && !CoachNotifier.permissionGranted(context)) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        else onResult(CoachNotifier.permissionGranted(context))
+        when {
+            CoachNotifier.permissionGranted(context) -> onResult(true)
+            Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED -> launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            else -> blocked = true   // autorisation donnée, mais notifications coupées dans les réglages Android
+        }
     }
 }
 
@@ -300,27 +352,44 @@ fun MuteAskCard() {
 fun NotifSettingsBlock(settings: Settings) {
     val context = LocalContext.current
     var refresh by remember { mutableIntStateOf(0) }
+    // Retour des réglages Android : on revérifie ce qui est autorisé
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, e -> if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) refresh++ }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     val granted = remember(refresh, settings) { CoachNotifier.permissionGranted(context) }
+    val blockedChannels = remember(refresh, settings) { if (granted) CoachNotifier.blockedChannels(context) else emptyList() }
     var pending by remember { mutableStateOf<NotifPrefs?>(null) }
     val ask = rememberNotifPermission { ok ->
         refresh++
-        pending?.let { saveNotifPrefs(context, if (ok) it else NotifPrefs.NONE) }
+        // Refusé ou « Plus tard » : on garde les choix d'avant (rien n'est coché sans que ça puisse marcher)
+        pending?.let { if (ok) saveNotifPrefs(context, it) }
         pending = null
     }
-    NotifChoices(NotifPrefs.of(settings)) { p ->
-        if (p.any && !CoachNotifier.permissionGranted(context)) { pending = p; ask() } else saveNotifPrefs(context, p)
+    // Notifications coupées dans Android : on le dit tout de suite, avant même de toucher un interrupteur
+    if (!granted) Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.errorContainer) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(t("Les notifications de Lifoody sont coupées dans Android : le chef ne peut pas t'écrire."),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+            Button(onClick = { openNotifSettings(context) }) { Text(t("Activer les notifications")) }
+        }
     }
-    if (settings.anyNotif && !granted) {
-        Text(
-            t("Android bloque les notifications de Lifoody : autorise-les pour recevoir les messages du chef."),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error
-        )
-        TextButton(onClick = {
-            runCatching {
-                context.startActivity(Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
-                    .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-        }) { Text(t("Ouvrir les réglages de notification")) }
+    NotifChoices(NotifPrefs.of(settings)) { p ->
+        // Seulement quand on active quelque chose : couper un rappel ne demande rien
+        val cur = NotifPrefs.of(settings)
+        val enabling = (p.morning && !cur.morning) || (p.noon && !cur.noon) || (p.evening && !cur.evening) ||
+            (p.weekly && !cur.weekly) || (p.meal && !cur.meal) || (p.move && !cur.move)
+        if (enabling && !CoachNotifier.permissionGranted(context)) { pending = p; ask() } else saveNotifPrefs(context, p)
+    }
+    // Un type de message coupé dans Android alors qu'il est activé ici
+    blockedChannels.forEach { (id, name) ->
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(t("« %1\$s » est coupé dans les réglages Android : tu ne recevras pas ces messages.", name),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+            TextButton(onClick = { openNotifSettings(context, id) }) { Text(t("Activer")) }
+        }
     }
     if (settings.anyNotif && granted) FilledTonalButton(onClick = { CoachNotifier.preview(context) }) { Text(t("Voir un exemple")) }
 }

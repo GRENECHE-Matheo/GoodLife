@@ -21,6 +21,10 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 - ✨ **« C'était quand ? »** dans Ajouter : pour un repas oublié, choisis le moment (aujourd'hui ou hier, petit-déjeuner,
   déjeuner, goûter, dîner) ; il est rangé à la bonne heure, et le planning de ce jour-là suit.
 - 🛠️ Le bilan du matin n'affiche plus un score faux quand un repas d'hier manque : il propose de le rattraper.
+- 🛠️ **Notifications bloquées par Android** : au lieu d'un interrupteur qui ne se coche pas sans raison, une fenêtre
+  explique pourquoi et mène directement aux réglages Android ; au retour, le choix s'applique tout seul. Un bandeau
+  le signale aussi dans Paramètres › Notifications, et un type de message coupé dans Android (par exemple « Repas pas
+  notés ») est indiqué avec un bouton « Activer ». Le rappel d'eau passe aussi par là.
 - 🐛 Un repas noté après coup « pour hier » pouvait être rangé aujourd'hui (erreur de calcul des jours) : corrigé.
 
 ---
