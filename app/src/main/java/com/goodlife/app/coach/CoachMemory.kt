@@ -49,7 +49,9 @@ data class CoachMemory(
     val backdate: Long = 0L,                             // le prochain repas noté prend cette heure (repas noté après coup)
     val backdateSetAt: Long = 0L,
     val lastOpen: Long = 0L,
-    val reportSeen: String = ""                          // dernier bilan de la semaine ouvert (jour)
+    val reportSeen: String = "",                         // dernier bilan de la semaine ouvert (jour)
+    val catchupDismissed: Set<String> = emptySet(),      // « jour#CRÉNEAU » : « ne plus demander » sur la carte des oublis
+    val catchupAsked: String = ""                        // dernier jour pour lequel on a demandé « ta journée d'hier ? »
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("skipped", JSONArray(skipped.toList()))
@@ -68,6 +70,7 @@ data class CoachMemory(
         .put("snoozed", JSONObject().apply { snoozed.forEach { (k, v) -> put(k, v) } })
         .put("backdate", backdate).put("backdateSetAt", backdateSetAt)
         .put("lastOpen", lastOpen).put("reportSeen", reportSeen)
+        .put("catchupDismissed", JSONArray(catchupDismissed.toList())).put("catchupAsked", catchupAsked)
 
     companion object {
         private fun JSONObject.longs(): Map<String, Long> = keys().asSequence().associateWith { optLong(it) }
@@ -90,7 +93,9 @@ data class CoachMemory(
             inbox = o.optJSONArray("inbox")?.let { a -> (0 until a.length()).mapNotNull { i -> a.optJSONObject(i)?.let { CoachMsg.fromJson(it) } } } ?: emptyList(),
             snoozed = o.optJSONObject("snoozed")?.longs() ?: emptyMap(),
             backdate = o.optLong("backdate"), backdateSetAt = o.optLong("backdateSetAt"),
-            lastOpen = o.optLong("lastOpen"), reportSeen = o.optString("reportSeen")
+            lastOpen = o.optLong("lastOpen"), reportSeen = o.optString("reportSeen"),
+            catchupDismissed = o.optJSONArray("catchupDismissed")?.list()?.toSet() ?: emptySet(),
+            catchupAsked = o.optString("catchupAsked")
         )
     }
 }
@@ -119,6 +124,7 @@ object CoachStore {
             m.copy(
                 sent = m.sent.filter { now - it.first < 30 * DAY },
                 skipped = m.skipped.filter { it.substringBefore('#') >= cut }.toSet(),
+                catchupDismissed = m.catchupDismissed.filter { it.substringBefore('#') >= localDay(-3) }.toSet(),
                 inbox = m.inbox.sortedByDescending { it.at }.take(40),
                 snoozed = m.snoozed.filterValues { now - it < DAY }
             )
@@ -161,6 +167,13 @@ object CoachStore {
     }
 
     fun skip(day: String, slot: MealSlot) = update { it.copy(skipped = it.skipped + "$day#${slot.name}") }
+    fun skipAll(day: String, slots: List<MealSlot>) = update { m -> m.copy(skipped = m.skipped + slots.map { "$day#${it.name}" }) }
+
+    /** « Ne plus demander » sur la carte des repas oubliés (seulement pour ces repas-là). */
+    fun dismissCatchup(items: List<Pair<String, MealSlot>>) = update { m -> m.copy(catchupDismissed = m.catchupDismissed + items.map { "${it.first}#${it.second.name}" }) }
+
+    /** Dernier repas noté après coup (heure qu'il a prise), pour le confirmer sur l'accueil. */
+    val notice = MutableStateFlow<Long?>(null)
     fun unskip(day: String, slot: MealSlot) = update { it.copy(skipped = it.skipped - "$day#${slot.name}") }
     /** Un repas vient d'être noté : s'il avait été marqué « pas mangé », on retire la marque. */
     fun mealAdded(timestamp: Long) {
@@ -179,6 +192,7 @@ object CoachStore {
         if (m.backdate <= 0L) return timestamp
         val fresh = timestamp - m.backdateSetAt in 0..30 * 60_000L
         update { it.copy(backdate = 0L, backdateSetAt = 0L) }
+        if (fresh) notice.value = m.backdate
         return if (fresh) m.backdate else timestamp
     }
 }

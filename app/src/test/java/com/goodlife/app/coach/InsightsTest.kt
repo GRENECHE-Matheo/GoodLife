@@ -86,6 +86,28 @@ class InsightsTest {
         assertFalse(ids(input(emptyList(), skipped = setOf("${days.last()}#DEJEUNER"))).contains("care.skip"))
     }
 
+    @Test fun repasOubliesDetectes() {
+        // 14 jours avec petit-déjeuner, déjeuner et dîner ; hier, seulement le petit-déjeuner
+        val y = days[days.size - 2]
+        val meals = days.dropLast(2).takeLast(14).flatMap { day(it, 2000, 90.0, 250.0, 70.0) } + day(y, 2000, 90.0, 250.0, 70.0).take(1)
+        val f = CoachFacts(input(meals))
+        assertEquals(listOf(MealSlot.DEJEUNER, MealSlot.DINER), f.missing(y))
+        // « Pas mangé » : ce n'est plus un oubli
+        assertEquals(listOf(MealSlot.DINER), CoachFacts(input(meals, skipped = setOf("$y#DEJEUNER"))).missing(y))
+        // Aujourd'hui : le déjeuner (vers 12 h 30) n'est « oublié » que 2 h après
+        val today = days.last()
+        assertEquals(listOf(MealSlot.PETIT_DEJ), f.missing(today, 14 * 60))
+        assertTrue(MealSlot.DEJEUNER in f.missing(today, 15 * 60))
+    }
+
+    @Test fun jamaisUnRepasQueLaPersonneNePrendPas() {
+        // Jamais de petit-déjeuner noté : il n'est jamais réclamé ; journée vide : déjeuner et dîner
+        val meals = days.dropLast(1).takeLast(14).flatMap { day(it, 2000, 90.0, 250.0, 70.0, breakfast = false) }
+        assertEquals(listOf(MealSlot.DEJEUNER, MealSlot.DINER), CoachFacts(input(meals)).missing(days.last()))
+        // Dîner sauté volontairement (jeûne, horaires décalés) : jamais réclamé
+        assertEquals(listOf(MealSlot.DEJEUNER), CoachFacts(input(meals).copy(fasting = setOf(MealSlot.DINER))).missing(days.last()))
+    }
+
     @Test fun perteTropRapide() {
         val w = listOf(days[13] to 80.0, days[20] to 78.4, days[27] to 76.8, days[33] to 75.4)
         val meals = past.flatMap { day(it, 1900, 100.0, 220.0, 60.0) }

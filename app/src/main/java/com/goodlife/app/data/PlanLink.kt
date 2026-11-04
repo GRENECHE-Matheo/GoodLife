@@ -44,9 +44,10 @@ object PlanLink {
      * À appeler après l'ajout d'un repas photographié. Gère seul les cas simples et renvoie le repas prévu
      * à proposer de remplacer (repas différent au même créneau), ou null.
      */
-    fun afterMeal(meal: Meal, slot: MealSlot = slotNow()): PlannedMeal? {
-        // Après minuit (avant 4 h), c'est encore le dîner de la veille
-        val today = localDay(if (Calendar.getInstance().get(Calendar.HOUR_OF_DAY) < 4) -1 else 0)
+    fun afterMeal(meal: Meal, slot: MealSlot = slotNow(Calendar.getInstance().apply { timeInMillis = meal.timestamp })): PlannedMeal? {
+        // Jour du repas (il peut avoir été noté après coup, la veille) ; après minuit (avant 4 h), c'est encore le dîner de la veille
+        val at = Calendar.getInstance().apply { timeInMillis = meal.timestamp; if (get(Calendar.HOUR_OF_DAY) < 4) add(Calendar.DAY_OF_YEAR, -1) }
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(at.time)
         val atSlot = Repo.plan.value.filter { it.date == today && it.slot == slot }
         val pending = atSlot.filter { !it.done }
         val match = pending.firstOrNull { similar(it.name, meal.name) }

@@ -277,6 +277,8 @@ fun ScanScreen(onDone: () -> Unit) {
                 leadingIcon = { Icon(Icons.Filled.Replay, null, Modifier.size(18.dp)) }
             )
         }
+        // Repas oublié : on choisit quand il a été mangé (aujourd'hui ou hier), il est rangé à la bonne heure
+        MealTimeChip()
         // Version Play sans abonnement : combien d'essais IA gratuits il reste
         val relay by com.goodlife.app.ai.Relay.status.collectAsState()
         val st = relay
@@ -461,11 +463,12 @@ fun ScanScreen(onDone: () -> Unit) {
                         r = res,
                         onAdd = { meal ->
                             // Boisson seule sans calories (eau, thé, café nature) : seulement l'eau du jour
-                            if (meal != null) Repo.addMeal(meal)
+                            val stored = meal?.let { Repo.addMeal(it) }
                             if (res.waterMl > 0) Repo.addWater(res.waterMl)
-                            // Planning du jour : ajouté s'il n'y avait rien de prévu, coché s'il était prévu, sinon on demande
-                            val planned = if (meal != null && !res.drinkOnly) com.goodlife.app.data.PlanLink.afterMeal(meal) else null
-                            if (planned != null && meal != null) replaceAsk = planned to meal else finish(res)
+                            // Planning du jour (ou de la veille, pour un repas noté après coup) : ajouté s'il n'y avait rien de prévu,
+                            // coché s'il était prévu, sinon on demande
+                            val planned = if (stored != null && !res.drinkOnly) com.goodlife.app.data.PlanLink.afterMeal(stored) else null
+                            if (planned != null && stored != null) replaceAsk = planned to stored else finish(res)
                         },
                         onRetake = { reset() },
                         onAsk = { chat = true },

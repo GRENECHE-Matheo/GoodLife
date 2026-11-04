@@ -33,6 +33,8 @@ import java.util.Locale
  * - le matin (8 h 30) : bilan de la veille, félicitations aux paliers, ou un seul « on reprend ? » après 3 jours d'absence ;
  * - à midi (11 h 45) : le repas prévu au planning et un petit mot ;
  * - « Tu as mangé ce midi ? » : 1 h 30 après l'heure habituelle du repas (apprise de tes repas), seulement s'il n'est pas noté ;
+ *   le soir, si rien n'est noté de la journée : « Aucune assiette aujourd'hui ? » ;
+ * - « Ton dîner d'hier ? » vers 9 h : un repas habituel de la veille toujours pas noté (oubli ou pas mangé), à rattraper ;
  * - « On bouge ? » vers 17 h 30 : séance du jour du programme, ou pas en baisse depuis 3 jours ;
  * - le soir (20 h) : seulement si rien n'a été noté de la journée et qu'une série est en cours ;
  * - le dimanche (19 h) : le bilan de la semaine.
@@ -82,21 +84,26 @@ object CoachNotifier {
         val profileOk = Repo.profile.value != null
         Kind.entries.forEach { kind ->
             val next = if (kind == Kind.MEAL) nextMealCheck() else null
-            val pi = pending(context, kind, next?.first)
+            val pi = pending(context, kind, next)
             if (profileOk && enabled(kind) && (kind != Kind.MEAL || next != null)) {
                 // Heure approximative (fenêtre de 15 min) : pas besoin de la permission « alarmes exactes »
-                am.setWindow(AlarmManager.RTC_WAKEUP, next?.second ?: next(kind), 15 * 60_000L, pi)
+                am.setWindow(AlarmManager.RTC_WAKEUP, next?.at ?: next(kind), 15 * 60_000L, pi)
             } else {
                 am.cancel(pi)
             }
         }
     }
 
-    private fun pending(context: Context, kind: Kind, slot: MealSlot? = null): PendingIntent = PendingIntent.getBroadcast(
+    private fun pending(context: Context, kind: Kind, check: MealCheckAt? = null): PendingIntent = PendingIntent.getBroadcast(
         context, kind.code,
-        Intent(context, CoachReceiver::class.java).setAction("com.goodlife.app.COACH_${kind.name}").apply { slot?.let { putExtra("slot", it.name) } },
+        Intent(context, CoachReceiver::class.java).setAction("com.goodlife.app.COACH_${kind.name}").apply {
+            check?.let { putExtra("slot", it.slot?.name ?: "ALL"); putExtra("day", it.day); putExtra("catchup", it.catchUp) }
+        },
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
+
+    /** Un rappel de repas prévu : créneau (null = toute la journée), jour, heure, et s'il s'agit d'un rattrapage de la veille. */
+    data class MealCheckAt(val slot: MealSlot?, val day: String, val at: Long, val catchUp: Boolean = false)
 
     private fun next(kind: Kind): Long {
         val now = Calendar.getInstance()
@@ -112,22 +119,37 @@ object CoachNotifier {
         return c.timeInMillis
     }
 
-    /** Prochain « tu as mangé ? » : le premier créneau surveillé dont l'heure de rappel n'est pas passée (aujourd'hui ou demain). */
-    private fun nextMealCheck(): Pair<MealSlot, Long>? {
+    private const val CATCHUP_MINUTE = 9 * 60
+
+    /**
+     * Prochain rappel de repas : le premier créneau surveillé dont l'heure n'est pas passée (aujourd'hui ou demain), ou,
+     * vers 9 h, le rattrapage de la veille. Tout est revérifié au moment d'envoyer (rien si le repas a été noté entre-temps).
+     */
+    private fun nextMealCheck(): MealCheckAt? {
         val input = CoachBrain.input() ?: return null
         val now = System.currentTimeMillis()
         val nowMin = CoachBrain.minuteOf(now)
         val slots = CoachBrain.watchedSlots(input)
         val (todayStart, tomorrowStart) = Repo.dayBounds(0)
-        val today = slots.mapNotNull { s -> CoachBrain.checkMinute(s, input)?.takeIf { it > nowMin && !CoachBrain.slotDone(s) }?.let { s to todayStart + it * 60_000L } }
-        val tomorrow = slots.mapNotNull { s -> CoachBrain.checkMinute(s, input)?.let { s to tomorrowStart + it * 60_000L } }
-        return (today.minByOrNull { it.second } ?: tomorrow.minByOrNull { it.second })
+        val today = slots.mapNotNull { s -> CoachBrain.checkMinute(s, input)?.takeIf { it > nowMin && !CoachBrain.slotDone(s) }?.let { MealCheckAt(s, localDay(0), todayStart + it * 60_000L) } }.toMutableList()
+        val yesterday = localDay(-1)
+        if (nowMin < CATCHUP_MINUTE && CoachStore.get().catchupAsked != yesterday && CoachBrain.forgotten(input).any { it.first == yesterday })
+            today += MealCheckAt(null, yesterday, todayStart + CATCHUP_MINUTE * 60_000L, catchUp = true)
+        val tomorrow = slots.mapNotNull { s -> CoachBrain.checkMinute(s, input)?.let { MealCheckAt(s, localDay(1), tomorrowStart + it * 60_000L) } } +
+            MealCheckAt(null, localDay(0), tomorrowStart + CATCHUP_MINUTE * 60_000L, catchUp = true)
+        return today.minByOrNull { it.at } ?: tomorrow.minByOrNull { it.at }
     }
 
     /** Contenu d'une notification : titre, texte, humeur du chef, canal, et destination dans l'app. */
-    data class Note(val title: String, val text: String, val mood: ChefMood, val remind: Boolean = false, val action: String = "", val channel: String = "")
+    data class Note(val title: String, val text: String, val mood: ChefMood, val remind: Boolean = false, val action: String = "", val channel: String = "", val snooze: Boolean = true)
 
-    fun build(kind: Kind, slot: MealSlot? = null): Note? {
+    /** « Ton dîner d'hier ? » (un repas) ou « Ta journée d'hier ? » (plusieurs). */
+    private fun catchUpNote(day: String, slots: List<MealSlot>): Note = Note(
+        CoachBrain.catchUpTitle(slots), CoachBrain.catchUpText(slots), ChefMood.QUESTION, remind = true,
+        action = if (slots.size == 1) "check:${slots[0].name}:$day" else "check:ALL:$day", channel = CH_MEAL, snooze = false
+    )
+
+    fun build(kind: Kind, slot: MealSlot? = null, day: String? = null, catchUp: Boolean = false): Note? {
         val p = Repo.profile.value ?: return null
         val s = Coach.summary() ?: return null
         val today = Repo.mealsOfDay(Repo.meals.value)
@@ -148,6 +170,13 @@ object CoachNotifier {
                         ), 3),
                         ChefMood.QUESTION, action = "add"
                     )
+                }
+                // Repas d'hier pas notés : pas de bilan faux. Le rattrapage de 9 h s'en charge, ou ce message s'il est coupé.
+                val missYesterday = CoachBrain.forgotten().filter { it.first == localDay(-1) }.map { it.second }
+                if (missYesterday.isNotEmpty()) {
+                    if (Repo.settings.value.notifMeal || CoachStore.get().catchupAsked == localDay(-1)) return null
+                    CoachStore.update { it.copy(catchupAsked = localDay(-1)) }
+                    return catchUpNote(localDay(-1), missYesterday).copy(remind = false, channel = "")
                 }
                 val y = s.history.lastOrNull()?.takeIf { it.date == localDay(-1) } ?: return null
                 if (y.kcal == 0) return null
@@ -202,8 +231,22 @@ object CoachNotifier {
                 Note(t("Pense à boire 💧"), t("Tu en es à %1\$s ml sur %2\$s ml aujourd'hui. Un grand verre d'eau ?", Coach.fmt(ml), Coach.fmt(goal)), ChefMood.CONTENT, remind = true)
             }
             Kind.MEAL -> {
+                if (!CoachBrain.activeLogger()) return null
+                // Rattrapage de la veille : une seule fois par jour, et seulement s'il manque encore quelque chose
+                if (catchUp) {
+                    val d = day ?: localDay(-1)
+                    val miss = CoachBrain.forgotten().filter { it.first == d }.map { it.second }
+                    if (miss.isEmpty() || CoachStore.get().catchupAsked == d) return null
+                    CoachStore.update { it.copy(catchupAsked = d) }
+                    return catchUpNote(d, miss)
+                }
                 val sl = slot ?: return null
-                if (!CoachBrain.activeLogger() || CoachBrain.slotDone(sl) || CoachBrain.recentMeal()) return null
+                if (CoachBrain.slotDone(sl) || CoachBrain.recentMeal()) return null
+                // Le soir, rien de noté de toute la journée : une seule question pour la journée entière
+                if (sl == MealSlot.DINER && today.isEmpty() && !CoachBrain.slotDone(MealSlot.DEJEUNER))
+                    return Note(t("Aucune assiette aujourd'hui ?"),
+                        t("Je n'ai vu aucun repas noté aujourd'hui. Oubli de noter, ou journée sans manger ? Tu peux tout rattraper en une minute."),
+                        ChefMood.QUESTION, remind = true, action = "check:ALL:${localDay(0)}", channel = CH_MEAL)
                 val (usual, learned) = CoachBrain.usualMeal(sl) ?: return null
                 Note(CoachBrain.mealCheckTitle(sl), CoachBrain.mealCheckText(sl, usual, learned), ChefMood.QUESTION, remind = true,
                     action = "check:${sl.name}:${localDay(0)}", channel = CH_MEAL)
@@ -225,12 +268,12 @@ object CoachNotifier {
     }
 
         /** [force] : seulement pour les tests de la version de développement (ignore plafonds et heures calmes). */
-    fun fire(context: Context, kind: Kind, slot: MealSlot? = null, force: Boolean = false) {
+    fun fire(context: Context, kind: Kind, slot: MealSlot? = null, force: Boolean = false, day: String? = null, catchUp: Boolean = false) {
         Repo.init(context)
         CoachStore.load()
         if (!enabled(kind) || !permissionGranted(context)) return
         if (!force && kind.key in CoachBrain.CAPPED && !CoachBrain.mayRemind(kind.key)) return
-        val note = build(kind, slot) ?: return
+        val note = build(kind, slot, day, catchUp) ?: return
         post(context, kind.code, note, kind.key)
         CoachBrain.recordSent(kind.key)
         if (kind == Kind.MOVE) CoachStore.update { it.copy(sent = it.sent + (System.currentTimeMillis() to "move:" + note.action.substringAfter('|'))) }
@@ -255,9 +298,8 @@ object CoachNotifier {
         CoachStore.load()
         if (day != localDay(0) || !permissionGranted(context) || CoachBrain.slotDone(slot) || CoachBrain.recentMeal()) return
         if (CoachBrain.isQuiet(CoachBrain.minuteOf(System.currentTimeMillis()))) return
-        val (usual, learned) = CoachBrain.usualMeal(slot) ?: return
-        post(context, Kind.MEAL.code, Note(CoachBrain.mealCheckTitle(slot), CoachBrain.mealCheckText(slot, usual, learned), ChefMood.QUESTION,
-            remind = true, action = "check:${slot.name}:$day", channel = CH_MEAL), "meal", later = false)
+        val note = build(Kind.MEAL, slot) ?: return
+        post(context, Kind.MEAL.code, note, "meal", later = false)
     }
 
     @android.annotation.SuppressLint("MissingPermission")   // vérifiée juste en dessous (permissionGranted)
@@ -300,9 +342,10 @@ object CoachNotifier {
         // Boutons (3 au plus) : répondre sans ouvrir l'app quand c'est possible
         if (!locked) when {
             note.action.startsWith("check:") -> {
-                b.addAction(0, t("Je le note"), open(id * 10 + 1, note.action + ":add:${msg.id}"))
+                val all = note.action.startsWith("check:ALL:")
+                b.addAction(0, if (all) t("Je les note") else t("Je le note"), open(id * 10 + 1, note.action + ":add:${msg.id}"))
                 b.addAction(0, t("Pas mangé"), act(id * 10 + 2, ACT_SKIP))
-                if (later) b.addAction(0, t("Plus tard"), act(id * 10 + 3, ACT_LATER))
+                if (later && note.snooze) b.addAction(0, t("Plus tard"), act(id * 10 + 3, ACT_LATER))
             }
             kindKey == "move" -> {
                 b.addAction(0, if (note.action.startsWith("forme:carte")) t("Je pars marcher") else t("Voir ma séance"), open(id * 10 + 1, note.action.substringBefore('|') + "|msg:${msg.id}"))
@@ -338,7 +381,7 @@ object CoachNotifier {
 
     /** Retire les rappels « Tu as mangé ? » et « On bouge ? » affichés (après un appui sur leurs boutons). */
     fun cancelReminders(context: Context) {
-        NotificationManagerCompat.from(context).apply { cancel(Kind.MEAL.code); cancel(Kind.MOVE.code) }
+        NotificationManagerCompat.from(context).apply { cancel(Kind.MEAL.code); cancel(Kind.MOVE.code); cancel(Kind.MORNING.code) }
     }
 
     /** Montre un exemple tout de suite (bouton « Voir un exemple » dans les Paramètres). */
@@ -359,15 +402,16 @@ class CoachReceiver : BroadcastReceiver() {
         val slot = intent.getStringExtra("slot")?.let { n -> MealSlot.entries.firstOrNull { it.name == n } }
         when (intent.action) {
             CoachNotifier.ACT_SKIP, CoachNotifier.ACT_LATER -> {
-                // action = « check:CRÉNEAU:jour »
+                // action = « check:CRÉNEAU:jour » (CRÉNEAU = ALL pour toute la journée)
                 val parts = intent.getStringExtra("action").orEmpty().split(':')
-                val s = parts.getOrNull(1)?.let { n -> MealSlot.entries.firstOrNull { it.name == n } } ?: return
                 val day = parts.getOrNull(2) ?: localDay(0)
+                val all = parts.getOrNull(1) == "ALL"
+                val s = parts.getOrNull(1)?.let { n -> MealSlot.entries.firstOrNull { it.name == n } }
                 if (intent.action == CoachNotifier.ACT_SKIP) {
-                    CoachStore.skip(day, s)
+                    if (all) CoachStore.skipAll(day, CoachBrain.missingOn(day)) else if (s != null) CoachStore.skip(day, s)
                     CoachStore.acted("meal")
-                    NotificationManagerCompat.from(context).cancel(CoachNotifier.Kind.MEAL.code)
-                } else CoachNotifier.later(context, s, day)
+                    CoachNotifier.cancelReminders(context)
+                } else CoachNotifier.later(context, s ?: MealSlot.DINER, day)
                 return
             }
             CoachNotifier.ACT_NOT_TODAY -> {
@@ -381,7 +425,7 @@ class CoachReceiver : BroadcastReceiver() {
             }
         }
         val kind = CoachNotifier.Kind.entries.firstOrNull { intent.action == "com.goodlife.app.COACH_${it.name}" } ?: return
-        runCatching { CoachNotifier.fire(context, kind, slot) }
+        runCatching { CoachNotifier.fire(context, kind, slot, day = intent.getStringExtra("day"), catchUp = intent.getBooleanExtra("catchup", false)) }
         CoachNotifier.schedule(context)
         runCatching { com.goodlife.app.widget.ChefWidgets.updateAll(context) }
     }

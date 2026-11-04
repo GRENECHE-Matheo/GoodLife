@@ -82,10 +82,13 @@ import com.goodlife.app.ui.formatDay
 import com.goodlife.app.ui.formatTime
 import kotlinx.coroutines.flow.MutableStateFlow
 
+/** « Tu as mangé ? » à ouvrir : créneau (null = toute la journée), jour, message d'origine (0 = aucun). */
+data class MealCheckReq(val slot: MealSlot?, val day: String, val msgId: Long = 0L)
+
 /** Ce qui est ouvert par-dessus l'app pour le coach (depuis une notification, l'accueil ou les paramètres). */
 object CoachPanels {
     val message = MutableStateFlow<Long?>(null)
-    val check = MutableStateFlow<Triple<MealSlot, String, Long>?>(null)   // créneau, jour, message d'origine (0 = aucun)
+    val check = MutableStateFlow<MealCheckReq?>(null)
     val week = MutableStateFlow(false)
     val inbox = MutableStateFlow(false)
     val memory = MutableStateFlow(false)
@@ -123,10 +126,12 @@ object CoachPanels {
         CoachStore.acted(msg.kind)
     }
 
-    private fun parseCheck(action: String, id: Long): Triple<MealSlot, String, Long>? {
+    private fun parseCheck(action: String, id: Long): MealCheckReq? {
         val parts = action.split(':')
-        val slot = MealSlot.entries.firstOrNull { it.name == parts.getOrNull(1) } ?: return null
-        return Triple(slot, parts.getOrNull(2) ?: localDay(0), id)
+        val name = parts.getOrNull(1) ?: return null
+        val slot = MealSlot.entries.firstOrNull { it.name == name }
+        if (slot == null && name != "ALL") return null
+        return MealCheckReq(slot, parts.getOrNull(2) ?: localDay(0), id)
     }
 }
 
@@ -142,7 +147,7 @@ fun CoachOverlays() {
     FullPanel(week) { WeeklyReportScreen(onBack = { CoachPanels.week.value = false }) }
     FullPanel(memory) { CoachMemoryScreen(onBack = { CoachPanels.memory.value = false }) }
     msgId?.let { id -> CoachStore.message(id)?.let { CoachMessageDialog(it) { CoachPanels.message.value = null } } ?: run { CoachPanels.message.value = null } }
-    check?.let { (slot, day, id) -> MealCheckDialog(slot, day, CoachStore.message(id)) { CoachPanels.check.value = null } }
+    check?.let { req -> MealCheckDialog(req.slot, req.day, CoachStore.message(req.msgId)) { CoachPanels.check.value = null } }
 }
 
 @Composable
@@ -201,9 +206,58 @@ fun CoachMessageDialog(msg: CoachMsg, onClose: () -> Unit) {
 /**
  * « Tu as mangé ce midi ? » : on note le repas comme on veut (il prend l'heure habituelle s'il est noté après coup),
  * ou on dit qu'on n'a pas mangé (sans commentaire, et sans casser la série), ou que ce repas est sauté volontairement.
+ * [slot] null : toute la journée (« Aucune assiette aujourd'hui ? », « Ta journée d'hier ? ») : on répond repas par repas.
  */
 @Composable
-fun MealCheckDialog(slot: MealSlot, day: String, origin: CoachMsg?, onClose: () -> Unit) {
+fun MealCheckDialog(slot: MealSlot?, day: String, origin: CoachMsg?, onClose: () -> Unit) {
+    val missing = remember(day) { CoachBrain.missingOn(day) }
+    var chosen by remember { mutableStateOf(slot ?: missing.singleOrNull()) }
+    val current = chosen
+    if (current == null) {
+        DayCheckDialog(day, missing, origin, onPick = { chosen = it }, onClose = onClose)
+        return
+    }
+    SlotCheckDialog(current, day, origin.takeIf { slot != null || missing.size <= 1 }, onBack = if (slot == null && missing.size > 1) ({ chosen = null }) else null, onClose = onClose)
+}
+
+/** Toute une journée : chaque repas pas noté, avec « Ajouter » ou « Pas mangé ». */
+@Composable
+private fun DayCheckDialog(day: String, missing: List<MealSlot>, origin: CoachMsg?, onPick: (MealSlot) -> Unit, onClose: () -> Unit) {
+    val mem by CoachStore.mem.collectAsState()
+    val today = day == localDay(0)
+    val left = missing.filter { "$day#${it.name}" !in mem.skipped }
+    AlertDialog(
+        onDismissRequest = onClose,
+        icon = { ChefMascot(size = 72.dp, mood = if (left.isEmpty()) ChefMood.CONTENT else ChefMood.QUESTION) },
+        title = { Text(when { left.isEmpty() -> t("C'est noté 👍"); today -> t("Aucune assiette aujourd'hui ?"); else -> t("Ta journée d'hier ?") }) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(origin?.text?.takeIf { it.isNotBlank() && left.isNotEmpty() }
+                    ?: if (left.isEmpty()) t("Tout est à jour pour cette journée. Merci, mes conseils seront justes.")
+                    else t("Oubli de noter, ou pas mangé ? Dis-le-moi repas par repas : tes calories, ton score et mes conseils resteront justes."),
+                    style = MaterialTheme.typography.bodyLarge)
+                missing.forEach { s ->
+                    val skipped = "$day#${s.name}" in mem.skipped
+                    HorizontalDivider()
+                    Text(s.label, style = MaterialTheme.typography.titleSmall)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        if (skipped) TextButton(onClick = { CoachStore.unskip(day, s) }) { Text(t("Pas mangé · annuler")) }
+                        else {
+                            TextButton(onClick = { CoachStore.skip(day, s) }) { Text(t("Pas mangé")) }
+                            Spacer(Modifier.width(8.dp))
+                            FilledTonalButton(onClick = { onPick(s) }) { Text(t("Ajouter")) }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text(if (left.isEmpty()) t("Fermer") else t("Plus tard")) } },
+        dismissButton = if (left.size > 1) ({ TextButton(onClick = { CoachStore.skipAll(day, left) }) { Text(t("Rien mangé")) } }) else null
+    )
+}
+
+@Composable
+private fun SlotCheckDialog(slot: MealSlot, day: String, origin: CoachMsg?, onBack: (() -> Unit)?, onClose: () -> Unit) {
     val context = LocalContext.current
     val settings by Repo.settings.collectAsState()
     val noun = slotNoun(slot)
@@ -238,6 +292,7 @@ fun MealCheckDialog(slot: MealSlot, day: String, origin: CoachMsg?, onClose: () 
                         )
                     }
                 }
+                if (answered == null && onBack != null) TextButton(onClick = onBack) { Text(t("← Les autres repas de la journée")) }
                 if (answered == null) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (aiReady) FilledTonalButton(onClick = { add("photo") }) { Text(t("📸 En photo")) }
@@ -385,7 +440,8 @@ private fun MetricRow(m: Metric) {
 @Composable
 private fun ChallengePicker(proposals: List<com.goodlife.app.coach.Challenge>, active: ActiveChallenge?) {
     val today = localDay(0)
-    val running = active != null && CoachBrain.daysBetween(active.start, today) in 0..6
+    // -1 : défi choisi le dimanche, qui commence demain
+    val running = active != null && CoachBrain.daysBetween(active.start, today) in -1..6
     var change by remember { mutableStateOf(false) }
     SectionCard(title = t("Ton défi de la semaine")) {
         if (running && !change) {

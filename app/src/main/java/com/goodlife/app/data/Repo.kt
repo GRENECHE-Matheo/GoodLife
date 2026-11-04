@@ -415,7 +415,7 @@ object Repo {
 
     // ---------- Repas ----------
     @Synchronized
-    fun addMeal(meal: Meal) {
+    fun addMeal(meal: Meal): Meal {
         // Garde-fou commun à toutes les sources (saisie, photo IA, code-barres, planning)
         // Repas noté après coup depuis « Tu as mangé ce midi ? » : il prend l'heure habituelle de ce repas
         val at = runCatching { com.goodlife.app.coach.CoachStore.mealTime(meal.timestamp) }.getOrDefault(meal.timestamp)
@@ -427,6 +427,7 @@ object Repo {
         _meals.value = (_meals.value + m).sortedByDescending { it.timestamp }
         persistMeals()
         runCatching { com.goodlife.app.coach.CoachStore.mealAdded(m.timestamp) }
+        return m
     }
 
     @Synchronized

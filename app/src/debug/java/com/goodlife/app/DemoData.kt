@@ -22,6 +22,13 @@ object DemoData {
         when (what) {
             "seed" -> seed()
             "meal" -> CoachNotifier.fire(context, CoachNotifier.Kind.MEAL, MealSlot.DEJEUNER, force = true)
+            "dinner" -> CoachNotifier.fire(context, CoachNotifier.Kind.MEAL, MealSlot.DINER, force = true)
+            "forget" -> {   // retire le dîner d'hier (données de test) pour tester le rattrapage
+                val (from, to) = Repo.dayBounds(-1)
+                Repo.meals.value.filter { it.source == "demo" && it.timestamp in from until to && it.timestamp >= from + 17 * 3600_000L }.forEach { Repo.deleteMeal(it.id) }
+                com.goodlife.app.coach.CoachStore.update { it.copy(catchupAsked = "") }
+            }
+            "catchup" -> CoachNotifier.fire(context, CoachNotifier.Kind.MEAL, null, force = true, day = localDay(-1), catchUp = true)
             "move" -> CoachNotifier.fire(context, CoachNotifier.Kind.MOVE, force = true)
             "weekly" -> CoachNotifier.fire(context, CoachNotifier.Kind.WEEKLY)
             "morning" -> CoachNotifier.fire(context, CoachNotifier.Kind.MORNING)

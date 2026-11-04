@@ -79,8 +79,9 @@ object CoachBrain {
         return best
     }
 
+    /** Jours de [a] à [b] (négatif si [b] est avant [a]) ; arrondi, pour les jours de 23 h ou 25 h du changement d'heure. */
     fun daysBetween(a: String, b: String): Int = runCatching {
-        ((dayFmt.parse(b)!!.time - dayFmt.parse(a)!!.time + DAY / 2) / DAY).toInt()
+        Math.round((dayFmt.parse(b)!!.time - dayFmt.parse(a)!!.time).toDouble() / DAY).toInt()
     }.getOrDefault(0)
 
     fun weekReport(): WeekReport? {
@@ -199,6 +200,38 @@ object CoachBrain {
         val since = Repo.dayBounds(-3).first
         return Repo.meals.value.any { it.timestamp >= since }
     }
+
+    /** Repas probablement oubliés hier et aujourd'hui (carte « Un repas oublié ? » et rappel du lendemain matin). */
+    fun forgotten(input: CoachInput? = input()): List<Pair<String, MealSlot>> {
+        val i = input ?: return emptyList()
+        if (!activeLogger()) return emptyList()
+        val f = CoachFacts(i)
+        val dismissed = CoachStore.get().catchupDismissed
+        val y = localDay(-1)
+        val today = localDay(0)
+        return (f.missing(y).map { y to it } + f.missing(today, i.nowMinute).map { today to it })
+            .filter { (d, s) -> "$d#${s.name}" !in dismissed }
+    }
+
+    /** Repas pas notés d'une journée (pour « Pas mangé » sur toute la journée) ; aujourd'hui, seulement ceux dont l'heure est passée. */
+    fun missingOn(day: String, input: CoachInput? = input()): List<MealSlot> {
+        val i = input ?: return emptyList()
+        return CoachFacts(i).missing(day, if (day == localDay(0)) i.nowMinute + 120 else 24 * 60)
+    }
+
+    /** « ton déjeuner et ton dîner » */
+    fun slotsText(slots: List<MealSlot>): String {
+        val l = slots.map { t("ton %1\$s", slotNoun(it)) }
+        return if (l.size <= 1) l.joinToString() else l.dropLast(1).joinToString(", ") + t(" et ") + l.last()
+    }
+
+    /** Rappel du lendemain : « Ton dîner d'hier ? Oubli ou pas mangé ? » */
+    fun catchUpTitle(slots: List<MealSlot>): String =
+        if (slots.size == 1) t("Ton %1\$s d'hier ?", slotNoun(slots[0])) else t("Ta journée d'hier ?")
+
+    fun catchUpText(slots: List<MealSlot>): String =
+        if (slots.size == 1) t("Je n'ai rien vu pour ton %1\$s d'hier. Oubli de le noter, ou pas mangé ? Si tu l'as oublié, ajoute-le en 2 secondes : ton score et mes conseils resteront justes.", slotNoun(slots[0]))
+        else t("Hier, il manque %1\$s. Oubli de les noter, ou pas mangé ? Si tu les as oubliés, ajoute-les en une minute : ton score et mes conseils resteront justes.", slotsText(slots))
 
     /** Heure (ms) à laquelle le repas sera noté s'il est ajouté après coup : son heure habituelle de ce jour-là. */
     fun usualTimeOn(slot: MealSlot, day: String): Long {

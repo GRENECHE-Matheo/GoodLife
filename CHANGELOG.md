@@ -8,6 +8,23 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
+## v0.21.0 — à venir (pas encore publiée)
+
+**Les repas oubliés se rattrapent : un oubli ne fausse plus tes calories, ton score ni les conseils du coach.**
+
+- ✨ **« Un repas oublié ? »** sur l'accueil : le chef repère les repas que tu prends d'habitude et qui ne sont pas notés
+  (hier et aujourd'hui). **Ajouter** (il est rangé à l'heure habituelle de ce repas, même pour hier) ou **Pas mangé**.
+- ✨ **« Ton dîner d'hier ? »** : le lendemain vers 9 h, si un repas de la veille manque encore, le chef demande
+  « oubli ou pas mangé ? », avec « Je le note » et « Pas mangé » directement dans la notification.
+- ✨ **« Aucune assiette aujourd'hui ? »** : le soir, si rien n'est noté de la journée, une seule question pour toute la
+  journée, puis on répond repas par repas (ou « Rien mangé »).
+- ✨ **« C'était quand ? »** dans Ajouter : pour un repas oublié, choisis le moment (aujourd'hui ou hier, petit-déjeuner,
+  déjeuner, goûter, dîner) ; il est rangé à la bonne heure, et le planning de ce jour-là suit.
+- 🛠️ Le bilan du matin n'affiche plus un score faux quand un repas d'hier manque : il propose de le rattraper.
+- 🐛 Un repas noté après coup « pour hier » pouvait être rangé aujourd'hui (erreur de calcul des jours) : corrigé.
+
+---
+
 ## v0.20.0 — 26/10/2026
 
 **Un vrai coach : il regarde plus que les calories, il te dit franchement ce qui coince, et il te relance au bon moment.**

@@ -289,6 +289,9 @@ private fun HomeContent(
         }
         FridgeUndoCard()
 
+        // Repas oubliés (hier et aujourd'hui) : à rattraper, sinon les calories, le score et les conseils sont faussés
+        CatchUpCard()
+
         // Le point du chef : une seule chose, la plus utile du moment (calculée sur le téléphone)
         if (!settings.coachNewAsked && settings.notifAsked) NewCoachCard()
         MuteAskCard()

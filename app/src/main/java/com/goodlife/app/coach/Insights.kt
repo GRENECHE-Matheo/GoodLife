@@ -239,6 +239,29 @@ class CoachFacts(val input: CoachInput) {
     fun missedSlot(slot: MealSlot): Int = past7.count { d -> mealsOn(d).isNotEmpty() && mealsOn(d).none { it.slot == slot } }
     fun skippedSlot(slot: MealSlot): Int = past7.count { "$it#${slot.name}" in input.skipped }
 
+    /** Le repas de ce créneau est-il noté (ou marqué « pas mangé ») ? Un repas après 17 h 30 compte comme dîner. */
+    fun noted(day: String, slot: MealSlot): Boolean = "$day#${slot.name}" in input.skipped ||
+        mealsOn(day).any { it.slot == slot || (slot == MealSlot.DINER && it.slot == MealSlot.COLLATION && it.minute >= 17 * 60 + 30) }
+
+    /**
+     * Repas probablement oubliés ce jour-là : ceux que la personne prend d'habitude (heure apprise), passés de 2 h
+     * avant [untilMinute], ni notés ni marqués « pas mangé ». Journée entièrement vide : déjeuner et dîner, même sans
+     * habitude. Jamais un repas sauté volontairement (jeûne, horaires décalés).
+     */
+    fun missing(day: String, untilMinute: Int = 24 * 60): List<MealSlot> {
+        val empty = mealsOn(day).isEmpty()
+        return listOf(MealSlot.PETIT_DEJ, MealSlot.DEJEUNER, MealSlot.DINER).filter { s ->
+            if (s in input.fasting || noted(day, s)) return@filter false
+            val usual = usualTime(s) ?: when {
+                !empty -> return@filter false
+                s == MealSlot.DEJEUNER -> 12 * 60 + 30
+                s == MealSlot.DINER -> 19 * 60 + 45
+                else -> return@filter false
+            }
+            usual + 120 <= untilMinute
+        }
+    }
+
     // ---------- Signaux d'alerte (troubles alimentaires, perte trop rapide) ----------
     val lowDays: Int = completePast7.count { kcal(it) < 0.5 * tdee }
     /** 3 jours bien notés sous la moitié des besoins, ou les 3 derniers jours tous notés sous la moitié de l'objectif. */
