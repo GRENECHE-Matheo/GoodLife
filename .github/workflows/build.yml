@@ -8,12 +8,43 @@ on:
     paths-ignore: [ '**.md' ]
   workflow_dispatch:
 
-permissions:
-  contents: write
+# Aucun droit par défaut : chaque tâche demande seulement ce dont elle a besoin
+permissions: {}
 
 jobs:
-  build:
+  # Vérification de chaque envoi (main ou lancement à la main) : compilé avec une clé de test, sans aucun secret.
+  check:
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Compiler les deux versions et lancer les tests (clé de test)
+        env:
+          LIFOODY_RELAY_URL: ${{ vars.LIFOODY_RELAY_URL }}
+          LIFOODY_CLOUD_PROJECT: ${{ vars.LIFOODY_CLOUD_PROJECT }}
+        run: gradle assembleGithubRelease bundlePlayRelease testGithubDebugUnitTest --stacktrace --no-daemon
+
+  # Version officielle (tag v…) : la SEULE tâche qui reçoit la clé de signature. Les secrets sont rangés dans
+  # l'environnement GitHub « release » : GitHub attend l'accord de Mathéo (« Approve ») et refuse toute branche
+  # ou tag non autorisés. Une compilation ajoutée ou modifiée sur une autre branche ne peut donc pas lire la clé.
+  release:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -30,16 +61,13 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.GOODLIFE_KEYSTORE_B64 }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/goodlife.jks"
-            echo "GOODLIFE_KEYSTORE=$RUNNER_TEMP/goodlife.jks" >> "$GITHUB_ENV"
-          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+          if [ -z "$KEYSTORE_B64" ]; then
             # Une version publiée doit toujours être signée avec la vraie clé (sinon les mises à jour échoueraient)
             echo "::error::Pas de keystore : publication refusée."
             exit 1
-          else
-            echo "::warning::Pas de keystore : APK signé avec une clé de debug."
           fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/goodlife.jks"
+          echo "GOODLIFE_KEYSTORE=$RUNNER_TEMP/goodlife.jks" >> "$GITHUB_ENV"
 
       - name: Compiler l'APK (GitHub) et l'AAB (Google Play)
         env:
@@ -73,11 +101,9 @@ jobs:
           path: GoodLife-play-*.aab
 
       - name: Notes de version (tirées de CHANGELOG.md)
-        if: startsWith(github.ref, 'refs/tags/')
         run: sh .github/release-notes.sh "$GITHUB_REF_NAME" > notes.md
 
       - name: Publier la release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           name: GoodLife ${{ github.ref_name }}
@@ -88,7 +114,6 @@ jobs:
 
       # L'app (version GitHub) cherche sa mise à jour dans la release « Latest » : ce doit être la plus récente
       - name: Marquer la version la plus récente comme « Latest »
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
