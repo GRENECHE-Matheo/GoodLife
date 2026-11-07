@@ -8,7 +8,7 @@ Légende : ✨ nouveau · 🛠️ amélioré · 🐛 corrigé · 🔒 sécurité
 
 ---
 
-## v0.21.0 — à venir (pas encore publiée)
+## v0.21.0 — 07/11/2026
 
 **Les repas oubliés se rattrapent : un oubli ne fausse plus tes calories, ton score ni les conseils du coach.**
 

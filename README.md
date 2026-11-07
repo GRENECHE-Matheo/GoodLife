@@ -22,7 +22,13 @@ Interface Material You, **aucun compte, aucune pub** : tes données restent chif
 Ensuite, l'app te prévient toute seule quand une nouvelle version sort et l'installe en un bouton
 (après avoir vérifié l'empreinte du fichier et sa signature).
 
-## 🆕 Nouveautés de la v0.20.0
+## 🆕 Nouveautés de la v0.21.0
+
+- **Les repas oubliés se rattrapent** : « Un repas oublié ? » sur l'accueil, « Ton dîner d'hier ? » le lendemain matin,
+  « Aucune assiette aujourd'hui ? » le soir, et « C'était quand ? » dans Ajouter pour ranger un repas à la bonne heure.
+- **Notifications bloquées par Android** : l'app explique pourquoi et mène directement au bon réglage.
+
+## Nouveautés de la v0.20.0
 
 - **Un vrai coach** : chaque jour, le point du chef (pas que les calories : protéines, repas sautés, pas, sommeil),
   « Tu as mangé ce midi ? » à l'heure de tes repas, « On bouge ? », un bilan de la semaine avec un défi à choisir,
